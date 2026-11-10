@@ -10,6 +10,7 @@ from pathlib import Path
 ASR = "fake"    # speech-to-text:  "fake" or "real"
 LLM = "real"    # intent repair:   "fake" or "real"
 TTS = "fake"    # text-to-speech:  "fake" or "real"
+ACTIONS = "fake"  # acting on the Mac: "fake" (nothing really happens) or "real"
 
 CAMERA = "builtin"  # always the MacBook's own camera, never an iPhone
 
@@ -40,6 +41,12 @@ HF_MODELS = Path.home() / "Documents" / "huggingface" / "models"
 WHISPERKIT_MODEL_PATH = HF_MODELS / "argmaxinc" / "whisperkit-coreml" / "openai_whisper-small.en"
 WHISPERKIT_PORT = 50060
 ASR_TIMEOUT_S = 30
+
+# Acting on the Mac (see actions/mac.py)
+EMAIL_REALLY_SEND = False   # False: a reply is prepared in a Mail window but NOT sent
+MAX_APPS = 40               # how many app names the Brain may choose from
+MAX_TARGETS = 25            # how many on-screen buttons/links the Brain may choose from
+ACTION_TIMEOUT_S = 8        # no automation call may hang longer than this
 
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset
 TTS_TIMEOUT_S = 120

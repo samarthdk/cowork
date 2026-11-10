@@ -16,6 +16,12 @@ or an app that does not exist.
 from repair.profile import phrase_codes
 
 CONFIDENCE = {"type": "string", "enum": ["high", "low"]}
+# Details whose real values change from moment to moment (what is on screen).
+# Measured in LM Studio: if the instructions (system message) are unchanged, a
+# request starts answering in 0.1-0.4 s; if anything inside them changes, a large
+# part is re-read (about 4 s for a 64-phrase profile). So changing lists go in
+# the request (user message), never in the instructions.
+DYNAMIC_DETAILS = ("target",)
 MAX_FREE_TEXT = 120   # characters, for details with no fixed list (e.g. a reply message)
 MAX_LISTED = 40       # at most this many real values are listed per detail
 
@@ -82,7 +88,10 @@ def build_messages(profile: dict, heard: str, context: dict | None = None) -> li
         needs = []
         for arg, meaning in c["args"].items():
             values = listed_values(arg, context)
-            needs.append(f'"{arg}": one of {", ".join(values)}' if values else f'"{arg}": {meaning}')
+            if arg in DYNAMIC_DETAILS:
+                needs.append(f'"{arg}": {meaning} (the real choices are listed with the request)')
+            else:
+                needs.append(f'"{arg}": one of {", ".join(values)}' if values else f'"{arg}": {meaning}')
         commands.append(f"- {c['name']}: {c['description']}" + (f" Needs {'; '.join(needs)}." if needs else ""))
     # Learned examples go near the end, so the unchanging start of the prompt
     # can be reused by LM Studio between calls.
@@ -109,7 +118,19 @@ Rules:
 - "confidence" is "high" only if you are sure; otherwise "low".
 {examples}Reply with JSON only, on ONE line with no spaces or line breaks."""
 
+    now = ""
+    for arg in DYNAMIC_DETAILS:
+        values = listed_values(arg, context)
+        if values and any(arg in c["args"] for c in usable_commands(profile, context)):
+            now += f'Right now "{arg}" can be one of: {" | ".join(values)}\n'
     return [
         {"role": "system", "content": system},
-        {"role": "user", "content": f"The person said: \"{heard}\""},
+        {"role": "user", "content": f"{now}The person said: \"{heard}\""},
     ]
+
+
+def heard_from(messages: list[dict]) -> str:
+    """The heard text back out of a request (used by the fake model)."""
+    import re
+    found = re.search(r'The person said: "(.*)"\s*$', messages[-1]["content"], re.DOTALL)
+    return found.group(1) if found else ""

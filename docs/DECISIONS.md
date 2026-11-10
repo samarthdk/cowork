@@ -44,3 +44,35 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
     one second per answer for little value.
   - Command details come from real lists where possible (for `open_app`, the apps actually
     installed), so the model cannot invent an app name.
+
+## Conversation engine and prompt layout
+
+- **One engine for every front-end** (`engine/session.py`): the flow pauses on a Question and
+  resumes on an Answer, so keyboard, voice, hand signals and the web page all drive the same
+  logic. `scripts/demo_text.py` is now a thin keyboard layer over it.
+- **Silence is not a "no".** An unanswered "Did you mean ...?" ends with nothing chosen.
+- **Stable things in the instructions, changing things in the request.** Measured in
+  LM Studio: an unchanged system message answers in 0.1-0.4 s; any change inside it costs
+  about 4 s with a 64-phrase profile. So phrases, commands, rules and learned examples stay
+  in the system message (with a background warm-up after learning), and on-screen click
+  targets go in the user message.
+- **Commands are checked against learned examples only**, never against their own name
+  (the other words a person says are the details, e.g. the reply text).
+
+## Acting on the Mac
+
+- `actions/` has a fake and a real version (`config.ACTIONS`). Every automation call has a
+  timeout; a missing permission comes back as a plain-English problem.
+- **Replies are prepared in Mail but not sent** unless `config.EMAIL_REALLY_SEND = True`.
+- Accessibility permission is NOT granted to Terminal yet, so scrolling, key presses and
+  clicking on-screen buttons are untested on the real Mac (fakes only).
+- New package: `pyobjc-framework-ApplicationServices` (small) to read on-screen buttons.
+
+## Evaluation (in progress)
+
+- Demo speaker: **TORGO M04** (most repeated material; raw WhisperKit exact match about 12%).
+  F03, M05 and M01 are used to tune the confidence rule so M04 stays an honest test.
+- Early finding: the Brain's first pick was right about 70% of the time on M04 sentences
+  where raw WhisperKit was about 0% and nearest-text matching 14%, but the model's own
+  "high" confidence was often wrong there. "High" must require evidence from the heard
+  words; that rule is not yet rewritten.

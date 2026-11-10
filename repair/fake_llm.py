@@ -9,7 +9,7 @@ from difflib import SequenceMatcher
 
 from metrics import log_call
 from repair.llm import LLMReply
-from repair.prompt import schema_choices, schema_details
+from repair.prompt import heard_from, schema_choices, schema_details
 
 STOPWORDS = {"i", "im", "i'm", "a", "an", "the", "my", "me", "to", "some", "could",
              "have", "need", "please", "use", "of", "can", "you", "is", "it", "in"}
@@ -55,7 +55,7 @@ class FakeLLM:
     def complete(self, messages: list[dict], schema: dict, purpose: str = "intent",
                  temperature: float = 0.0) -> LLMReply:
         start = time.perf_counter()
-        heard_text = re.sub(r'^The person said: "|"$', "", messages[-1]["content"])
+        heard_text = heard_from(messages)
         if "guess" in schema.get("properties", {}):
             # Free-text guess: the fake tidies up what was typed, and numbers
             # later attempts so "guess again" gives something different.
