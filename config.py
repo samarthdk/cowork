@@ -34,6 +34,12 @@ SAME_PHRASE_SIMILARITY = 90 # a new sentence this similar to an existing phrase 
 MAX_GUESS_CHARS = 120       # "Something else" guesses are one short sentence
 GUESS_AGAIN_TEMPERATURE = 0.8  # some randomness for guesses 2 and 3 (else it repeats itself)
 
+# Speech recognition (WhisperKit local server; see asr/server.py)
+HF_MODELS = Path.home() / "Documents" / "huggingface" / "models"
+WHISPERKIT_MODEL_PATH = HF_MODELS / "argmaxinc" / "whisperkit-coreml" / "openai_whisper-small.en"
+WHISPERKIT_PORT = 50060
+ASR_TIMEOUT_S = 30
+
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset
 TTS_TIMEOUT_S = 120
 
