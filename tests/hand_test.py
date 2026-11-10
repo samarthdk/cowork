@@ -2,13 +2,14 @@
 
 Shows the webcam in a window and prints, for each visible hand:
   - which hand it is (LEFT or RIGHT, from the user's point of view)
-  - whether the thumb is UP or DOWN
+  - whether the thumb is UP, DOWN or NONE (NONE whenever it is not clear)
 
 Run from the project folder:
     .venv/bin/python tests/hand_test.py
 Press q (with the video window selected) to quit.
 """
 
+import math
 import sys
 import time
 from pathlib import Path
@@ -24,25 +25,67 @@ import config  # noqa: E402
 MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "hand_landmarker.task"
 
 # Landmark numbers MediaPipe uses for the hand points we need.
-WRIST, THUMB_MCP, THUMB_TIP, MIDDLE_MCP = 0, 2, 4, 9
+WRIST = 0
+THUMB_MCP, THUMB_IP, THUMB_TIP = 2, 3, 4
+INDEX_MCP, MIDDLE_MCP = 5, 9
+# (middle knuckle, fingertip) for index, middle, ring and little finger.
+FINGERS = [(6, 8), (10, 12), (14, 16), (18, 20)]
 
-# How far (as a fraction of hand size) the thumb tip must be above/below
-# its base knuckle to count as UP or DOWN. Bigger = stricter.
-THUMB_THRESHOLD = 0.35
+# Thresholds. All distances are measured relative to hand size
+# (wrist to middle-finger base knuckle). Raise a number to make it stricter.
+THUMB_MIN_REACH = 0.75     # thumb tip this far from the index base knuckle = extended
+THUMB_MIN_STRAIGHT = 0.90  # 1.0 = perfectly straight thumb
+THUMB_MAX_TILT_DEG = 35    # how far from straight up/down the thumb may lean
 
 
-def thumb_state(landmarks) -> str:
-    """Return 'UP', 'DOWN' or 'SIDEWAYS' for one hand's landmarks."""
-    tip, base = landmarks[THUMB_TIP], landmarks[THUMB_MCP]
-    wrist, middle = landmarks[WRIST], landmarks[MIDDLE_MCP]
-    hand_size = ((wrist.x - middle.x) ** 2 + (wrist.y - middle.y) ** 2) ** 0.5 or 1e-6
-    # Image y grows downwards, so a positive value means the tip is higher.
-    rise = (base.y - tip.y) / hand_size
-    if rise > THUMB_THRESHOLD:
-        return "UP"
-    if rise < -THUMB_THRESHOLD:
-        return "DOWN"
-    return "SIDEWAYS"
+def thumb_state(landmarks, aspect: float = 1.0) -> str:
+    """Return 'UP', 'DOWN' or 'NONE' for one hand.
+
+    Project rule: when unsure, select nothing. UP/DOWN needs ALL of:
+      1. the thumb is extended (tip far from the index finger's base knuckle),
+      2. the thumb is straight, not bent,
+      3. it points clearly up or down, not sideways,
+      4. the other four fingers are curled (rules out an open flat hand).
+    Anything else, including a fist, is NONE.
+
+    `aspect` is image width / height. MediaPipe's x and y are fractions of
+    the width and the height, so x is scaled to make distances true.
+    """
+    def pt(i):
+        return landmarks[i].x * aspect, landmarks[i].y
+
+    def dist(a, b):
+        return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2) ** 0.5
+
+    wrist = pt(WRIST)
+    hand_size = dist(wrist, pt(MIDDLE_MCP))
+    if hand_size < 1e-6:
+        return "NONE"
+    mcp, ip, tip = pt(THUMB_MCP), pt(THUMB_IP), pt(THUMB_TIP)
+
+    # 1. Extended: in a fist the thumb tip sits close to the index knuckle.
+    if dist(tip, pt(INDEX_MCP)) / hand_size < THUMB_MIN_REACH:
+        return "NONE"
+
+    # 2. Straight: the straight-line length almost equals the length along the joints.
+    along_joints = dist(mcp, ip) + dist(ip, tip)
+    if along_joints < 1e-6 or dist(mcp, tip) / along_joints < THUMB_MIN_STRAIGHT:
+        return "NONE"
+
+    # 3. Clearly vertical.
+    dx, dy = tip[0] - mcp[0], tip[1] - mcp[1]
+    length = (dx * dx + dy * dy) ** 0.5
+    max_sideways = length * math.sin(math.radians(THUMB_MAX_TILT_DEG))
+    if abs(dx) > max_sideways:
+        return "NONE"
+
+    # 4. Other fingers curled: each fingertip is closer to the wrist than its middle knuckle.
+    for knuckle, fingertip in FINGERS:
+        if dist(pt(fingertip), wrist) >= dist(pt(knuckle), wrist):
+            return "NONE"
+
+    # Image y grows downwards, so a tip above the base (smaller y) means UP.
+    return "UP" if dy < 0 else "DOWN"
 
 
 def draw_hand(frame, landmarks) -> None:
@@ -105,7 +148,7 @@ def main() -> int:
             lines = []
             for landmarks, handedness in zip(result.hand_landmarks, result.handedness):
                 side = handedness[0].category_name.upper()  # "LEFT" or "RIGHT"
-                thumb = thumb_state(landmarks)
+                thumb = thumb_state(landmarks, frame.shape[1] / frame.shape[0])
                 lines.append(f"{side} hand raised - thumb {thumb}")
                 draw_hand(frame, landmarks)
             if not lines:
