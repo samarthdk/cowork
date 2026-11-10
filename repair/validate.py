@@ -5,7 +5,7 @@ import json
 import re
 from dataclasses import dataclass, field
 
-from repair.profile import all_arg_names, all_choices, find_command
+from repair.profile import all_arg_names, all_choices, decode, find_command
 
 
 class BadJSON(ValueError):
@@ -42,10 +42,10 @@ def validate(data: dict, profile: dict) -> Intent:
     allowed = all_choices(profile)
     problems = []
 
-    choice = data.get("choice")
-    if choice not in allowed:
-        problems.append(f"unknown choice: {choice!r}")
-        choice = None
+    # The model answers with codes (P1...) or command names; turn them into the real text.
+    choice = decode(profile, data.get("choice"))
+    if choice is None:
+        problems.append(f"unknown choice: {data.get('choice')!r}")
 
     raw_args = data.get("args") if isinstance(data.get("args"), dict) else {}
     if not isinstance(data.get("args"), dict):
@@ -67,9 +67,10 @@ def validate(data: dict, profile: dict) -> Intent:
 
     raw_options = data.get("options") if isinstance(data.get("options"), list) else []
     options = []
-    for option in raw_options:
-        if option not in allowed:
-            problems.append(f"unknown option: {option!r}")
+    for raw in raw_options:
+        option = decode(profile, raw)
+        if option is None:
+            problems.append(f"unknown option: {raw!r}")
         elif option not in options:
             options.append(option)
 

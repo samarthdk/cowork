@@ -57,9 +57,15 @@ class FakeLLM:
         heard = _words(heard_text)
         choices = schema["properties"]["choice"]["enum"]
         arg_names = list(schema["properties"]["args"]["properties"])
+        # Phrase codes (P1...) mean nothing on their own; read what each code
+        # stands for from the prompt, exactly as the real model has to.
+        meaning = dict(re.findall(r"^- (P\d+): (.+)$", messages[0]["content"], re.MULTILINE))
 
-        ranked = sorted(choices, key=lambda c: _score(heard, c), reverse=True)
-        best, second = _score(heard, ranked[0]), _score(heard, ranked[1])
+        def score(choice):
+            return _score(heard, meaning.get(choice, choice))
+
+        ranked = sorted(choices, key=score, reverse=True)
+        best, second = score(ranked[0]), score(ranked[1])
         confident = best >= 0.5 and best - second >= 0.2
 
         reply = json.dumps({

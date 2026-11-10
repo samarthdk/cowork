@@ -8,6 +8,28 @@ def load_profile(path) -> dict:
     return json.loads(Path(path).read_text())
 
 
+def phrase_codes(profile: dict) -> dict[str, str]:
+    """Short code for each phrase, in profile order: {"P1": "I'm thirsty, ...", ...}.
+    The model answers with these codes (much shorter, so faster), never free text."""
+    return {f"P{i}": phrase for i, phrase in enumerate(profile["phrases"], 1)}
+
+
+def model_choices(profile: dict) -> list[str]:
+    """What the model may answer: the phrase codes, then the command names."""
+    return list(phrase_codes(profile)) + [c["name"] for c in profile["commands"]]
+
+
+def decode(profile: dict, answer) -> str | None:
+    """Turn a model answer (a code or a command name) into the real phrase or
+    command name. Anything else gives None."""
+    codes = phrase_codes(profile)
+    if answer in codes:
+        return codes[answer]
+    if answer in [c["name"] for c in profile["commands"]]:
+        return answer
+    return None
+
+
 def all_choices(profile: dict) -> list[str]:
     """Every allowed answer: the phrases, then the command names."""
     return profile["phrases"] + [c["name"] for c in profile["commands"]]

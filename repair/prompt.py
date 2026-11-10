@@ -1,12 +1,12 @@
 """Builds the instructions and the strict JSON schema sent to the model."""
 
-from repair.profile import all_arg_names, all_choices
+from repair.profile import all_arg_names, model_choices, phrase_codes
 
 
 def build_schema(profile: dict) -> dict:
-    """The reply shape. `choice` and every option may ONLY be one of the profile's
-    phrases or command names, so the model cannot invent text."""
-    choices = all_choices(profile)
+    """The reply shape. `choice` and every option may ONLY be a phrase code
+    (P1, P2, ...) or a command name, so the model cannot invent text."""
+    choices = model_choices(profile)
     arg_names = all_arg_names(profile)
     return {
         "type": "object",
@@ -32,7 +32,7 @@ def build_schema(profile: dict) -> dict:
 
 
 def build_messages(profile: dict, heard: str) -> list[dict]:
-    phrases = "\n".join(f"- {p}" for p in profile["phrases"])
+    phrases = "\n".join(f"- {code}: {text}" for code, text in phrase_codes(profile).items())
     commands = []
     for c in profile["commands"]:
         args = "; ".join(f'{k} = {v}' for k, v in c["args"].items()) or "none"
@@ -42,18 +42,18 @@ def build_messages(profile: dict, heard: str) -> list[dict]:
     system = f"""You help a person whose speech is impaired. What they said may be garbled,
 misheard or incomplete. Decide what they most likely mean, choosing ONLY from this list.
 
-PHRASES (sentences to say out loud to other people):
+PHRASES (sentences to say out loud to other people), each with its code:
 {phrases}
 
 COMMANDS (actions on the Mac):
 {chr(10).join(commands)}
 
 Rules:
-- "choice" must be exactly one phrase or command name from the list above.
+- "choice" must be exactly one phrase CODE (like P1) or one command name from the list above.
 - "args" always has the keys {arg_names}. Fill the ones the chosen command needs
   from what the person said; set all others to "".
 - "confidence" is "high" only if you are sure; otherwise "low".
-- "options" lists the 4 most likely choices, best first.
+- "options" lists the 4 most likely choices (codes or command names), best first.
 Reply with JSON only, on ONE line with no spaces or line breaks."""
 
     return [
