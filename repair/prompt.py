@@ -38,6 +38,15 @@ def build_messages(profile: dict, heard: str) -> list[dict]:
         args = "; ".join(f'{k} = {v}' for k, v in c["args"].items()) or "none"
         commands.append(f"- {c['name']}: {c['description']} (args: {args})")
     arg_names = ", ".join(f'"{a}"' for a in all_arg_names(profile))
+    # Learned examples go near the end, so the unchanging start of the prompt
+    # can be reused by LM Studio between calls.
+    from repair.learning import prompt_examples
+    learned = prompt_examples(profile)
+    examples = ""
+    if learned:
+        lines = "\n".join(f'- "{heard}" -> {label}' for heard, label in learned)
+        examples = ("\nHow this person's speech has been misheard before "
+                    f"(what was heard -> what they meant):\n{lines}\n\n")
 
     system = f"""You help a person whose speech is impaired. What they said may be garbled,
 misheard or incomplete. Decide what they most likely mean, choosing ONLY from this list.
@@ -54,7 +63,7 @@ Rules:
   from what the person said; set all others to "".
 - "confidence" is "high" only if you are sure; otherwise "low".
 - "options" lists the 4 most likely choices (codes or command names), best first.
-Reply with JSON only, on ONE line with no spaces or line breaks."""
+{examples}Reply with JSON only, on ONE line with no spaces or line breaks."""
 
     return [
         {"role": "system", "content": system},

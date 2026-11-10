@@ -2,11 +2,17 @@
 
 Run from the project folder:
     .venv/bin/python scripts/demo_text.py
-Type q (or press Enter on an empty line) to quit.
+    .venv/bin/python scripts/demo_text.py --fresh   (start learning from scratch)
+Type q (or press Enter on an empty line) to quit, or undo to forget the last
+thing learned.
 
 When unsure it asks "Did you mean ...?" (y/n). If not, it shows the next-best
 options plus "Something else" (the model's free guess, which you confirm).
 A confirmed new sentence is added to your phrases (profiles/profile.json).
+
+Learning: every confirmed answer is saved as an example. Saying something very
+close to a saved example again answers instantly ("FAST PATH"), without the LLM.
+--fresh starts from a clean copy of the base profile (the old one is backed up).
 """
 
 import argparse
@@ -22,7 +28,9 @@ from repair import get_llm, repair  # noqa: E402
 from repair.guess import free_guess  # noqa: E402
 from repair.profile import find_command, phrase_codes  # noqa: E402
 from repair.rank import SOMETHING_ELSE, rank_options  # noqa: E402
-from repair.store import add_phrase, open_profile, save_profile  # noqa: E402
+from repair.learning import fast_path  # noqa: E402
+from repair.store import (add_example, add_phrase, fresh_profile, open_profile,  # noqa: E402
+                          save_profile, undo_last)
 from tts import get_tts  # noqa: E402
 
 
@@ -86,29 +94,30 @@ def fill_missing_args(choice: str, args: dict, profile: dict) -> dict:
     return args
 
 
-def something_else(heard: str, profile: dict, llm) -> str | None:
-    """Ask the model for a free guess; return the confirmed sentence or None."""
+def something_else(heard: str, profile: dict, llm) -> tuple[str | None, bool]:
+    """Ask the model for a free guess. Returns (the confirmed sentence or None,
+    whether it was added as a new phrase)."""
     start = time.perf_counter()
     guess, problem = free_guess(heard, profile, llm)
     took_ms = (time.perf_counter() - start) * 1000
     if guess is None:
         print(f"Couldn't make a guess ({problem}).")
-        return None
+        return None, False
     print(f"(guess took {took_ms:.0f} ms)")
     if not ask_yes_no(f'\nMy guess (NOT from your list): "{guess}"\nIs that right?'):
-        return None
+        return None, False
     phrase, added = add_phrase(profile, guess)
     if added:
         code = next(c for c, p in phrase_codes(profile).items() if p == phrase)
         print(f'New phrase added as {code}: "{phrase}"')
     else:
         print(f'That is already one of your phrases: "{phrase}"')
-    return phrase
+    return phrase, added
 
 
 def decide(heard: str, intent, profile: dict, llm):
     """Work out what the person meant. Returns (choice, args, how) or None.
-    how: "confident", "confirmed", "picked" or "new phrase"."""
+    how: "confident" (not learned from), "confirmed", "picked" or "new phrase"."""
     if intent.confidence == "high":
         return intent.choice, intent.args, "confident"
 
@@ -124,21 +133,32 @@ def decide(heard: str, intent, profile: dict, llm):
     if picked is None:
         return None
     if picked == SOMETHING_ELSE:
-        phrase = something_else(heard, profile, llm)
-        return (phrase, {}, "new phrase") if phrase else None
+        phrase, added = something_else(heard, profile, llm)
+        if phrase is None:
+            return None
+        return phrase, {}, ("new phrase" if added else "picked")
     args = intent.args if find_command(profile, picked) else {}
     return picked, fill_missing_args(picked, args, profile), "picked"
 
 
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description="Second Voice text demo")
+    parser.add_argument("--fresh", action="store_true",
+                        help="start from a clean copy of the base profile (old one backed up)")
     parser.add_argument("--profile", default=str(config.PROFILE_PATH), help=argparse.SUPPRESS)
     options = parser.parse_args(argv)
 
+    if options.fresh:
+        backup = fresh_profile(options.profile, backup_dir=Path(options.profile).parent / "backups")
+        print("FRESH START: learned examples and added phrases cleared.")
+        if backup:
+            print(f"  (previous profile backed up to {backup})")
     profile = open_profile(options.profile)
+    learned_count = len(profile["examples"])
     llm, tts = get_llm(), get_tts()
     print(f"Second Voice text demo  (LLM: {config.LLM}, TTS: {config.TTS})")
-    print("Type what the person said, garbled is fine. q to quit.\n")
+    print(f"Learned examples so far: {learned_count}")
+    print("Type what the person said, garbled is fine. undo = forget the last thing learned, q = quit.\n")
 
     while True:
         try:
@@ -147,18 +167,41 @@ def main(argv=None) -> None:
             break
         if heard.lower() in ("", "q", "quit"):
             break
+        if heard.lower() in ("undo", "undo last"):
+            removed, phrase_removed = undo_last(profile)
+            if removed is None:
+                print("Nothing to undo.\n")
+                continue
+            save_profile(profile, options.profile)
+            meaning = describe(removed["meant"], removed["args"], profile)
+            print(f"UNDONE: forgot '{removed['heard']}' -> '{meaning}'")
+            if phrase_removed:
+                print(f"  (and removed the phrase it added: '{removed['meant']}')")
+            print()
+            continue
 
-        start = time.perf_counter()
-        intent = repair(heard, profile, llm)
-        took_ms = (time.perf_counter() - start) * 1000
-        print(json.dumps(intent.to_dict(), indent=2))
-        print(f"took {took_ms:.0f} ms")
+        match = fast_path(heard, profile)
+        if match:
+            intent = match.intent
+            print(f"FAST PATH: matched a learned example ({match.similarity:.0f}% similar) "
+                  f"in {match.latency_ms:.1f} ms")
+            print(f"  learned earlier: '{match.example['heard']}' -> "
+                  f"'{describe(intent.choice, intent.args, profile)}'  (LLM not called)")
+        else:
+            start = time.perf_counter()
+            intent = repair(heard, profile, llm)
+            took_ms = (time.perf_counter() - start) * 1000
+            print(json.dumps(intent.to_dict(), indent=2))
+            print(f"took {took_ms:.0f} ms (LLM)")
 
         result = decide(heard, intent, profile, llm)
         if result is None:
             print("Nothing chosen.\n")
             continue
         choice, args, how = result
+        if how != "confident":  # only confirmed answers are learned from
+            add_example(profile, heard, choice, args, new_phrase=(how == "new phrase"))
+            print(f"Learned: '{heard}' -> '{describe(choice, args, profile)}'")
         save_profile(profile, options.profile)
         tts.speak(sentence_for(choice, args, profile))
         print()

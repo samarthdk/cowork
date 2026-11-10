@@ -71,3 +71,36 @@ def add_phrase(profile: dict, text: str) -> tuple[str, bool]:
             return phrase, False
     profile["phrases"].append(text)
     return text, True
+
+
+# ---- Learned examples: heard text -> what the person meant -----------------
+
+MAX_EXAMPLES = 500  # plenty; the oldest are dropped beyond this
+
+
+def add_example(profile: dict, heard: str, meant: str, args: dict | None = None,
+                new_phrase: bool = False) -> dict:
+    """Save a confirmed result. `new_phrase` marks that this confirmation also
+    added `meant` to the phrases (so undo can remove it again)."""
+    example = {"heard": heard.strip(), "meant": meant,
+               "args": {k: v for k, v in (args or {}).items() if v},
+               "new_phrase": new_phrase, "time": time.strftime("%Y-%m-%d %H:%M:%S")}
+    profile.setdefault("examples", []).append(example)
+    del profile["examples"][:-MAX_EXAMPLES]
+    return example
+
+
+def undo_last(profile: dict) -> tuple[dict | None, bool]:
+    """Remove the last saved example. If that confirmation added a new phrase and
+    no other example uses it, remove the phrase too.
+    Returns (the removed example or None, whether a phrase was removed)."""
+    examples = profile.get("examples", [])
+    if not examples:
+        return None, False
+    removed = examples.pop()
+    phrase_removed = False
+    if removed["new_phrase"] and not any(e["meant"] == removed["meant"] for e in examples):
+        if removed["meant"] in profile["phrases"]:
+            profile["phrases"].remove(removed["meant"])
+            phrase_removed = True
+    return removed, phrase_removed
