@@ -16,6 +16,7 @@ CAMERA = "builtin"  # always the MacBook's own camera, never an iPhone
 # ---- Details (rarely changed) ---------------------------------------------
 ROOT = Path(__file__).resolve().parent
 PROFILE_PATH = ROOT / "profiles" / "sample_profile.json"
+GESTURES_PATH = ROOT / "profiles" / "gestures.json"   # made by hand calibration
 LOG_DIR = ROOT / "logs"
 
 LLM_BASE_URL = "http://localhost:1234/v1"   # LM Studio local server
