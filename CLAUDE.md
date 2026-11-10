@@ -16,6 +16,7 @@ I am not an engineer. Explain what you are doing in plain language, tell me exac
 
 ## Core design (tested and confirmed)
 - The model never guesses freely. It always chooses from a short list: the user's own phrases and commands (speech profile), plus what is on screen.
+  - One deliberate exception: "Something else" asks the model for one free-text sentence guess. Only on the user's request, clearly labeled as a guess, confirmed with yes/no, and only ever spoken (never a Mac action).
 - Every reply is strict JSON with a "confidence" field ("high" or "low").
 - High confidence: act or speak. Low confidence: show the top 4 options in a 2x2 grid and let the user choose.
 

@@ -5,8 +5,8 @@ import sys
 
 import config
 from repair import get_llm, repair
-from repair.profile import load_profile
+from repair.store import open_profile
 
 heard = " ".join(sys.argv[1:]) or "wanna watr pleez"
-intent = repair(heard, load_profile(config.PROFILE_PATH), get_llm())
+intent = repair(heard, open_profile(), get_llm())
 print(json.dumps(intent.to_dict(), indent=2))

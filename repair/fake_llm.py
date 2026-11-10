@@ -51,9 +51,15 @@ def _guess_args(heard_text: str, arg_names: list[str]) -> dict:
 
 
 class FakeLLM:
-    def complete(self, messages: list[dict], schema: dict) -> LLMReply:
+    def complete(self, messages: list[dict], schema: dict, purpose: str = "intent") -> LLMReply:
         start = time.perf_counter()
         heard_text = re.sub(r'^The person said: "|"$', "", messages[-1]["content"])
+        if "guess" in schema["properties"]:
+            # Free-text guess: the fake simply tidies up what was typed.
+            guess = heard_text.strip().capitalize().rstrip(".") + "."
+            latency = (time.perf_counter() - start) * 1000
+            log_call("llm", "fake", latency, purpose=purpose, tokens=0, tokens_per_s=0)
+            return LLMReply(json.dumps({"guess": guess}), latency, 0, 0.0)
         heard = _words(heard_text)
         choices = schema["properties"]["choice"]["enum"]
         arg_names = list(schema["properties"]["args"]["properties"])
@@ -75,5 +81,5 @@ class FakeLLM:
             "options": ranked[:4],
         })
         latency = (time.perf_counter() - start) * 1000
-        log_call("llm", "fake", latency, tokens=0, tokens_per_s=0)
+        log_call("llm", "fake", latency, purpose=purpose, tokens=0, tokens_per_s=0)
         return LLMReply(reply, latency, 0, 0.0)

@@ -15,7 +15,9 @@ CAMERA = "builtin"  # always the MacBook's own camera, never an iPhone
 
 # ---- Details (rarely changed) ---------------------------------------------
 ROOT = Path(__file__).resolve().parent
-PROFILE_PATH = ROOT / "profiles" / "sample_profile.json"
+BASE_PROFILE_PATH = ROOT / "profiles" / "sample_profile.json"   # the original; never changed
+PROFILE_PATH = ROOT / "profiles" / "profile.json"   # working copy: learning goes here
+PROFILE_BACKUP_DIR = ROOT / "profiles" / "backups"  # --fresh saves the old working copy here
 GESTURES_PATH = ROOT / "profiles" / "gestures.json"   # made by hand calibration
 LOG_DIR = ROOT / "logs"
 
@@ -23,6 +25,13 @@ LLM_BASE_URL = "http://localhost:1234/v1"   # LM Studio local server
 LLM_MODEL = "ternary-bonsai-2-4b"
 LLM_TIMEOUT_S = 60
 LLM_MAX_TOKENS = 150   # a normal answer is about 65-75 tokens
+
+# Learning and options
+FAST_PATH_SIMILARITY = 90   # % similar to a learned example to skip the LLM
+FAST_PATH_MIN_CHARS = 5     # shorter than this must match a learned example exactly
+PROMPT_EXAMPLES = 10        # most recent learned examples shown to the LLM
+SAME_PHRASE_SIMILARITY = 90 # a new sentence this similar to an existing phrase reuses it
+MAX_GUESS_CHARS = 120       # "Something else" guesses are one short sentence
 
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset
 TTS_TIMEOUT_S = 120

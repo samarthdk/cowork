@@ -17,3 +17,7 @@ logs/
 
 # Personal hand calibration (re-made by pressing c in the hand test)
 profiles/gestures.json
+
+# Personal working profile and its backups (made from sample_profile.json)
+profiles/profile.json
+profiles/backups/
