@@ -1,0 +1,15 @@
+# Python virtual environment
+.venv/
+
+# Audio recordings
+*.wav
+*.m4a
+
+# Datasets
+datasets/
+
+# Downloaded model files (large; re-download instead of committing)
+models/
+
+# Python cache
+__pycache__/
