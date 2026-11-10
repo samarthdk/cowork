@@ -1,15 +1,15 @@
-"""Webcam hand-tracking test, calibrated to the user.
+"""Webcam hand-gesture test. No setup needed.
 
-Shows the webcam in a window and prints, for each visible hand:
-  - which hand it is (LEFT or RIGHT, from the user's point of view)
-  - the thumb: UP, DOWN or NONE (NONE whenever it is not clear)
-
-The first run starts calibration automatically (about 40 seconds) and saves it
-to profiles/gestures.json.
+For each visible hand it shows which hand it is (LEFT or RIGHT, from the
+user's point of view) and the thumb: UP, DOWN or NONE. Hold a thumb gesture
+for about 1 second to select it: a ring fills up around the hand, then
+"SELECTED" appears. Each selection is quietly saved as an example so the
+detection adapts to the user's hand over time (profiles/gestures.json).
 
 Run from the project folder:
     .venv/bin/python tests/hand_test.py
-Keys (click the video window first):  c = calibrate again   q = quit
+Keys (click the video window first):
+    c = optional calibration (press again to cancel)    q = quit
 """
 
 import sys
@@ -23,11 +23,13 @@ from mediapipe.tasks.python import vision
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import config  # noqa: E402
-from choose.hands import (DEFAULT_HANDEDNESS, CalibrationSession,  # noqa: E402
-                          load_calibration, measure, save_calibration)
+from choose.hands import (CalibrationSession, HoldConfirm, load_model,  # noqa: E402
+                          measure, save_model)
 
 MODEL_PATH = config.ROOT / "models" / "hand_landmarker.task"
-MESSAGE_S = 6  # how long "Calibration saved" (and any warnings) stay on screen
+SELECTED_S = 1.5   # how long "SELECTED" stays on screen
+MESSAGE_S = 6      # how long calibration messages stay on screen
+RING_RADIUS = 45
 
 
 def draw_hand(frame, landmarks) -> None:
@@ -39,11 +41,24 @@ def draw_hand(frame, landmarks) -> None:
         cv2.circle(frame, (int(p.x * w), int(p.y * h)), 4, (0, 0, 255), -1)
 
 
-def draw_lines(frame, lines, color=(255, 255, 255), y=40, scale=1.0) -> None:
+def draw_ring(frame, landmarks, progress: float, label: str, selected: bool) -> None:
+    """Progress ring around the palm: fills as the gesture is held."""
+    h, w = frame.shape[:2]
+    palm = landmarks[9]
+    center = (int(palm.x * w), int(palm.y * h))
+    color = (0, 255, 0) if selected else (0, 200, 255)
+    cv2.circle(frame, center, RING_RADIUS, (80, 80, 80), 4)
+    if progress > 0:
+        cv2.ellipse(frame, center, (RING_RADIUS, RING_RADIUS), -90, 0, 360 * progress, color, 8)
+        cv2.putText(frame, label, (center[0] - 30, center[1] - RING_RADIUS - 12),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
+
+
+def draw_lines(frame, lines, color=(255, 255, 255), y=40, scale=0.9) -> None:
     for text in lines:
         cv2.putText(frame, text, (20, y), cv2.FONT_HERSHEY_SIMPLEX, scale, (0, 0, 0), 5)
         cv2.putText(frame, text, (20, y), cv2.FONT_HERSHEY_SIMPLEX, scale, color, 2)
-        y += int(42 * scale)
+        y += int(40 * scale)
 
 
 def main() -> int:
@@ -69,13 +84,15 @@ def main() -> int:
               "and allow your Terminal app, then try again.")
         return 1
 
-    calibration = load_calibration(config.GESTURES_PATH)
-    session = None if calibration else CalibrationSession(time.monotonic())
+    model = load_model(config.GESTURES_PATH)
+    holds = {"LEFT": HoldConfirm(), "RIGHT": HoldConfirm()}
+    selected = {}            # side -> (pose, until)
+    session = None           # optional calibration, only when c is pressed
     message, message_until = [], 0.0
 
     start = time.monotonic()
     last_ts = -1
-    print("Running. Keys in the video window: c = calibrate again, q = quit.")
+    print("Running. Keys in the video window: c = optional calibration, q = quit.")
     try:
         while True:
             ok, frame = cap.read()
@@ -83,7 +100,7 @@ def main() -> int:
                 print("Lost the camera feed.")
                 break
 
-            frame = cv2.flip(frame, 1)  # mirror view, like looking in a mirror
+            frame = cv2.flip(frame, 1)  # mirror view
             aspect = frame.shape[1] / frame.shape[0]
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
@@ -95,43 +112,61 @@ def main() -> int:
             result = landmarker.detect_for_video(image, ts)
             latency_ms = (time.perf_counter() - t0) * 1000
 
-            detections = []
+            detections, seen = [], {}
             for landmarks, handedness in zip(result.hand_landmarks, result.handedness):
-                detections.append((handedness[0].category_name, measure(landmarks, aspect)))
+                label = handedness[0].category_name
+                hand = measure(landmarks, aspect)
+                detections.append((label, hand))
+                side = model.side(label)
+                if side in holds and side not in seen:
+                    seen[side] = (landmarks, hand)
                 draw_hand(frame, landmarks)
 
             if session:
                 draw_lines(frame, session.update(now, detections), color=(0, 255, 255))
                 if session.done:
-                    save_calibration(config.GESTURES_PATH, session.result)
-                    calibration = load_calibration(config.GESTURES_PATH)
-                    message = ["Calibration saved."] + session.warnings
-                    for line in message:
-                        print(line)
-                    message_until = now + MESSAGE_S
-                    session = None
+                    message = ["Calibration saved."] + model.apply_calibration(session.result)
+                    save_model(config.GESTURES_PATH, model)
+                    print("\n".join(message))
+                    message_until, session = now + MESSAGE_S, None
+                    holds = {"LEFT": HoldConfirm(), "RIGHT": HoldConfirm()}
             else:
                 lines = []
-                for label, features in detections:
-                    if calibration:
-                        side = calibration.side(label)
-                        thumb, reason = calibration.explain(side, features)
-                    else:
-                        side, thumb, reason = DEFAULT_HANDEDNESS.get(label, "UNKNOWN"), "NONE", "not calibrated"
-                    lines.append(f"{side} hand raised - thumb {thumb}  ({reason})")
+                for side, hold in holds.items():
+                    if side not in seen:
+                        hold.update(now, "NONE", None)   # hand gone: counts against
+                        continue
+                    landmarks, hand = seen[side]
+                    answer, reason = model.explain(side, hand)
+                    picked, candidate, progress = hold.update(now, answer, hand)
+                    if picked:
+                        example = hold.example(picked)
+                        if example:
+                            model.add_example(side, picked, example)
+                            save_model(config.GESTURES_PATH, model)
+                        selected[side] = (picked, now + SELECTED_S)
+                        print(f"SELECTED: {side} thumb {picked}")
+                    is_selected = side in selected and now < selected[side][1]
+                    ring_label = f"{selected[side][0]} SELECTED" if is_selected else (candidate or "")
+                    draw_ring(frame, landmarks, 1.0 if is_selected else progress, ring_label, is_selected)
+                    learned = model.limits(side, hand.direction if hand else "UP")[2]
+                    lines.append(f"{side} hand - thumb {answer}  ({reason})  learned: {learned}")
                 draw_lines(frame, lines or ["No hand raised"])
                 if now < message_until:
                     draw_lines(frame, message, color=(0, 255, 0), y=frame.shape[0] - 120, scale=0.7)
 
-            cv2.putText(frame, f"hand model: {latency_ms:.0f} ms   c = calibrate   q = quit",
-                        (20, frame.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+            cv2.putText(frame, f"hand model: {latency_ms:.0f} ms   c = calibrate (optional)   q = quit",
+                        (20, frame.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
             cv2.imshow("Second Voice - hand test", frame)
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
                 break
             if key == ord("c"):
-                session = CalibrationSession(time.monotonic())
+                if session:
+                    session, message, message_until = None, ["Calibration cancelled."], now + MESSAGE_S
+                else:
+                    session = CalibrationSession(time.monotonic())
     finally:
         cap.release()
         cv2.destroyAllWindows()
