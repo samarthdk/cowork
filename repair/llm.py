@@ -10,6 +10,8 @@ class LLMReply:
     latency_ms: float
     completion_tokens: int
     tokens_per_s: float
+    finish_reason: str = "stop"   # "length" = cut off at the token limit
+    thinking_tokens: int = 0      # should always be 0 (thinking is off)
 
 
 class LLM(Protocol):

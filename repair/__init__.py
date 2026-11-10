@@ -26,6 +26,11 @@ def repair(heard: str, profile: dict, llm) -> Intent:
     for attempt in (1, 2):
         try:
             reply = llm.complete(messages, schema)
+            if reply.finish_reason == "length":
+                # Cut off at the token limit. Retrying would give the same answer
+                # (temperature 0), so go straight to low confidence.
+                return failed(profile, f"answer cut off at {reply.completion_tokens} tokens "
+                                       f"({reply.thinking_tokens} spent thinking)")
             intent = validate(parse_json(reply.text), profile)
             if attempt == 2:
                 intent.problems.insert(0, f"first try failed ({problem}), retry worked")

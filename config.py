@@ -8,7 +8,7 @@ from pathlib import Path
 
 # ---- Switches -------------------------------------------------------------
 ASR = "fake"    # speech-to-text:  "fake" or "real"
-LLM = "fake"    # intent repair:   "fake" or "real"
+LLM = "real"    # intent repair:   "fake" or "real"
 TTS = "fake"    # text-to-speech:  "fake" or "real"
 
 CAMERA = "builtin"  # always the MacBook's own camera, never an iPhone
@@ -22,6 +22,7 @@ LOG_DIR = ROOT / "logs"
 LLM_BASE_URL = "http://localhost:1234/v1"   # LM Studio local server
 LLM_MODEL = "ternary-bonsai-2-4b"
 LLM_TIMEOUT_S = 60
+LLM_MAX_TOKENS = 150   # a normal answer is about 65-75 tokens
 
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset
 TTS_TIMEOUT_S = 120

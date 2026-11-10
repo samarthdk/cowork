@@ -54,7 +54,7 @@ Rules:
   from what the person said; set all others to "".
 - "confidence" is "high" only if you are sure; otherwise "low".
 - "options" lists the 4 most likely choices, best first.
-Reply with JSON only. /no_think"""
+Reply with JSON only, on ONE line with no spaces or line breaks."""
 
     return [
         {"role": "system", "content": system},

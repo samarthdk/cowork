@@ -21,16 +21,23 @@ class LMStudioLLM:
             model=config.LLM_MODEL,
             messages=messages,
             temperature=0,
-            max_tokens=300,
+            max_tokens=config.LLM_MAX_TOKENS,
             # Strict JSON: LM Studio forces the reply to follow this schema.
             response_format={"type": "json_schema",
                              "json_schema": {"name": "intent", "strict": True, "schema": schema}},
-            # Thinking disabled (the prompt also ends with /no_think).
-            extra_body={"chat_template_kwargs": {"enable_thinking": False}},
+            # Thinking OFF. Tested 2026-11-10 with LM Studio + Bonsai 2 4B: only
+            # reasoning_effort "none" works. chat_template_kwargs enable_thinking
+            # and a /no_think instruction are both ignored; "low" still thinks.
+            extra_body={"reasoning_effort": "none"},
         )
         latency = (time.perf_counter() - start) * 1000
-        tokens = response.usage.completion_tokens if response.usage else 0
+        usage = response.usage
+        tokens = usage.completion_tokens if usage else 0
+        details = getattr(usage, "completion_tokens_details", None) if usage else None
+        thinking = (getattr(details, "reasoning_tokens", 0) or 0) if details else 0
         tps = tokens / (latency / 1000) if latency else 0.0
-        log_call("llm", "lmstudio", latency, model=config.LLM_MODEL,
-                 tokens=tokens, tokens_per_s=round(tps, 1))
-        return LLMReply(response.choices[0].message.content or "", latency, tokens, tps)
+        finish = response.choices[0].finish_reason or ""
+        log_call("llm", "lmstudio", latency, model=config.LLM_MODEL, tokens=tokens,
+                 thinking_tokens=thinking, tokens_per_s=round(tps, 1), finish_reason=finish)
+        return LLMReply(response.choices[0].message.content or "", latency, tokens, tps,
+                        finish_reason=finish, thinking_tokens=thinking)
