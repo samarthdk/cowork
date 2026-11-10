@@ -73,8 +73,10 @@ def compare(heard: str, text: str) -> tuple[str, str]:
 
 def check(heard: str, choice: str, profile: dict) -> tuple[bool, str]:
     """(ok to keep high confidence, reason if not)."""
-    command = find_command(profile, choice)
-    texts = [choice.replace("_", " ") if command else choice]
+    # A phrase is compared with its own words and its learned examples. A command
+    # is compared only with learned examples: nobody says "reply_email", and the
+    # other words they say are the details (which app, what message).
+    texts = [] if find_command(profile, choice) else [choice]
     texts += [e["heard"] for e in profile.get("examples", []) if e["meant"] == choice]
     reasons = []
     for text in texts:

@@ -22,7 +22,7 @@ class LMStudioLLM:
             model=config.LLM_MODEL,
             messages=messages,
             temperature=temperature,
-            max_tokens=config.LLM_MAX_TOKENS,
+            max_tokens={"guess": config.GUESS_MAX_TOKENS, "warmup": 4}.get(purpose, config.LLM_MAX_TOKENS),
             # Strict JSON: LM Studio forces the reply to follow this schema.
             response_format={"type": "json_schema",
                              "json_schema": {"name": purpose, "strict": True, "schema": schema}},

@@ -9,6 +9,7 @@ from difflib import SequenceMatcher
 
 from metrics import log_call
 from repair.llm import LLMReply
+from repair.prompt import schema_choices, schema_details
 
 STOPWORDS = {"i", "im", "i'm", "a", "an", "the", "my", "me", "to", "some", "could",
              "have", "need", "please", "use", "of", "can", "you", "is", "it", "in"}
@@ -55,7 +56,7 @@ class FakeLLM:
                  temperature: float = 0.0) -> LLMReply:
         start = time.perf_counter()
         heard_text = re.sub(r'^The person said: "|"$', "", messages[-1]["content"])
-        if "guess" in schema["properties"]:
+        if "guess" in schema.get("properties", {}):
             # Free-text guess: the fake tidies up what was typed, and numbers
             # later attempts so "guess again" gives something different.
             guess = heard_text.strip().capitalize().rstrip(".")
@@ -66,8 +67,7 @@ class FakeLLM:
             log_call("llm", "fake", latency, purpose=purpose, tokens=0, tokens_per_s=0)
             return LLMReply(json.dumps({"guess": guess, "key_words": words}), latency, 0, 0.0)
         heard = _words(heard_text)
-        choices = schema["properties"]["choice"]["enum"]
-        arg_names = list(schema["properties"]["args"]["properties"])
+        choices = schema_choices(schema)
         # Phrase codes (P1...) mean nothing on their own; read what each code
         # stands for from the prompt, exactly as the real model has to.
         meaning = dict(re.findall(r"^- (P\d+): (.+)$", messages[0]["content"], re.MULTILINE))
@@ -76,15 +76,20 @@ class FakeLLM:
             return _score(heard, meaning.get(choice, choice))
 
         ranked = sorted(choices, key=score, reverse=True)
-        best, second = score(ranked[0]), score(ranked[1])
+        best, second = score(ranked[0]), score(ranked[1]) if len(ranked) > 1 else 0.0
         confident = best >= 0.5 and best - second >= 0.2
 
-        reply = json.dumps({
-            "choice": ranked[0],
-            "args": _guess_args(heard_text, arg_names),
-            "confidence": "high" if confident else "low",
-            "options": ranked[:4],
-        })
+        answer = {"choice": ranked[0]}
+        details = schema_details(schema, ranked[0])
+        guessed = _guess_args(heard_text, list(details))
+        for name, real_values in details.items():
+            value = guessed.get(name, "")
+            if real_values:  # must be one of the real values: take the closest to any word said
+                words = heard_text.split() or [""]
+                value = max(real_values, key=lambda v: max(_similar(w.lower(), v.lower()) for w in words))
+            answer[name] = value
+        answer["confidence"] = "high" if confident else "low"
+        reply = json.dumps(answer)
         latency = (time.perf_counter() - start) * 1000
         log_call("llm", "fake", latency, purpose=purpose, tokens=0, tokens_per_s=0)
         return LLMReply(reply, latency, 0, 0.0)

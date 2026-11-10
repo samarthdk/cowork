@@ -20,6 +20,7 @@ class Intent:
     confidence: str             # "high" or "low"
     options: list[str]          # up to 4 choices for the grid
     problems: list[str] = field(default_factory=list)
+    stats: dict = field(default_factory=dict)   # how it was reached: source, time, tokens/second
 
     def to_dict(self) -> dict:
         return self.__dict__.copy()
@@ -38,7 +39,9 @@ def parse_json(text: str) -> dict:
     return data
 
 
-def validate(data: dict, profile: dict) -> Intent:
+def validate(data: dict, profile: dict, context: dict | None = None) -> Intent:
+    """`context` gives the real values some details must come from (e.g. the
+    installed apps); a detail outside its list is a problem."""
     allowed = all_choices(profile)
     problems = []
 
@@ -47,9 +50,11 @@ def validate(data: dict, profile: dict) -> Intent:
     if choice is None:
         problems.append(f"unknown choice: {data.get('choice')!r}")
 
-    raw_args = data.get("args") if isinstance(data.get("args"), dict) else {}
-    if not isinstance(data.get("args"), dict):
+    # Details arrive either next to the choice ({"choice":"open_app","app":"Safari"})
+    # or, in the older shape, inside "args".
+    if "args" in data and not isinstance(data["args"], dict):
         problems.append("args missing or not an object")
+    raw_args = data["args"] if isinstance(data.get("args"), dict) else data
     args = {name: str(raw_args.get(name, "") or "").strip() for name in all_arg_names(profile)}
 
     kind = None
@@ -60,6 +65,17 @@ def validate(data: dict, profile: dict) -> Intent:
             for needed in command["args"]:
                 if not args.get(needed):
                     problems.append(f"{choice} needs '{needed}' but it is empty")
+                    continue
+                real = (context or {}).get(needed)
+                if real is not None:
+                    match = next((v for v in real if v.lower() == args[needed].lower()), None)
+                    if match is None:
+                        problems.append(f"{choice}: '{args[needed]}' is not one of the real choices for '{needed}'")
+                    else:
+                        args[needed] = match
+            args = {name: (value if name in command["args"] else "") for name, value in args.items()}
+        else:
+            args = {name: "" for name in args}
 
     confidence = data.get("confidence")
     if confidence not in ("high", "low"):

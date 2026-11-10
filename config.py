@@ -24,7 +24,8 @@ LOG_DIR = ROOT / "logs"
 LLM_BASE_URL = "http://localhost:1234/v1"   # LM Studio local server
 LLM_MODEL = "ternary-bonsai-2-4b"
 LLM_TIMEOUT_S = 60
-LLM_MAX_TOKENS = 150   # a normal answer is about 65-75 tokens
+LLM_MAX_TOKENS = 80    # a normal answer is 11-25 tokens; a reply message can add about 30
+GUESS_MAX_TOKENS = 120 # a free guess: one sentence plus up to 3 key words
 
 # Learning and options
 FAST_PATH_SIMILARITY = 90   # % similar to a learned example to skip the LLM
