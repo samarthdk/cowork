@@ -1,15 +1,20 @@
 """Webcam hand-gesture test. No setup needed.
 
-For each visible hand it shows which hand it is (LEFT or RIGHT, from the
-user's point of view) and the thumb: UP, DOWN or NONE. Hold a thumb gesture
-for about 1 second to select it: a ring fills up around the hand, then
-"SELECTED" appears. Each selection is quietly saved as an example so the
+Modes (press m to switch; the current mode is shown at the top):
+  YES/NO BY HAND    raise your LEFT hand (any pose) = left option,
+                    RIGHT hand = right option. Hands resting low are ignored.
+  YES/NO, ONE HAND  that hand's thumb UP = yes, thumb DOWN = no (h = switch hand)
+  FOUR CHOICES      LEFT/RIGHT hand + thumb UP/DOWN
+
+Hold for about 1 second to select: a ring fills around the hand, then
+"SELECTED" appears. Thumb selections are quietly saved as examples so the
 detection adapts to the user's hand over time (profiles/gestures.json).
 
 Run from the project folder:
     .venv/bin/python tests/hand_test.py
 Keys (click the video window first):
-    c = optional calibration (press again to cancel)    q = quit
+    m = switch mode   h = switch hand (one-hand mode)
+    c = optional calibration (press again to cancel)   q = quit
 """
 
 import sys
@@ -23,8 +28,8 @@ from mediapipe.tasks.python import vision
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import config  # noqa: E402
-from choose.hands import (CalibrationSession, HoldConfirm, load_model,  # noqa: E402
-                          measure, save_model)
+from choose.hands import (LOW_IN_FRAME, MODES, CalibrationSession,  # noqa: E402
+                          GestureReader, load_model, measure, save_model)
 
 MODEL_PATH = config.ROOT / "models" / "hand_landmarker.task"
 SELECTED_S = 1.5   # how long "SELECTED" stays on screen
@@ -85,14 +90,15 @@ def main() -> int:
         return 1
 
     model = load_model(config.GESTURES_PATH)
-    holds = {"LEFT": HoldConfirm(), "RIGHT": HoldConfirm()}
-    selected = {}            # side -> (pose, until)
+    reader = GestureReader(model, config.GESTURE_MODE, config.ONE_HAND)
+    selected = {}            # side -> (option, until)
     session = None           # optional calibration, only when c is pressed
     message, message_until = [], 0.0
 
     start = time.monotonic()
     last_ts = -1
-    print("Running. Keys in the video window: c = optional calibration, q = quit.")
+    print("Running. Keys in the video window: m = mode, h = hand (one-hand mode), "
+          "c = optional calibration, q = quit.")
     try:
         while True:
             ok, frame = cap.read()
@@ -118,7 +124,7 @@ def main() -> int:
                 hand = measure(landmarks, aspect)
                 detections.append((label, hand))
                 side = model.side(label)
-                if side in holds and side not in seen:
+                if side in ("LEFT", "RIGHT") and side not in seen:
                     seen[side] = (landmarks, hand)
                 draw_hand(frame, landmarks)
 
@@ -129,39 +135,45 @@ def main() -> int:
                     save_model(config.GESTURES_PATH, model)
                     print("\n".join(message))
                     message_until, session = now + MESSAGE_S, None
-                    holds = {"LEFT": HoldConfirm(), "RIGHT": HoldConfirm()}
+                    reader.set_mode(reader.mode)  # start the holds fresh
             else:
-                lines = []
-                for side, hold in holds.items():
-                    if side not in seen:
-                        hold.update(now, "NONE", None)   # hand gone: counts against
-                        continue
-                    landmarks, hand = seen[side]
-                    answer, reason = model.explain(side, hand)
-                    picked, candidate, progress = hold.update(now, answer, hand)
-                    if picked:
-                        example = hold.example(picked)
-                        if example:
-                            model.add_example(side, picked, example)
-                            save_model(config.GESTURES_PATH, model)
-                        selected[side] = (picked, now + SELECTED_S)
-                        print(f"SELECTED: {side} thumb {picked}")
-                    is_selected = side in selected and now < selected[side][1]
-                    ring_label = f"{selected[side][0]} SELECTED" if is_selected else (candidate or "")
-                    draw_ring(frame, landmarks, 1.0 if is_selected else progress, ring_label, is_selected)
-                    learned = model.limits(side, hand.direction if hand else "UP")[2]
-                    lines.append(f"{side} hand - thumb {answer}  ({reason})  learned: {learned}")
-                draw_lines(frame, lines or ["No hand raised"])
+                views, picked = reader.update(now, {side: hand for side, (_, hand) in seen.items()})
+                if picked:
+                    selected[picked.side] = (picked.option, now + SELECTED_S)
+                    print(f"SELECTED: {picked.option}   ({reader.title()})")
+                    if picked.pose:
+                        save_model(config.GESTURES_PATH, model)  # keep the new example
+                lines = [f"MODE: {reader.title()}"]
+                for view in views:
+                    landmarks = seen[view.side][0]
+                    is_selected = view.side in selected and now < selected[view.side][1]
+                    label = f"{selected[view.side][0]} SELECTED" if is_selected else (view.option or "")
+                    draw_ring(frame, landmarks, 1.0 if is_selected else view.progress, label, is_selected)
+                    learned = ""
+                    if reader.mode != "two" and seen[view.side][1]:
+                        learned = f"  learned: {model.min_reach(view.side, seen[view.side][1].direction)[1]}"
+                    lines.append(f"{view.side} hand - {view.answer}  ({view.reason}){learned}")
+                if len(lines) == 1:
+                    lines.append("No hand raised")
+                draw_lines(frame, lines[:1], color=(255, 200, 0), scale=0.7)
+                draw_lines(frame, lines[1:], y=80)
+                low_y = int(LOW_IN_FRAME * frame.shape[0])  # hands below this line are ignored
+                cv2.line(frame, (0, low_y), (frame.shape[1], low_y), (120, 120, 120), 1)
                 if now < message_until:
                     draw_lines(frame, message, color=(0, 255, 0), y=frame.shape[0] - 120, scale=0.7)
 
-            cv2.putText(frame, f"hand model: {latency_ms:.0f} ms   c = calibrate (optional)   q = quit",
+            cv2.putText(frame, f"{latency_ms:.0f} ms   m = mode   h = hand   c = calibrate   q = quit",
                         (20, frame.shape[0] - 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
             cv2.imshow("Second Voice - hand test", frame)
 
             key = cv2.waitKey(1) & 0xFF
             if key == ord("q"):
                 break
+            if key == ord("m") and not session:
+                reader.set_mode(MODES[(MODES.index(reader.mode) + 1) % len(MODES)])
+                selected = {}
+            if key == ord("h") and not session:
+                reader.set_mode(reader.mode, "LEFT" if reader.one_hand == "RIGHT" else "RIGHT")
             if key == ord("c"):
                 if session:
                     session, message, message_until = None, ["Calibration cancelled."], now + MESSAGE_S
