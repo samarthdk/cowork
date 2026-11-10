@@ -60,6 +60,7 @@ def run_demo(reply, typed, heard="some garbled words", guess="Can you open the w
         builtins.input = lambda prompt="": (asked.append(prompt.strip()), next(inputs))[1]
         builtins.print = lambda *a, **k: printed.append(" ".join(str(x) for x in a))
         demo_text.get_llm, demo_text.get_tts = (lambda: Model(reply, guess)), (lambda: voice)
+        demo_text.wait_for_cancel = lambda seconds: None  # nothing typed in the correction window
         try:
             demo_text.main(["--profile", str(path)])
         finally:

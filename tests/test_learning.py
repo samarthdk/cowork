@@ -120,6 +120,7 @@ def session(typed, argv=(), path=None, confidence="low"):
     builtins.input = lambda prompt="": next(inputs)
     builtins.print = lambda *a, **k: printed.append(" ".join(str(x) for x in a))
     demo_text.get_llm, demo_text.get_tts = (lambda: model), (lambda: type("V", (), {"speak": lambda s, t: None})())
+    demo_text.wait_for_cancel = lambda seconds: None  # nothing typed in the correction window
     try:
         demo_text.main(["--profile", str(path), *argv])
     finally:

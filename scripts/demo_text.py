@@ -17,6 +17,7 @@ close to a saved example again answers instantly ("FAST PATH"), without the LLM.
 
 import argparse
 import json
+import select
 import sys
 import time
 from pathlib import Path
@@ -32,6 +33,12 @@ from repair.learning import fast_path  # noqa: E402
 from repair.store import (add_example, add_phrase, fresh_profile, open_profile,  # noqa: E402
                           save_profile, undo_last)
 from tts import get_tts  # noqa: E402
+
+
+CORRECTION_S = 3.0  # after acting, this long to say "no" and cancel
+YES_WORDS = ("y", "yes")
+NO_WORDS = ("n", "no")
+UNDO_WORDS = ("undo", "undo last")
 
 
 def sentence_for(choice: str, args: dict, profile: dict) -> str:
@@ -115,6 +122,20 @@ def something_else(heard: str, profile: dict, llm) -> tuple[str | None, bool]:
     return phrase, added
 
 
+def wait_for_cancel(seconds: float) -> str | None:
+    """Correction window: wait up to `seconds` for a typed line (later: voice or
+    the left-hand gesture). Returns the line, or None if nothing was typed."""
+    print(f"  (type n + Enter within {seconds:.0f} s to cancel)")
+    if not sys.stdin.isatty():  # input from a script or file: just read the next line
+        line = sys.stdin.readline()
+        return line.strip() if line else None
+    try:
+        ready, _, _ = select.select([sys.stdin], [], [], seconds)
+    except (ValueError, OSError):
+        return None
+    return sys.stdin.readline().strip() if ready else None
+
+
 def decide(heard: str, intent, profile: dict, llm):
     """Work out what the person meant. Returns (choice, args, how) or None.
     how: "confident" (not learned from), "confirmed", "picked" or "new phrase"."""
@@ -126,8 +147,12 @@ def decide(heard: str, intent, profile: dict, llm):
         if ask_yes_no(did_you_mean(intent.choice, intent.args, profile)):
             return intent.choice, fill_missing_args(intent.choice, intent.args, profile), "confirmed"
         rejected = (intent.choice,)
+    return choose_from_options(heard, intent, profile, llm, rejected)
 
-    # Said no, or no usable choice: next-best options (most similar first) + "Something else".
+
+def choose_from_options(heard: str, intent, profile: dict, llm, rejected: tuple):
+    """Next-best options (most similar first, rejected ones left out) plus
+    "Something else". Returns (choice, args, how) or None."""
     options = rank_options(heard, profile, intent.options, exclude=rejected)
     picked = ask_user_to_pick(options)
     if picked is None:
@@ -160,14 +185,22 @@ def main(argv=None) -> None:
     print(f"Learned examples so far: {learned_count}")
     print("Type what the person said, garbled is fine. undo = forget the last thing learned, q = quit.\n")
 
+    pending = None  # a sentence typed during the correction window
     while True:
-        try:
-            heard = input("> ").strip()
-        except (EOFError, KeyboardInterrupt):
-            break
+        if pending is not None:
+            heard, pending = pending, None
+            print(f"> {heard}")
+        else:
+            try:
+                heard = input("> ").strip()
+            except (EOFError, KeyboardInterrupt):
+                break
         if heard.lower() in ("", "q", "quit"):
             break
-        if heard.lower() in ("undo", "undo last"):
+        if heard.lower() in YES_WORDS + NO_WORDS:
+            print(f"('{heard}' is an answer, not a sentence. Nothing is waiting for an answer right now.)\n")
+            continue
+        if heard.lower() in UNDO_WORDS:
             removed, phrase_removed = undo_last(profile)
             if removed is None:
                 print("Nothing to undo.\n")
@@ -195,15 +228,34 @@ def main(argv=None) -> None:
             print(f"took {took_ms:.0f} ms (LLM)")
 
         result = decide(heard, intent, profile, llm)
-        if result is None:
-            print("Nothing chosen.\n")
-            continue
-        choice, args, how = result
-        if how != "confident":  # only confirmed answers are learned from
-            add_example(profile, heard, choice, args, new_phrase=(how == "new phrase"))
-            print(f"Learned: '{heard}' -> '{describe(choice, args, profile)}'")
-        save_profile(profile, options.profile)
-        tts.speak(sentence_for(choice, args, profile))
+        rejected = ()
+        while result is not None:
+            choice, args, how = result
+            learned = how != "confident"  # only confirmed answers are learned from
+            if learned:
+                add_example(profile, heard, choice, args, new_phrase=(how == "new phrase"))
+                print(f"Learned: '{heard}' -> '{describe(choice, args, profile)}'")
+            save_profile(profile, options.profile)
+            tts.speak(sentence_for(choice, args, profile))
+
+            # Correction window: "no" cancels, undoes what was learned, shows the options.
+            line = wait_for_cancel(CORRECTION_S)
+            if line is None or line.lower() in ("",) + YES_WORDS:
+                break
+            if line.lower() not in NO_WORDS + UNDO_WORDS:
+                pending = line  # not a correction: it's the next sentence
+                break
+            print(f"CANCELLED: '{describe(choice, args, profile)}'")
+            if learned:
+                removed, phrase_removed = undo_last(profile)
+                print(f"UNDONE: forgot '{removed['heard']}' -> '{describe(choice, args, profile)}'")
+                if phrase_removed:
+                    print(f"  (and removed the phrase it added: '{removed['meant']}')")
+                save_profile(profile, options.profile)
+            rejected += (choice,)
+            result = choose_from_options(heard, intent, profile, llm, rejected)
+        else:
+            print("Nothing chosen.")
         print()
 
 

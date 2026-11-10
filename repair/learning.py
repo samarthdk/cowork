@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 import config
 from metrics import log_call
+from repair import support
 from repair.profile import all_arg_names, all_choices, find_command, phrase_codes
 from repair.store import normalize, similarity
 from repair.validate import Intent, fill_options
@@ -55,6 +56,8 @@ def fast_path(heard: str, profile: dict) -> FastMatch | None:
             break
         if (other["meant"], other["args"]) != (best["meant"], best["args"]):
             return None  # two different meanings match closely: let the LLM decide
+    if not support.check(heard, best["meant"], profile)[0]:
+        return None  # a part of it contradicts the learned meaning: let the LLM decide
 
     args = {name: best["args"].get(name, "") for name in all_arg_names(profile)}
     kind = "command" if find_command(profile, best["meant"]) else "phrase"

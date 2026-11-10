@@ -5,6 +5,7 @@
 """
 
 import config
+from repair import support
 from repair.prompt import build_messages, build_schema
 from repair.validate import BadJSON, Intent, failed, parse_json, validate
 
@@ -32,6 +33,12 @@ def repair(heard: str, profile: dict, llm) -> Intent:
                 return failed(profile, f"answer cut off at {reply.completion_tokens} tokens "
                                        f"({reply.thinking_tokens} spent thinking)")
             intent = validate(parse_json(reply.text), profile)
+            if intent.confidence == "high" and intent.choice:
+                # Don't trust "high" when what was heard only partly matches.
+                ok, reason = support.check(heard, intent.choice, profile)
+                if not ok:
+                    intent.confidence = "low"
+                    intent.problems.append(f"high confidence lowered: {reason}")
             if attempt == 2:
                 intent.problems.insert(0, f"first try failed ({problem}), retry worked")
             return intent
