@@ -18,6 +18,9 @@ import mediapipe as mp
 from mediapipe.tasks.python import BaseOptions
 from mediapipe.tasks.python import vision
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import config  # noqa: E402
+
 MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "hand_landmarker.task"
 
 # Landmark numbers MediaPipe uses for the hand points we need.
@@ -67,7 +70,8 @@ def main() -> int:
     )
     landmarker = vision.HandLandmarker.create_from_options(options)
 
-    cap = cv2.VideoCapture(0)
+    camera = config.pick_camera()  # the MacBook camera, never an iPhone
+    cap = cv2.VideoCapture(camera)
     if not cap.isOpened():
         print("Could not open the webcam. Check System Settings > Privacy & Security > Camera "
               "and allow your Terminal app, then try again.")

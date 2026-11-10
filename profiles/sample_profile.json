@@ -1,0 +1,35 @@
+{
+  "user": "sample",
+  "phrases": [
+    "I'm thirsty, could I have some water?",
+    "I need to use the bathroom.",
+    "Please call my daughter.",
+    "I'm in pain, I need help."
+  ],
+  "commands": [
+    {
+      "name": "open_app",
+      "description": "Open an application on the Mac.",
+      "args": {"app": "Name of the app to open, e.g. Safari, Mail, Notes"},
+      "say": "Opening {app}."
+    },
+    {
+      "name": "read_latest_email",
+      "description": "Read the newest email out loud.",
+      "args": {},
+      "say": "Reading your latest email."
+    },
+    {
+      "name": "reply_email",
+      "description": "Reply to the current email with a short message.",
+      "args": {"text": "The reply message to send"},
+      "say": "Replying: {text}"
+    },
+    {
+      "name": "scroll_down",
+      "description": "Scroll the current window down.",
+      "args": {},
+      "say": "Scrolling down."
+    }
+  ]
+}
