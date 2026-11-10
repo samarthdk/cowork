@@ -106,7 +106,7 @@ class Model:
     def __init__(self, confidence="low"):
         self.calls, self.confidence = 0, confidence
 
-    def complete(self, messages, schema, purpose="intent"):
+    def complete(self, messages, schema, purpose="intent", temperature=0.0):
         self.calls += 1
         if purpose == "guess":
             return LLMReply(json.dumps({"guess": "Can you open the window?"}), 1, 0, 0)

@@ -32,6 +32,7 @@ FAST_PATH_MIN_CHARS = 5     # shorter than this must match a learned example exa
 PROMPT_EXAMPLES = 10        # most recent learned examples shown to the LLM
 SAME_PHRASE_SIMILARITY = 90 # a new sentence this similar to an existing phrase reuses it
 MAX_GUESS_CHARS = 120       # "Something else" guesses are one short sentence
+GUESS_AGAIN_TEMPERATURE = 0.8  # some randomness for guesses 2 and 3 (else it repeats itself)
 
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset
 TTS_TIMEOUT_S = 120

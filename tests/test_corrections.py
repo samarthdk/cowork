@@ -51,7 +51,7 @@ class Model:
     def __init__(self, choice="P1", confidence="high", guess="Could I have some Pepsi?"):
         self.choice, self.confidence, self.guess, self.calls = choice, confidence, guess, 0
 
-    def complete(self, messages, schema, purpose="intent"):
+    def complete(self, messages, schema, purpose="intent", temperature=0.0):
         self.calls += 1
         if purpose == "guess":
             return LLMReply(json.dumps({"guess": self.guess}), 1, 0, 0)

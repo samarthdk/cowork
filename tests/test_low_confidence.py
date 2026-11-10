@@ -34,7 +34,7 @@ class Model:
     def __init__(self, reply, guess="Can you open the window?"):
         self.reply, self.guess = reply, guess
 
-    def complete(self, messages, schema, purpose="intent"):
+    def complete(self, messages, schema, purpose="intent", temperature=0.0):
         if purpose == "guess":
             return LLMReply(json.dumps({"guess": self.guess}), 1, 0, 0)
         return LLMReply(json.dumps(self.reply), 1, 0, 0)
@@ -112,7 +112,7 @@ check("  ...most similar first", (options_shown(printed)[0], said), (P[1], [P[1]
 
 print("-- 'Something else' --")
 said, asked, printed, saved = run_demo(low_p3, ["n", "4", "y"], heard="kan yu opn da windo")
-check("guess clearly labelled", any('My guess (NOT from your list): "Can you open the window?"' in q
+check("guess clearly labelled", any('My guess 1 (NOT from your list): "Can you open the window?"' in q
                                     for q in asked), True)
 check("yes: speaks the guess", said, ["Can you open the window?"])
 check("yes: added to phrases as P5", (saved["phrases"][-1], "New phrase added as P5: \"Can you open the window?\""

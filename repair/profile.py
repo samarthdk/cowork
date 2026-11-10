@@ -44,3 +44,11 @@ def all_arg_names(profile: dict) -> list[str]:
 
 def find_command(profile: dict, name: str) -> dict | None:
     return next((c for c in profile["commands"] if c["name"] == name), None)
+
+
+def is_risky(profile: dict, choice: str) -> bool:
+    """Risky commands (anything that sends, calls or deletes) are always confirmed
+    first. A command without a clear "safe" mark counts as risky. Phrases are
+    spoken sentences, not actions, so they are not risky."""
+    command = find_command(profile, choice)
+    return command is not None and command.get("safety") != "safe"

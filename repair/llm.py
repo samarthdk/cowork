@@ -15,7 +15,9 @@ class LLMReply:
 
 
 class LLM(Protocol):
-    def complete(self, messages: list[dict], schema: dict, purpose: str = "intent") -> LLMReply:
+    def complete(self, messages: list[dict], schema: dict, purpose: str = "intent",
+                 temperature: float = 0.0) -> LLMReply:
         """One call: send the messages, get back a reply that follows `schema`.
-        `purpose` ("intent" or "guess") is only used for logging."""
+        `purpose` ("intent" or "guess") is only used for logging. Temperature 0
+        = always the most likely answer; higher = more varied."""
         ...

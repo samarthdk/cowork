@@ -35,8 +35,18 @@ def open_profile(path=None, base=None) -> dict:
         path.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(base, path)
     profile = json.loads(path.read_text())
-    profile.setdefault("examples", [])
+    _upgrade(profile, json.loads(base.read_text()))
     return profile
+
+
+def _upgrade(profile: dict, base: dict) -> None:
+    """Fill in fields added after this working profile was made."""
+    profile.setdefault("examples", [])
+    profile.setdefault("vocabulary", list(base.get("vocabulary", [])))
+    base_safety = {c["name"]: c.get("safety") for c in base.get("commands", [])}
+    for command in profile["commands"]:
+        if "safety" not in command and base_safety.get(command["name"]):
+            command["safety"] = base_safety[command["name"]]
 
 
 def save_profile(profile: dict, path=None) -> None:
@@ -79,12 +89,14 @@ MAX_EXAMPLES = 500  # plenty; the oldest are dropped beyond this
 
 
 def add_example(profile: dict, heard: str, meant: str, args: dict | None = None,
-                new_phrase: bool = False) -> dict:
-    """Save a confirmed result. `new_phrase` marks that this confirmation also
-    added `meant` to the phrases (so undo can remove it again)."""
+                new_phrase: bool = False, new_words: list | None = None) -> dict:
+    """Save a confirmed result. `new_phrase` / `new_words` record that this
+    confirmation also added `meant` to the phrases and words to the vocabulary
+    (so undo can remove them again)."""
     example = {"heard": heard.strip(), "meant": meant,
                "args": {k: v for k, v in (args or {}).items() if v},
-               "new_phrase": new_phrase, "time": time.strftime("%Y-%m-%d %H:%M:%S")}
+               "new_phrase": new_phrase, "new_words": list(new_words or []),
+               "time": time.strftime("%Y-%m-%d %H:%M:%S")}
     profile.setdefault("examples", []).append(example)
     del profile["examples"][:-MAX_EXAMPLES]
     return example
@@ -92,15 +104,64 @@ def add_example(profile: dict, heard: str, meant: str, args: dict | None = None,
 
 def undo_last(profile: dict) -> tuple[dict | None, bool]:
     """Remove the last saved example. If that confirmation added a new phrase and
-    no other example uses it, remove the phrase too.
+    no other example uses it, remove the phrase too; words it added to the
+    vocabulary are removed as well.
     Returns (the removed example or None, whether a phrase was removed)."""
     examples = profile.get("examples", [])
     if not examples:
         return None, False
     removed = examples.pop()
+    vocabulary = profile.get("vocabulary", [])
+    for word in removed.get("new_words", []):
+        if word in vocabulary:
+            vocabulary.remove(word)
     phrase_removed = False
     if removed["new_phrase"] and not any(e["meant"] == removed["meant"] for e in examples):
         if removed["meant"] in profile["phrases"]:
             profile["phrases"].remove(removed["meant"])
             phrase_removed = True
     return removed, phrase_removed
+
+
+def delete_example(profile: dict, example: dict) -> bool:
+    """Delete one specific learned example (e.g. one that gave a wrong fast-path
+    answer). Phrases and vocabulary are kept: they were confirmed as real."""
+    examples = profile.get("examples", [])
+    if example in examples:
+        examples.remove(example)
+        return True
+    return False
+
+
+# ---- Personal vocabulary: names, drinks, foods, places --------------------
+
+MAX_VOCABULARY = 200
+COMMON_WORDS = set("""a an the i im i'm me my you your he she it we they them us our their this that
+these those is am are was were be been being do does did have has had can could will would shall
+should may might must to of in on at by for with from up down out off over into about as and or but
+not no yes so if then than too very just please some any all more most much many few one two here
+there what which who whom when where why how get got go going want need like let make take give
+help hi hello ok okay thanks thank sorry""".split())
+
+
+def add_vocabulary(profile: dict, words: list, sentence: str) -> list:
+    """Add important words from a confirmed sentence. Only words that really
+    appear in the sentence count, and common words are skipped.
+    Returns the words actually added."""
+    vocabulary = profile.setdefault("vocabulary", [])
+    known = {w.lower() for w in vocabulary}
+    in_sentence = normalize(sentence)
+    added = []
+    for word in words:
+        if not isinstance(word, str):
+            continue
+        word = " ".join(word.split()).strip(" .,!?'\"")
+        key = word.lower()
+        if (not word or len(word) > 30 or len(word.split()) > 3 or key in known
+                or key in COMMON_WORDS or f" {normalize(word)} " not in f" {in_sentence} "):
+            continue
+        vocabulary.append(word)
+        known.add(key)
+        added.append(word)
+    del vocabulary[:-MAX_VOCABULARY]
+    return added

@@ -20,18 +20,19 @@ import json
 import select
 import sys
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import config  # noqa: E402
 from repair import get_llm, repair  # noqa: E402
-from repair.guess import free_guess  # noqa: E402
-from repair.profile import find_command, phrase_codes  # noqa: E402
-from repair.rank import SOMETHING_ELSE, rank_options  # noqa: E402
+from repair.guess import MAX_GUESSES, free_guess, is_repeat  # noqa: E402
+from repair.profile import find_command, is_risky, phrase_codes  # noqa: E402
+from repair.rank import SOMETHING_ELSE, group_of, rank_options  # noqa: E402
 from repair.learning import fast_path  # noqa: E402
-from repair.store import (add_example, add_phrase, fresh_profile, open_profile,  # noqa: E402
-                          save_profile, undo_last)
+from repair.store import (add_example, add_phrase, add_vocabulary, delete_example,  # noqa: E402
+                          fresh_profile, open_profile, save_profile, similarity, undo_last)
 from tts import get_tts  # noqa: E402
 
 
@@ -39,6 +40,15 @@ CORRECTION_S = 3.0  # after acting, this long to say "no" and cancel
 YES_WORDS = ("y", "yes")
 NO_WORDS = ("n", "no")
 UNDO_WORDS = ("undo", "undo last")
+FORGET_SIMILARITY = 95  # cancelling a fast-path answer this similar deletes its example
+
+
+@dataclass
+class Result:
+    choice: str
+    args: dict
+    how: str                 # "confident" (not learned from), "confirmed", "picked", "new phrase"
+    new_words: list = field(default_factory=list)  # added to the vocabulary
 
 
 def sentence_for(choice: str, args: dict, profile: dict) -> str:
@@ -101,25 +111,36 @@ def fill_missing_args(choice: str, args: dict, profile: dict) -> dict:
     return args
 
 
-def something_else(heard: str, profile: dict, llm) -> tuple[str | None, bool]:
-    """Ask the model for a free guess. Returns (the confirmed sentence or None,
-    whether it was added as a new phrase)."""
-    start = time.perf_counter()
-    guess, problem = free_guess(heard, profile, llm)
-    took_ms = (time.perf_counter() - start) * 1000
-    if guess is None:
-        print(f"Couldn't make a guess ({problem}).")
-        return None, False
-    print(f"(guess took {took_ms:.0f} ms)")
-    if not ask_yes_no(f'\nMy guess (NOT from your list): "{guess}"\nIs that right?'):
-        return None, False
-    phrase, added = add_phrase(profile, guess)
-    if added:
-        code = next(c for c, p in phrase_codes(profile).items() if p == phrase)
-        print(f'New phrase added as {code}: "{phrase}"')
-    else:
-        print(f'That is already one of your phrases: "{phrase}"')
-    return phrase, added
+def something_else(heard: str, profile: dict, llm) -> Result | None:
+    """Free guesses, up to MAX_GUESSES. Each new guess is told the rejected ones.
+    A confirmed guess becomes a phrase; its important words join the vocabulary."""
+    rejected = []
+    for attempt in range(1, MAX_GUESSES + 1):
+        start = time.perf_counter()
+        guess, problem = free_guess(heard, profile, llm, rejected)
+        took_ms = (time.perf_counter() - start) * 1000
+        if guess is None:
+            print(f"Couldn't make a guess ({problem}).")
+            continue
+        if is_repeat(guess.text, rejected):
+            print(f'(guess {attempt} repeated a rejected one: "{guess.text}" - skipped)')
+            continue
+        print(f"(guess {attempt} of {MAX_GUESSES} took {took_ms:.0f} ms)")
+        if not ask_yes_no(f'\nMy guess {attempt} (NOT from your list): "{guess.text}"\nIs that right?'):
+            rejected.append(guess.text)
+            continue
+        phrase, added = add_phrase(profile, guess.text)
+        if added:
+            code = next(c for c, p in phrase_codes(profile).items() if p == phrase)
+            print(f'New phrase added as {code}: "{phrase}"')
+        else:
+            print(f'That is already one of your phrases: "{phrase}"')
+        new_words = add_vocabulary(profile, guess.key_words, phrase)
+        if new_words:
+            print(f"New words for your vocabulary: {', '.join(new_words)}")
+        return Result(phrase, {}, "new phrase" if added else "picked", new_words)
+    print(f"No more guesses ({MAX_GUESSES} tried).")
+    return None
 
 
 def wait_for_cancel(seconds: float) -> str | None:
@@ -136,16 +157,18 @@ def wait_for_cancel(seconds: float) -> str | None:
     return sys.stdin.readline().strip() if ready else None
 
 
-def decide(heard: str, intent, profile: dict, llm):
-    """Work out what the person meant. Returns (choice, args, how) or None.
-    how: "confident" (not learned from), "confirmed", "picked" or "new phrase"."""
-    if intent.confidence == "high":
-        return intent.choice, intent.args, "confident"
+def decide(heard: str, intent, profile: dict, llm) -> Result | None:
+    """Work out what the person meant. Risky commands (send, call, delete) are
+    always confirmed first, even at high confidence."""
+    if intent.confidence == "high" and not is_risky(profile, intent.choice):
+        return Result(intent.choice, intent.args, "confident")
 
     rejected = ()
     if intent.choice:
+        if is_risky(profile, intent.choice):
+            print("(risky action: always confirmed first)")
         if ask_yes_no(did_you_mean(intent.choice, intent.args, profile)):
-            return intent.choice, fill_missing_args(intent.choice, intent.args, profile), "confirmed"
+            return Result(intent.choice, fill_missing_args(intent.choice, intent.args, profile), "confirmed")
         rejected = (intent.choice,)
     return choose_from_options(heard, intent, profile, llm, rejected)
 
@@ -153,17 +176,15 @@ def decide(heard: str, intent, profile: dict, llm):
 def choose_from_options(heard: str, intent, profile: dict, llm, rejected: tuple):
     """Next-best options (most similar first, rejected ones left out) plus
     "Something else". Returns (choice, args, how) or None."""
-    options = rank_options(heard, profile, intent.options, exclude=rejected)
+    options = rank_options(heard, profile, intent.options, exclude=rejected,
+                           first_group=group_of(intent.choice, profile))
     picked = ask_user_to_pick(options)
     if picked is None:
         return None
     if picked == SOMETHING_ELSE:
-        phrase, added = something_else(heard, profile, llm)
-        if phrase is None:
-            return None
-        return phrase, {}, ("new phrase" if added else "picked")
+        return something_else(heard, profile, llm)
     args = intent.args if find_command(profile, picked) else {}
-    return picked, fill_missing_args(picked, args, profile), "picked"
+    return Result(picked, fill_missing_args(picked, args, profile), "picked")
 
 
 def main(argv=None) -> None:
@@ -210,6 +231,8 @@ def main(argv=None) -> None:
             print(f"UNDONE: forgot '{removed['heard']}' -> '{meaning}'")
             if phrase_removed:
                 print(f"  (and removed the phrase it added: '{removed['meant']}')")
+            if removed.get("new_words"):
+                print(f"  (and removed from the vocabulary: {', '.join(removed['new_words'])})")
             print()
             continue
 
@@ -230,14 +253,18 @@ def main(argv=None) -> None:
         result = decide(heard, intent, profile, llm)
         rejected = ()
         while result is not None:
-            choice, args, how = result
+            choice, args, how = result.choice, result.args, result.how
             learned = how != "confident"  # only confirmed answers are learned from
             if learned:
-                add_example(profile, heard, choice, args, new_phrase=(how == "new phrase"))
+                add_example(profile, heard, choice, args, new_phrase=(how == "new phrase"),
+                            new_words=result.new_words)
                 print(f"Learned: '{heard}' -> '{describe(choice, args, profile)}'")
             save_profile(profile, options.profile)
             tts.speak(sentence_for(choice, args, profile))
 
+            if is_risky(profile, choice):
+                print("  (risky action: it was confirmed first, and can't be cancelled afterwards)")
+                break
             # Correction window: "no" cancels, undoes what was learned, shows the options.
             line = wait_for_cancel(CORRECTION_S)
             if line is None or line.lower() in ("",) + YES_WORDS:
@@ -246,11 +273,20 @@ def main(argv=None) -> None:
                 pending = line  # not a correction: it's the next sentence
                 break
             print(f"CANCELLED: '{describe(choice, args, profile)}'")
+            if match and similarity(heard, match.example["heard"]) >= FORGET_SIMILARITY:
+                # The learned example that gave this answer was wrong for these words.
+                delete_example(profile, match.example)
+                print(f"FORGOT the learned example that caused it: '{match.example['heard']}' -> "
+                      f"'{describe(match.example['meant'], match.example['args'], profile)}'")
+                save_profile(profile, options.profile)
+            match = None
             if learned:
                 removed, phrase_removed = undo_last(profile)
                 print(f"UNDONE: forgot '{removed['heard']}' -> '{describe(choice, args, profile)}'")
                 if phrase_removed:
                     print(f"  (and removed the phrase it added: '{removed['meant']}')")
+                if removed.get("new_words"):
+                    print(f"  (and removed from the vocabulary: {', '.join(removed['new_words'])})")
                 save_profile(profile, options.profile)
             rejected += (choice,)
             result = choose_from_options(heard, intent, profile, llm, rejected)
