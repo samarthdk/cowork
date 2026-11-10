@@ -1,25 +1,30 @@
-"""Hand gestures for choosing. No setup needed. Project rule: when unsure, select nothing.
+"""Hand signals for choosing. No setup needed. Project rule: when unsure, select nothing.
 
-Three modes (GestureReader):
-  "two"       yes/no by hand: raise your LEFT hand (any pose) = left option,
-              RIGHT hand = right option. Hands resting low in the frame are ignored.
-  "one_hand"  yes/no with one hand: that hand's thumb UP = yes (left option),
-              thumb DOWN = no (right option). The other hand is ignored.
-  "four"      four options: LEFT/RIGHT hand x thumb UP/DOWN.
+The detector (HandSignals) reports one signal after hold-to-confirm:
+  RIGHT / LEFT                      a raised hand in any pose, no clear thumb
+  RIGHT_UP, RIGHT_DOWN, LEFT_UP, LEFT_DOWN   a raised hand with a clear thumb
+What a signal MEANS (yes, no, a grid square) is decided separately, in
+choose/meaning.py, by the question being asked.
 
-In every mode, if two hands are active at the same moment, nothing is selected.
+Rules:
+  - Hands resting low in the frame (wrist in the bottom quarter) are ignored.
+  - Two hands raised at the same moment: nothing.
+  - Hold to confirm: over the last 1 second, a thumb signal needs the thumb in
+    80% of frames. A plain RIGHT/LEFT needs the hand raised in 80% of frames
+    AND the thumb in at most 20%. In between (thumb half there) = wait / nothing,
+    because plain LEFT and LEFT_UP can mean opposite things.
+  - After a signal, the hand must be lowered before it can signal again.
 
-Thumb rules (GestureModel.explain), all must pass, otherwise NONE:
-  1. The four fingers are curled (a flat hand is NONE).
+Thumb rules (GestureModel.explain), all must pass, otherwise no thumb:
+  1. The four fingers are curled (a flat hand has no thumb signal).
   2. The thumb tip is clearly away from the fingers, not resting on or across
-     them (this is what rejects a fist or a tucked thumb).
+     them (rejects a fist or a tucked thumb).
   3. The thumb sticks out at least half its normal extension. This relaxes
      towards the user's own examples with use, but never below a hard minimum.
   4. The thumb points within 85 degrees of straight up/down, and the tip is
      clearly above (UP) or below (DOWN) the thumb's base joint.
 
-Hold to confirm (HoldConfirm): the same answer must win 80% of frames over 1 s.
-Quiet adaptation: each confirmed thumb gesture is saved as an example for that
+Quiet adaptation: each confirmed thumb signal is saved as an example for that
 hand (last 20, in profiles/gestures.json). Calibration (CalibrationSession) is optional.
 """
 
@@ -46,18 +51,13 @@ EXAMPLES_FOR_FULL_TRUST = 10
 
 HOLD_S = 1.0               # hold to confirm: look at the last 1 second...
 HOLD_SHARE = 0.8           # ...and the answer must win 80% of those frames
-RELEASE_SHARE = 0.5        # after selecting, must drop below this before it can fire again
+PLAIN_MAX_THUMB = 0.2      # plain RIGHT/LEFT only if the thumb showed in at most 20% of frames
+RELEASE_SHARE = 0.5        # after a signal, the hand must be raised in fewer frames than this
 
 # Before any calibration. MediaPipe's labels came out mirrored on this setup.
 DEFAULT_HANDEDNESS = {"Left": "RIGHT", "Right": "LEFT"}
 SIDES = ("LEFT", "RIGHT")
 POSES = ("UP", "DOWN")
-MODES = ("two", "one_hand", "four")
-MODE_TITLES = {
-    "two": "YES/NO BY HAND: raise LEFT hand = left option, RIGHT hand = right option",
-    "one_hand": "YES/NO, ONE HAND ({side}): thumb UP = yes, thumb DOWN = no",
-    "four": "FOUR CHOICES: LEFT/RIGHT hand + thumb UP/DOWN",
-}
 
 # ---- Measuring a hand -------------------------------------------------------
 
@@ -277,126 +277,110 @@ def save_model(path, model: GestureModel) -> None:
     Path(path).write_text(json.dumps(model.to_dict(), indent=2))
 
 
-# ---- Hold to confirm --------------------------------------------------------
+# ---- Hold to confirm: frames -> one signal ---------------------------------
 
-class HoldConfirm:
-    """Turns noisy per-frame answers into one deliberate selection, per hand."""
+SIGNALS = ("RIGHT", "LEFT", "RIGHT_UP", "RIGHT_DOWN", "LEFT_UP", "LEFT_DOWN")
 
-    def __init__(self):
-        self.frames: deque = deque()    # (time, answer, Hand or None)
-        self.locked: str | None = None  # just selected; waiting for release
-
-    def update(self, now: float, answer: str, hand: Hand | None) -> tuple[str | None, str | None, float]:
-        """Returns (selected now or None, current candidate or None, progress 0..1)."""
-        self.frames.append((now, answer, hand))
-        while self.frames and self.frames[0][0] < now - HOLD_S:
-            self.frames.popleft()
-        votes = Counter(a for _, a, _ in self.frames if a != "NONE")
-        if not votes:
-            self.locked = None
-            return None, None, 0.0
-        candidate, count = votes.most_common(1)[0]
-        share = count / len(self.frames)
-
-        if self.locked:
-            if candidate == self.locked and share >= RELEASE_SHARE:
-                return None, candidate, 1.0
-            self.locked = None
-
-        span = self.frames[-1][0] - self.frames[0][0]
-        progress = min(1.0, share / HOLD_SHARE) * min(1.0, span / (0.9 * HOLD_S))
-        if share >= HOLD_SHARE and span >= 0.9 * HOLD_S:
-            self.locked = candidate
-            return candidate, candidate, 1.0
-        return None, candidate, progress
-
-    def example(self, pose: str) -> Hand | None:
-        hands = [h for _, a, h in self.frames if a == pose and h is not None]
-        return average(hands) if hands else None
-
-
-# ---- Modes: turning hands into a choice --------------------------------------
 
 @dataclass
 class HandView:
     """What to show for one hand this frame."""
     side: str
-    answer: str          # per-frame answer ("RAISED", "UP", "DOWN" or "NONE")
+    raised: bool
+    thumb: str               # "UP", "DOWN" or "NONE" this frame
     reason: str
-    candidate: str | None = None
-    progress: float = 0.0
-    option: str | None = None   # what the held answer would select, e.g. "YES"
+    candidate: str | None    # the signal being held, e.g. "LEFT_UP"
+    progress: float          # 0..1 towards confirming it
+    waiting: bool = False    # True while the hand must be lowered after a signal
 
 
-@dataclass
-class Selection:
-    mode: str
-    option: str          # "LEFT"/"RIGHT" (two), "YES"/"NO" (one_hand), "LEFT UP" etc. (four)
-    side: str
-    pose: str | None = None
+class SignalHold:
+    """One hand's last second of frames, turned into at most one signal."""
+
+    def __init__(self, side: str):
+        self.side = side
+        self.frames: deque = deque()   # (time, raised, thumb, Hand or None)
+        self.locked = False
+
+    def update(self, now, raised, thumb, hand) -> tuple[str | None, str | None, float]:
+        """Returns (confirmed signal or None, candidate or None, progress 0..1)."""
+        self.frames.append((now, raised, thumb if raised else "NONE", hand))
+        while self.frames and self.frames[0][0] < now - HOLD_S:
+            self.frames.popleft()
+        n = len(self.frames)
+        raised_share = sum(f[1] for f in self.frames) / n
+        thumb_shares = {pose: sum(f[2] == pose for f in self.frames) / n for pose in POSES}
+        best_thumb = max(thumb_shares, key=thumb_shares.get)
+        thumb_share = thumb_shares[best_thumb]
+
+        if self.locked:
+            if raised_share >= RELEASE_SHARE:
+                return None, None, 0.0
+            self.locked = False
+
+        span = self.frames[-1][0] - self.frames[0][0]
+        time_factor = min(1.0, span / (0.9 * HOLD_S))
+        if thumb_share > PLAIN_MAX_THUMB:
+            candidate, share = f"{self.side}_{best_thumb}", thumb_share
+        elif raised_share > 0:
+            candidate, share = self.side, raised_share
+        else:
+            return None, None, 0.0
+        progress = min(1.0, share / HOLD_SHARE) * time_factor
+
+        if time_factor >= 1.0 and share >= HOLD_SHARE:
+            self.locked = True
+            return candidate, candidate, 1.0
+        return None, candidate, progress
+
+    def example(self, pose: str) -> Hand | None:
+        """The average hand over the frames that showed this thumb (to learn from)."""
+        hands = [f[3] for f in self.frames if f[2] == pose and f[3] is not None]
+        return average(hands) if hands else None
 
 
-def option_for(mode: str, side: str, answer: str) -> str:
-    if mode == "two":
-        return side
-    if mode == "one_hand":
-        return "YES" if answer == "UP" else "NO"
-    return f"{side} {answer}"
+class HandSignals:
+    """The detector. One call per video frame: hands in, at most one signal out."""
 
-
-class GestureReader:
-    """One call per video frame: hands in, at most one Selection out."""
-
-    def __init__(self, model: GestureModel, mode: str = "two", one_hand: str = "RIGHT"):
+    def __init__(self, model: GestureModel):
         self.model = model
-        self.one_hand = one_hand
-        self.set_mode(mode)
+        self.reset()
 
-    def set_mode(self, mode: str, one_hand: str | None = None) -> None:
-        if mode not in MODES:
-            raise ValueError(f"mode must be one of {MODES}")
-        self.mode = mode
-        self.one_hand = one_hand or self.one_hand
-        self.holds = {side: HoldConfirm() for side in SIDES}  # start fresh
+    def reset(self) -> None:
+        self.holds = {side: SignalHold(side) for side in SIDES}
 
-    def title(self) -> str:
-        return MODE_TITLES[self.mode].format(side=self.one_hand)
-
-    def _answer(self, side: str, hand: Hand) -> tuple[str, str]:
-        if self.mode == "one_hand" and side != self.one_hand:
-            return "NONE", "ignored in one-hand mode"
-        if hand is None:
-            return "NONE", "can't read hand"
-        if hand.low:
-            return "NONE", "resting low in frame"
-        if self.mode == "two":
-            return "RAISED", "raised"
-        return self.model.explain(side, hand)
-
-    def update(self, now: float, hands: dict[str, Hand | None]) -> tuple[list[HandView], Selection | None]:
+    def update(self, now: float, hands: dict) -> tuple[list[HandView], str | None]:
         """hands: side ("LEFT"/"RIGHT") -> measured Hand, only for hands in view."""
-        answers = {side: self._answer(side, hand) for side, hand in hands.items()}
-        active = [side for side, (answer, _) in answers.items() if answer != "NONE"]
-        if len(active) > 1:  # two hands at once: unclear which one is meant
-            answers = {side: ("NONE", "both hands active") for side in answers}
+        state = {}
+        for side, hand in hands.items():
+            if hand is None:
+                state[side] = (False, "NONE", "can't read hand")
+            elif hand.low:
+                state[side] = (False, "NONE", "resting low in frame")
+            else:
+                thumb, reason = self.model.explain(side, hand)
+                state[side] = (True, thumb, reason)
+        if sum(raised for raised, _, _ in state.values()) > 1:
+            state = {side: (False, "NONE", "both hands raised") for side in state}
 
-        views, selection = [], None
+        views, signal = [], None
         for side in SIDES:
             hold = self.holds[side]
             if side not in hands:
-                hold.update(now, "NONE", None)  # hand out of view counts against
+                hold.update(now, False, "NONE", None)  # out of view counts against
                 continue
-            answer, reason = answers[side]
-            picked, candidate, progress = hold.update(now, answer, hands[side])
-            option = option_for(self.mode, side, candidate) if candidate else None
-            views.append(HandView(side, answer, reason, candidate, progress, option))
-            if picked:
-                pose = picked if picked in POSES else None
-                selection = Selection(self.mode, option_for(self.mode, side, picked), side, pose)
-                example = hold.example(picked) if pose else None
-                if example:  # quiet adaptation (thumb modes only)
-                    self.model.add_example(side, pose, example)
-        return views, selection
+            raised, thumb, reason = state[side]
+            confirmed, candidate, progress = hold.update(now, raised, thumb, hands[side])
+            views.append(HandView(side, raised, thumb, reason, candidate, progress,
+                                  waiting=hold.locked and not confirmed))
+            if confirmed:
+                signal = confirmed
+                if "_" in confirmed:  # thumb signal: quietly learn from it
+                    pose = confirmed.split("_")[1]
+                    example = hold.example(pose)
+                    if example:
+                        self.model.add_example(side, pose, example)
+        return views, signal
 
 
 # ---- Optional calibration ---------------------------------------------------

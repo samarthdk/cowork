@@ -13,13 +13,6 @@ TTS = "fake"    # text-to-speech:  "fake" or "real"
 
 CAMERA = "builtin"  # always the MacBook's own camera, never an iPhone
 
-# Hand gestures. GESTURE_MODE:
-#   "two"      = yes/no by raising the LEFT or RIGHT hand (main use)
-#   "one_hand" = yes/no with one hand: thumb up = yes, thumb down = no
-#   "four"     = four choices: LEFT/RIGHT hand x thumb UP/DOWN
-GESTURE_MODE = "two"
-ONE_HAND = "RIGHT"  # which hand "one_hand" mode uses: "LEFT" or "RIGHT"
-
 # ---- Details (rarely changed) ---------------------------------------------
 ROOT = Path(__file__).resolve().parent
 PROFILE_PATH = ROOT / "profiles" / "sample_profile.json"

@@ -1,5 +1,6 @@
-"""Checks hand gestures without a camera: thumb rules, the three modes, hold to
-confirm, quiet adaptation (with its hard limits), saving, optional calibration.
+"""Checks hand signals without a camera: thumb rules, the six signals with hold to
+confirm, what signals mean per question, quiet adaptation (with its hard limits),
+saving, optional calibration.
 Run:
     .venv/bin/python tests/test_hand_gestures.py
 """
@@ -12,6 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from choose import hands as H  # noqa: E402
+from choose import meaning  # noqa: E402
 
 random.seed(1)
 FPS = 30
@@ -87,93 +89,92 @@ check("thumb close to fingers", m.classify("LEFT", hand("UP", 30, 0.8, clearance
 check("left/right swapped by default", m.side("Right"), "LEFT")
 
 
-def run(reader, frames_for, seconds):
-    """Feed frames; frames_for(i) -> {side: Hand}. Returns the list of selected options."""
-    picks = []
+def run(detector, frames_for, seconds):
+    """Feed frames; frames_for(i) -> {side: Hand}. Returns the signals sent."""
+    sent = []
     for i in range(int(seconds * FPS)):
-        _, sel = reader.update(run.t, frames_for(i))
+        _, signal = detector.update(run.t, frames_for(i))
         run.t += 1 / FPS
-        if sel:
-            picks.append(sel.option)
-    return picks
+        if signal:
+            sent.append(signal)
+    return sent
+
+
+def fresh():
+    return H.HandSignals(H.GestureModel())
 
 
 run.t = 0.0
 UP, DOWN, FIST = hand("UP", 5, 1.0), hand("DOWN", 5, 1.0), hand("UP", 30, 0.2)
 OPEN = hand("UP", 10, 1.0, curl=1.4)
+LOW = hand("UP", 5, 1.0, wrist_y=0.9)
 
-print("-- 3. Two-choice mode (yes/no by hand) --")
-r = H.GestureReader(H.GestureModel(), "two")
-check("raise LEFT hand, open palm, 1.2 s", run(r, lambda i: {"LEFT": OPEN}, 1.2), ["LEFT"])
-r.set_mode("two")
-check("raise RIGHT hand, fist, 1.2 s", run(r, lambda i: {"RIGHT": FIST}, 1.2), ["RIGHT"])
-r.set_mode("two")
-check("hand resting low on the table", run(r, lambda i: {"LEFT": hand("UP", 5, 1, wrist_y=0.9)}, 2), [])
-r.set_mode("two")
-check("both hands raised at once", run(r, lambda i: {"LEFT": OPEN, "RIGHT": OPEN}, 2), [])
-r.set_mode("two")
-check("right hand raised, left resting low",
-      run(r, lambda i: {"RIGHT": OPEN, "LEFT": hand("UP", 5, 1, wrist_y=0.9)}, 1.2), ["RIGHT"])
-r.set_mode("two")
-check("only 0.6 s", run(r, lambda i: {"LEFT": OPEN}, 0.6), [])
-r.set_mode("two")
-check("hand in view only 70% of frames", run(r, lambda i: {"LEFT": OPEN} if i % 10 < 7 else {}, 3), [])
+print("-- 3. Signals --")
+check("RIGHT hand raised, open palm", run(fresh(), lambda i: {"RIGHT": OPEN}, 1.2), ["RIGHT"])
+check("LEFT hand raised, fist", run(fresh(), lambda i: {"LEFT": FIST}, 1.2), ["LEFT"])
+check("RIGHT thumb up", run(fresh(), lambda i: {"RIGHT": UP}, 1.2), ["RIGHT_UP"])
+check("RIGHT thumb down", run(fresh(), lambda i: {"RIGHT": DOWN}, 1.2), ["RIGHT_DOWN"])
+check("LEFT thumb up", run(fresh(), lambda i: {"LEFT": UP}, 1.2), ["LEFT_UP"])
+check("LEFT thumb down", run(fresh(), lambda i: {"LEFT": DOWN}, 1.2), ["LEFT_DOWN"])
+check("hand resting low on the table", run(fresh(), lambda i: {"LEFT": LOW}, 2), [])
+check("thumbs up resting low", run(fresh(), lambda i: {"RIGHT": LOW}, 2), [])
+check("both hands raised", run(fresh(), lambda i: {"LEFT": OPEN, "RIGHT": OPEN}, 2), [])
+check("both thumbs up", run(fresh(), lambda i: {"LEFT": UP, "RIGHT": UP}, 2), [])
+check("RIGHT thumb up, LEFT resting low", run(fresh(), lambda i: {"RIGHT": UP, "LEFT": LOW}, 1.2), ["RIGHT_UP"])
+check("only 0.6 s", run(fresh(), lambda i: {"LEFT": OPEN}, 0.6), [])
+check("hand in view only 70% of frames", run(fresh(), lambda i: {"LEFT": OPEN} if i % 10 < 7 else {}, 3), [])
 
-print("-- 4. One-hand yes/no --")
-r = H.GestureReader(H.GestureModel(), "one_hand", one_hand="LEFT")
-check("LEFT thumb up = YES", run(r, lambda i: {"LEFT": UP}, 1.2), ["YES"])
-r.set_mode("one_hand")
-check("LEFT thumb down = NO", run(r, lambda i: {"LEFT": DOWN}, 1.2), ["NO"])
-r.set_mode("one_hand")
-check("RIGHT hand ignored", run(r, lambda i: {"RIGHT": UP}, 2), [])
-r.set_mode("one_hand")
-check("LEFT fist", run(r, lambda i: {"LEFT": FIST}, 2), [])
-r.set_mode("one_hand", "RIGHT")
-check("switched to RIGHT hand: thumb up = YES", run(r, lambda i: {"RIGHT": UP}, 1.2), ["YES"])
+print("-- 4. Thumb vs plain hand: when unsure, nothing --")
+check("thumb in 50% of frames (hand always raised)",
+      run(fresh(), lambda i: {"LEFT": UP if i % 2 else FIST}, 3), [])
+check("thumb in 90% of frames", run(fresh(), lambda i: {"LEFT": UP if i % 10 else FIST}, 1.2), ["LEFT_UP"])
+check("thumb in 10% of frames", run(fresh(), lambda i: {"LEFT": FIST if i % 10 else UP}, 1.2), ["LEFT"])
+check("thumb flipping up/down", run(fresh(), lambda i: {"RIGHT": UP if i % 2 else DOWN}, 3), [])
+d = fresh()
+sent = run(d, lambda i: {"LEFT": FIST}, 0.5) + run(d, lambda i: {"LEFT": UP}, 1.5)
+check("raise fist, thumb comes up after 0.5 s", sent, ["LEFT_UP"])
 
-print("-- 5. Four-choice mode --")
-r = H.GestureReader(H.GestureModel(), "four")
-check("LEFT thumb down", run(r, lambda i: {"LEFT": DOWN}, 1.2), ["LEFT DOWN"])
-r.set_mode("four")
-check("RIGHT thumb up", run(r, lambda i: {"RIGHT": UP}, 1.2), ["RIGHT UP"])
-r.set_mode("four")
-check("RIGHT thumb up, LEFT fist raised", run(r, lambda i: {"RIGHT": UP, "LEFT": FIST}, 1.2), ["RIGHT UP"])
-r.set_mode("four")
-check("both thumbs up at once", run(r, lambda i: {"RIGHT": UP, "LEFT": UP}, 2), [])
-r.set_mode("four")
-check("open hand only", run(r, lambda i: {"RIGHT": OPEN}, 2), [])
+print("-- 5. One signal per raise --")
+d = fresh()
+check("hold thumb up 3 s: one signal", run(d, lambda i: {"RIGHT": UP}, 3), ["RIGHT_UP"])
+check("still raised, thumb drops: nothing new", run(d, lambda i: {"RIGHT": FIST}, 2), [])
+run(d, lambda i: {}, 1)
+check("lower hand, raise again: new signal", run(d, lambda i: {"RIGHT": UP}, 1.2), ["RIGHT_UP"])
+run(d, lambda i: {"RIGHT": LOW}, 1)
+check("rest hand low, raise again: new signal", run(d, lambda i: {"RIGHT": OPEN}, 1.2), ["RIGHT"])
 
-print("-- 6. Hold to confirm --")
-r = H.GestureReader(H.GestureModel(), "four")
-check("hold 3 s: selects once, no repeats", run(r, lambda i: {"RIGHT": UP}, 3), ["RIGHT UP"])
-run(r, lambda i: {"RIGHT": FIST}, 1)
-check("relax, then again: selects again", run(r, lambda i: {"RIGHT": UP}, 1.2), ["RIGHT UP"])
-r.set_mode("four")
-check("flickering 67% of frames", run(r, lambda i: {"RIGHT": UP if i % 3 else FIST}, 3), [])
-r.set_mode("four")
-check("flipping UP/DOWN", run(r, lambda i: {"RIGHT": UP if i % 2 else DOWN}, 3), [])
+print("-- 6. Meaning, per question --")
+YN = {"RIGHT": "YES", "RIGHT_UP": "YES", "LEFT_UP": "YES",
+      "LEFT": "NO", "RIGHT_DOWN": "NO", "LEFT_DOWN": "NO"}
+check("yes/no question", {s: meaning.interpret(s, "yes_no") for s in H.SIGNALS}, YN)
+FOUR = {"RIGHT_UP": "TOP_RIGHT", "RIGHT_DOWN": "BOTTOM_RIGHT", "LEFT_UP": "TOP_LEFT",
+        "LEFT_DOWN": "BOTTOM_LEFT", "RIGHT": None, "LEFT": None}
+check("four-choice question", {s: meaning.interpret(s, "four") for s in H.SIGNALS}, FOUR)
+check("three-choice, top-left empty", {s: meaning.interpret(s, "three", empty="TOP_LEFT") for s in H.SIGNALS},
+      {**FOUR, "LEFT_UP": None})
+check("no signal means nothing", (meaning.yes_no(None), meaning.four_choice(None)), (None, None))
 
 print("-- 7. Quiet adaptation --")
 model = H.GestureModel()
-r = H.GestureReader(model, "one_hand", one_hand="LEFT")
+d = H.HandSignals(model)
 check("before learning: 45% reach", model.classify("LEFT", hand("DOWN", 30, 0.45)), "NONE")
 for _ in range(12):  # this user's DOWN only just passes (50-56% reach)
-    run(r, lambda i: {"LEFT": hand("DOWN", 30, random.uniform(0.5, 0.56))}, 1.2)
-    run(r, lambda i: {"LEFT": FIST}, 0.6)
-check("one example saved per selection", len(model.hands["LEFT"]["examples"]), 12)
+    run(d, lambda i: {"LEFT": hand("DOWN", 30, random.uniform(0.5, 0.56))}, 1.2)
+    run(d, lambda i: {}, 0.6)
+check("one example saved per thumb signal", len(model.hands["LEFT"]["examples"]), 12)
 check("after 12 uses (usual reach ~0.53): 48% reach", model.classify("LEFT", hand("DOWN", 30, 0.48)), "DOWN")
 check("after 12 uses: 44% reach is still too far below usual", model.classify("LEFT", hand("DOWN", 30, 0.44)), "NONE")
 check("other hand unaffected", model.classify("RIGHT", hand("DOWN", 30, 0.45)), "NONE")
-check("two-choice mode saves no thumb examples",
-      (run(H.GestureReader(model, "two"), lambda i: {"RIGHT": UP}, 1.2), len(model.hands["RIGHT"]["examples"])),
+check("plain hand signals save no thumb examples",
+      (run(H.HandSignals(model), lambda i: {"RIGHT": OPEN}, 1.2), len(model.hands["RIGHT"]["examples"])),
       (["RIGHT"], 0))
 model = H.GestureModel()
 for _ in range(200):
     model.add_example("LEFT", "UP", hand("UP", 80, H.HARD_MIN_REACH))
 reach, n = model.min_reach("LEFT", "UP")
 check("after 200 edge examples: keeps 20, never below hard minimum", (n, reach >= H.HARD_MIN_REACH), (20, True))
-check("fist still NONE after maximum learning", model.classify("LEFT", fist), "NONE")
-check("tucked thumb still NONE after maximum learning", model.classify("LEFT", tucked), "NONE")
+check("fist still no thumb after maximum learning", model.classify("LEFT", fist), "NONE")
+check("tucked thumb still no thumb after maximum learning", model.classify("LEFT", tucked), "NONE")
 
 print("-- 8. Saving and loading --")
 with tempfile.TemporaryDirectory() as tmp:
