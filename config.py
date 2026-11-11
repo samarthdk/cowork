@@ -48,8 +48,14 @@ MAX_APPS = 40               # how many app names the Brain may choose from
 MAX_TARGETS = 25            # how many on-screen buttons/links the Brain may choose from
 ACTION_TIMEOUT_S = 8        # no automation call may hang longer than this
 
-TTS_MODEL = "0.6b"          # Argmax TTSKit preset
+# Speech synthesis (TTSKit; see tts/real.py)
+TTS_MODEL = "0.6b"          # Argmax TTSKit preset (the 1.7b model does not fit in 8 GB)
+TTS_VOICE = "aiden"         # aiden, ryan, serena, vivian, ...
+TTS_NEW_SENTENCES = "ttskit"  # a sentence with no audio ready yet: "ttskit" (same voice, about 7 s) or "say" (instant, Mac voice)
 TTS_TIMEOUT_S = 120
+TTS_CACHE_DIR = ROOT / "cache" / "tts"   # ready-made audio for known phrases
+TTSKIT_MODELS_PATH = HF_MODELS / "argmaxinc" / "ttskit-coreml"
+TTSKIT_TOKENIZER_PATH = HF_MODELS / "Qwen" / "Qwen3-0.6B"
 
 
 def pick_camera() -> int:

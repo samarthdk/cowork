@@ -21,3 +21,6 @@ profiles/gestures.json
 # Personal working profile and its backups (made from sample_profile.json)
 profiles/profile.json
 profiles/backups/
+
+# Ready-made audio for phrases (re-made automatically)
+cache/
