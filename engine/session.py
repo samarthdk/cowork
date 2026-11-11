@@ -172,7 +172,7 @@ class Session:
             intent.stats = {"source": "fast_path", "latency_ms": round(match.latency_ms, 2),
                             "similarity": round(match.similarity)}
             self.emit("fast_path", similarity=match.similarity, latency_ms=match.latency_ms,
-                      example_heard=match.example["heard"],
+                      example_heard=match.example["heard"], exact_phrase=bool(match.example.get("builtin")),
                       meaning=describe(intent.choice, intent.args, profile), intent=intent.to_dict())
         else:
             start = time.perf_counter()
@@ -210,7 +210,8 @@ class Session:
                 break
             self.emit("cancelled", meaning=describe(choice, args, profile))
             self._take_back(outcome)
-            if match and similarity(heard, match.example["heard"]) >= FORGET_SIMILARITY:
+            if (match and not match.example.get("builtin")
+                    and similarity(heard, match.example["heard"]) >= FORGET_SIMILARITY):
                 # The learned example that gave this answer was wrong for these words.
                 delete_example(profile, match.example)
                 self.emit("forgot", heard=match.example["heard"],
@@ -256,8 +257,17 @@ class Session:
         """Next-best options (most similar first, rejected ones left out) plus
         "Something else"."""
         profile = self.profile
+        second = None
+        if rejected and config.SECOND_OPINION:
+            # The first guess was wrong: ask the Brain once more with it ruled out,
+            # and put its new pick in the first square.
+            start = time.perf_counter()
+            again = repair(heard, profile, self.llm, context, exclude=rejected)
+            if again.choice and again.choice not in rejected:
+                second = again.choice
+            self.emit("second_opinion", meaning=second, took_ms=(time.perf_counter() - start) * 1000)
         options = rank_options(heard, profile, intent.options, exclude=rejected,
-                               first_group=group_of(intent.choice, profile))
+                               first_group=group_of(intent.choice, profile), first=second)
         answer = yield Question("choice", "options", "Which one did you mean?", options=options)
         if answer is None or answer.kind != "pick":
             return None

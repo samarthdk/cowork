@@ -20,10 +20,12 @@ def get_llm():
     raise ValueError(f'config.LLM must be "fake" or "real", not "{config.LLM}"')
 
 
-def repair(heard: str, profile: dict, llm, context: dict | None = None) -> Intent:
+def repair(heard: str, profile: dict, llm, context: dict | None = None, exclude: tuple = ()) -> Intent:
     """One schema-constrained call, plus one retry if the reply is unusable.
-    `context`: real values for command details (e.g. {"app": [installed apps]})."""
-    messages, schema = build_messages(profile, heard, context), build_schema(profile, context)
+    `context`: real values for command details (e.g. {"app": [installed apps]}).
+    `exclude`: choices that may not be answered (the person already said no to them)."""
+    messages = build_messages(profile, heard, context, exclude)
+    schema = build_schema(profile, context, exclude)
     problem = ""
     for attempt in (1, 2):
         try:

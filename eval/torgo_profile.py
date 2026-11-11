@@ -69,7 +69,7 @@ def build(speaker: str) -> dict:
     for word, (name, description, safety) in COMMAND_WORDS.items():
         if word in by_text:
             commands.append({"name": name, "description": description, "safety": safety,
-                             "args": {}, "say": SAY[name]})
+                             "said_as": [word], "args": {}, "say": SAY[name]})
             target_of[word] = name
     profile = {"user": f"TORGO speaker {speaker} (research recordings)", "phrases": phrases,
                "vocabulary": [], "commands": commands, "examples": [],

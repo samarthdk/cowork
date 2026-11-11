@@ -38,10 +38,12 @@ def group_of(choice: str | None, profile: dict) -> str | None:
 
 
 def rank_options(heard: str, profile: dict, model_order: list[str],
-                 exclude: tuple = (), first_group: str | None = None) -> list[str]:
+                 exclude: tuple = (), first_group: str | None = None, first: str | None = None) -> list[str]:
     """The best SHOWN choices (not excluded), then 'Something else' last.
     first_group ("phrase" or "command"): the group of the model's top guess;
-    if not given, the group of the model's first option, else phrases."""
+    if not given, the group of the model's first option, else phrases.
+    first: a choice to put in the first square whatever its similarity (the
+    Brain's second opinion after a "no")."""
     first_group = first_group or group_of(model_order[0] if model_order else None, profile) or "phrase"
 
     def tie_break(choice):
@@ -52,4 +54,8 @@ def rank_options(heard: str, profile: dict, model_order: list[str],
         return sorted(members, key=lambda c: (-score(heard, c, profile), tie_break(c)))
 
     second_group = "command" if first_group == "phrase" else "phrase"
-    return (ranked(first_group) + ranked(second_group))[:SHOWN] + [SOMETHING_ELSE]
+    order = ranked(first_group) + ranked(second_group)
+    if first in order:
+        order.remove(first)
+        order.insert(0, first)
+    return order[:SHOWN] + [SOMETHING_ELSE]

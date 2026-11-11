@@ -46,9 +46,12 @@ def _shape(properties: dict) -> dict:
             "additionalProperties": False}
 
 
-def build_schema(profile: dict, context: dict | None = None) -> dict:
-    commands = usable_commands(profile, context)
-    simple = list(phrase_codes(profile)) + [c["name"] for c in commands if not c["args"]]
+def build_schema(profile: dict, context: dict | None = None, exclude: tuple = ()) -> dict:
+    """`exclude`: choices (phrases or command names) that may not be answered,
+    e.g. the guess the person just said "no" to."""
+    commands = [c for c in usable_commands(profile, context) if c["name"] not in exclude]
+    simple = [code for code, phrase in phrase_codes(profile).items() if phrase not in exclude]
+    simple += [c["name"] for c in commands if not c["args"]]
     shapes = [_shape({"choice": {"type": "string", "enum": simple}, "confidence": CONFIDENCE})]
     for command in commands:
         if not command["args"]:
@@ -81,7 +84,7 @@ def schema_details(schema: dict, choice: str) -> dict:
     return {}
 
 
-def build_messages(profile: dict, heard: str, context: dict | None = None) -> list[dict]:
+def build_messages(profile: dict, heard: str, context: dict | None = None, exclude: tuple = ()) -> list[dict]:
     phrases = "\n".join(f"- {code}: {text}" for code, text in phrase_codes(profile).items())
     commands = []
     for c in usable_commands(profile, context):
@@ -123,6 +126,9 @@ Rules:
         values = listed_values(arg, context)
         if values and any(arg in c["args"] for c in usable_commands(profile, context)):
             now += f'Right now "{arg}" can be one of: {" | ".join(values)}\n'
+    if exclude:   # in the request, not the instructions, so the instructions stay cached
+        codes = {phrase: code for code, phrase in phrase_codes(profile).items()}
+        now += "The person already said it is NOT: " + ", ".join(codes.get(c, c) for c in exclude) + "\n"
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": f"{now}The person said: \"{heard}\""},

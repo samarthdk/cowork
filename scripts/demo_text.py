@@ -45,10 +45,15 @@ def show(event: dict) -> None:
     if kind == "fast_path":
         print(f"FAST PATH: matched a learned example ({event['similarity']:.0f}% similar) "
               f"in {event['latency_ms']:.1f} ms")
-        print(f"  learned earlier: '{event['example_heard']}' -> '{event['meaning']}'  (LLM not called)")
+        if event.get("exact_phrase"):
+            print(f"  it is one of your phrases, word for word: '{event['meaning']}'  (LLM not called)")
+        else:
+            print(f"  learned earlier: '{event['example_heard']}' -> '{event['meaning']}'  (LLM not called)")
     elif kind == "brain":
         print(json.dumps(event["intent"], indent=2))
         print(f"took {event['took_ms']:.0f} ms (LLM)")
+    elif kind == "second_opinion" and event["meaning"]:
+        print(f"(second opinion took {event['took_ms']:.0f} ms)")
     elif kind == "risky_notice":
         print("(risky action: always confirmed first)")
     elif kind == "guess_failed":

@@ -41,8 +41,23 @@ def _usable(example: dict, profile: dict) -> bool:
 def fast_path(heard: str, profile: dict) -> FastMatch | None:
     start = time.perf_counter()
     text = normalize(heard)
+    if not text:
+        return None
+    # A phrase heard word for word (or the exact word this person uses for a
+    # command) needs no model at all.
+    exact = [p for p in profile["phrases"] if normalize(p) == text]
+    exact += [c["name"] for c in profile["commands"] if not c["args"]
+              and text in [normalize(w) for w in c.get("said_as", [])]]
+    if len(exact) == 1:
+        meant = exact[0]
+        intent = Intent(meant, "command" if find_command(profile, meant) else "phrase",
+                        {name: "" for name in all_arg_names(profile)}, "high",
+                        fill_options(meant, [], all_choices(profile)))
+        latency = (time.perf_counter() - start) * 1000
+        log_call("repair", "fast_path", latency, similarity=100, matched="(the phrase itself)", meant=meant)
+        return FastMatch(intent, 100.0, {"heard": heard, "meant": meant, "args": {}, "builtin": True}, latency)
     examples = [e for e in profile.get("examples", []) if _usable(e, profile)]
-    if not text or not examples:
+    if not examples:
         return None
     scored = sorted(((similarity(text, e["heard"]), e) for e in examples),
                     key=lambda pair: pair[0], reverse=True)
