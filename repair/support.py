@@ -88,3 +88,48 @@ def check(heard: str, choice: str, profile: dict) -> tuple[bool, str]:
     if reasons:
         return False, reasons[0]
     return True, ""
+
+
+# ---- Evidence: how well do the heard words back up a choice? ----------------
+
+WORD_SIMILAR = 75   # two words "sound alike" at this similarity (looser than WORD_MATCH)
+
+
+def _coverage(heard_words: list[str], text_words: list[str]) -> tuple[float, float]:
+    """(share of the heard words found in the text, share of the text's words
+    that were heard), both weighted by word length so that short filler words
+    count for little. Each text word can be used once."""
+    if not heard_words or not text_words:
+        return 0.0, 0.0
+    free = list(text_words)
+    heard_hit = text_hit = 0
+    for word in sorted(heard_words, key=len, reverse=True):
+        best = max(free, key=lambda t: fuzz.ratio(word, t), default=None)
+        if best is not None and fuzz.ratio(word, best) >= WORD_SIMILAR:
+            heard_hit += len(word)
+            text_hit += len(best)
+            free.remove(best)
+    return heard_hit / sum(map(len, heard_words)), text_hit / sum(map(len, text_words))
+
+
+def support_texts(choice: str, profile: dict) -> list[str]:
+    """What a choice 'sounds like': a phrase's own words; for a command, the
+    words the person uses for it ("said_as" in the profile, otherwise the
+    command's name); and for both, everything this person was heard saying
+    when they meant it."""
+    command = find_command(profile, choice)
+    texts = (list(command.get("said_as", [])) or [choice.replace("_", " ")]) if command else [choice]
+    return texts + [e["heard"] for e in profile.get("examples", []) if e["meant"] == choice]
+
+
+def evidence(heard: str, choice: str, profile: dict, args: dict | None = None) -> float:
+    """0..1: the best agreement between what was heard and any text for this
+    choice. 1 = every heard word is in the text and every word of the text was
+    heard; 0 = nothing in common."""
+    heard_words = normalize(heard).split()
+    extra = normalize(" ".join(v for v in (args or {}).values() if v)).split()
+    best = 0.0
+    for text in support_texts(choice, profile):
+        heard_cov, text_cov = _coverage(heard_words, normalize(text).split() + extra)
+        best = max(best, min(heard_cov, text_cov))
+    return best

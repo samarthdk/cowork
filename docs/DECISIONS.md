@@ -76,3 +76,19 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
   where raw WhisperKit was about 0% and nearest-text matching 14%, but the model's own
   "high" confidence was often wrong there. "High" must require evidence from the heard
   words; that rule is not yet rewritten.
+
+## When "high confidence" is trusted (changed after testing on real impaired speech)
+
+- **Finding** (development speaker M05, 361 answers): trusting the model's own "high" gave a
+  confident WRONG answer for 6.9-8.3% of requests, and for 24% of words outside the profile.
+- **New rule:** the model's "high" only stands if the heard words back it up. "Evidence"
+  (`repair/support.py`) = how much of what was heard is covered by the chosen phrase (or a
+  learned example of it, or the words the person uses for a command), and how much of that
+  text was actually heard, weighted by word length. Threshold `config.HIGH_EVIDENCE = 0.7`.
+  On M05 any threshold from 0.5 to 0.9 gave 0% confident-wrong; 0.7 answers 56% instantly.
+  The earlier "a swapped part contradicts" check (the Pepsi fix) is kept as well.
+- **Effect on behaviour:** a garbled request with little word overlap is now always confirmed
+  once ("Did you mean ...?"), then learned, then answered instantly next time. Five older
+  checks that expected "act immediately on the model's say-so" were updated to the new rule.
+- The threshold was chosen on M05 only; runs on F03 and M01 were started but stopped to keep
+  the Mac free. Their partial answers are cached; `eval/calibrate.py` can finish the comparison.

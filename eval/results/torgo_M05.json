@@ -1,0 +1,5973 @@
+{
+ "speaker": "M05",
+ "transcripts": "plain",
+ "model": "ternary-bonsai-2-4b",
+ "profile": {
+  "phrases": 111,
+  "commands": 7
+ },
+ "test_clips": 126,
+ "enrollment_clips_per_fold": 7,
+ "raw_whisperkit": {
+  "exact": 0.2619047619047619,
+  "nearest": 0.6666666666666666,
+  "clips": 126,
+  "wer": 0.336969696969697
+ },
+ "second_voice_fresh": {
+  "clips": 126,
+  "instant": 0.3888888888888889,
+  "one question": 0.46825396825396826,
+  "two questions": 0.007936507936507936,
+  "not found": 0.05555555555555555,
+  "wrong": 0.07936507936507936,
+  "reached": 0.8650793650793651,
+  "questions_per_request": 0.5793650793650794,
+  "fast_path": 0.0,
+  "brain_ms_median": 3249,
+  "brain_ms_p90": 4857
+ },
+ "second_voice_enrolled": {
+  "clips": 238,
+  "instant": 0.3907563025210084,
+  "one question": 0.48739495798319327,
+  "two questions": 0.01680672268907563,
+  "not found": 0.04201680672268908,
+  "wrong": 0.06302521008403361,
+  "reached": 0.8949579831932774,
+  "questions_per_request": 0.5882352941176471,
+  "fast_path": 0.008403361344537815,
+  "brain_ms_median": 3498.5,
+  "brain_ms_p90": 4707
+ },
+ "enrolled_items_only": {
+  "clips": 16,
+  "instant": 0.375,
+  "one question": 0.4375,
+  "two questions": 0.0,
+  "not found": 0.1875,
+  "wrong": 0.0,
+  "reached": 0.8125,
+  "questions_per_request": 0.8125,
+  "fast_path": 0.125,
+  "brain_ms_median": 3585.0,
+  "brain_ms_p90": 3734
+ },
+ "never_heard_items_only": {
+  "clips": 222,
+  "instant": 0.3918918918918919,
+  "one question": 0.49099099099099097,
+  "two questions": 0.018018018018018018,
+  "not found": 0.03153153153153153,
+  "wrong": 0.06756756756756757,
+  "reached": 0.9009009009009009,
+  "questions_per_request": 0.5720720720720721,
+  "fast_path": 0.0,
+  "brain_ms_median": 3487.5,
+  "brain_ms_p90": 4723
+ },
+ "outside_profile": {
+  "clips": 59,
+  "confident_wrong": 0.23728813559322035,
+  "questions_per_request": 1.5254237288135593
+ },
+ "asr_ms_median": 171.0,
+ "records": {
+  "fresh": [
+   {
+    "clip": "M05_2_0279",
+    "heard": "A good attitude is unbeatable.",
+    "truth": "A good attitude is unbeatable.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "A good attitude is unbeatable.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3446
+   },
+   {
+    "clip": "M05_1_0019",
+    "heard": "A long, snowy beard, killing the hudson.",
+    "truth": "A long flowing beard clings to his chin.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "A long flowing beard clings to his chin.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'A long flowing beard clings to his chin.': 'snowy' instead of 'flowing', 'killing the hudson' instead of 'clings to his chin'"
+    ],
+    "source": "llm",
+    "brain_ms": 3316
+   },
+   {
+    "clip": "M05_2_0246",
+    "heard": "A roll of water laying near the sidewalk.",
+    "truth": "A roll of wire lay near the wall.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "A roll of wire lay near the wall.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'A roll of wire lay near the wall.': 'sidewalk' instead of 'wall'"
+    ],
+    "source": "llm",
+    "brain_ms": 3332
+   },
+   {
+    "clip": "M05_2_0147",
+    "heard": "I'll find what is healthy for you.",
+    "truth": "Alfalfa is healthy for you.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Alfalfa is healthy for you.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Alfalfa is healthy for you.': 'i'll find what' instead of 'alfalfa'"
+    ],
+    "source": "llm",
+    "brain_ms": 3500
+   },
+   {
+    "clip": "M05_2_0176",
+    "heard": "Alimony forms a divided man's wealth.",
+    "truth": "Alimony harms a divorced man's wealth.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Alimony harms a divorced man's wealth.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3444
+   },
+   {
+    "clip": "M05_2_0131",
+    "heard": "All the big messages my friends were traded.",
+    "truth": "All the big baseball players get traded.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "All the big baseball players get traded.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'All the big baseball players get traded.': 'messages my friends were' instead of 'baseball players get'"
+    ],
+    "source": "llm",
+    "brain_ms": 3487
+   },
+   {
+    "clip": "M05_2_0381",
+    "heard": "Although, always again, again, again.",
+    "truth": "Although always again again.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Although always again again.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3688
+   },
+   {
+    "clip": "M05_2_0382",
+    "heard": "Although always alone, we survive.",
+    "truth": "Although always alone we survive.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Although always alone we survive.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3558
+   },
+   {
+    "clip": "M05_2_0150",
+    "heard": "Aluminum silverware can often be found in places.",
+    "truth": "Aluminum silverware can often be flimsy.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Aluminum silverware can often be flimsy.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Aluminum silverware can often be flimsy.': 'found in places' instead of 'flimsy'"
+    ],
+    "source": "llm",
+    "brain_ms": 3666
+   },
+   {
+    "clip": "M05_2_0087",
+    "heard": "Are you great? I love them.",
+    "truth": "Are your grades higher or lower than nancy's.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Are your grades higher or lower than nancy's.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Are your grades higher or lower than nancy's.': 'great i love them' instead of 'grades higher or lower than nancy's'"
+    ],
+    "source": "llm",
+    "brain_ms": 3717
+   },
+   {
+    "clip": "M05_2_0189",
+    "heard": "Because the day is exam, we review every formula.",
+    "truth": "Before thursday's exam review every formula.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Before thursday's exam review every formula.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Before thursday's exam review every formula.': 'because the day is' instead of 'before thursday's'"
+    ],
+    "source": "llm",
+    "brain_ms": 3534
+   },
+   {
+    "clip": "M05_2_0321",
+    "heard": "make that good for one guy in every dress.",
+    "truth": "Beg that guard for one gallon of gas.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Giving those who observe him a pronounced feeling of the utmost respect.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3579
+   },
+   {
+    "clip": "M05_2_0367",
+    "heard": "Being able to dance can help too.",
+    "truth": "Being able to dance can help too.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Being able to dance can help too.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3706
+   },
+   {
+    "clip": "M05_2_0051",
+    "heard": "Both figures will grow higher in the later years.",
+    "truth": "Both figures would go higher in later years.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Both figures would go higher in later years.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Both figures would go higher in later years.': 'will grow' instead of 'would go'"
+    ],
+    "source": "llm",
+    "brain_ms": 3716
+   },
+   {
+    "clip": "M05_2_0212",
+    "heard": "Both injuries were to the same leg.",
+    "truth": "Both injuries were to the same leg.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Both injuries were to the same leg.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3841
+   },
+   {
+    "clip": "M05_2_0066",
+    "heard": "Break is enjoying humans on the ocean.",
+    "truth": "Bright sunshine shimmers on the ocean.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Bright sunshine shimmers on the ocean.': 'break is enjoying humans' instead of 'bright sunshine shimmers'"
+    ],
+    "source": "llm",
+    "brain_ms": 3781
+   },
+   {
+    "clip": "M05_1_0094",
+    "heard": "But he always answers, \"Be then an orange.\"",
+    "truth": "But he always answers banana oil.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4026
+   },
+   {
+    "clip": "M05_2_0265",
+    "heard": "Cora lives in a lively home.",
+    "truth": "Carl lives in a lively home.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Carl lives in a lively home.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Carl lives in a lively home.': 'cora' instead of 'carl'"
+    ],
+    "source": "llm",
+    "brain_ms": 3725
+   },
+   {
+    "clip": "M05_2_0219",
+    "heard": "They asked today if some new episode is reported.",
+    "truth": "Day after day some new episode is reported.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Day after day some new episode is reported.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Day after day some new episode is reported.': 'they asked today if' instead of 'day after day'"
+    ],
+    "source": "llm",
+    "brain_ms": 3524
+   },
+   {
+    "clip": "M05_2_0275",
+    "heard": "Did I do academic building?",
+    "truth": "Did dad do academic bidding.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Did dad do academic bidding.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Did dad do academic bidding.': 'i' instead of 'dad'"
+    ],
+    "source": "llm",
+    "brain_ms": 3764
+   },
+   {
+    "clip": "M05_1_0078",
+    "heard": "Then ask me to carry an orange rag with rats.",
+    "truth": "Don't ask me to carry an oily rag like that.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Don't ask me to carry an oily rag like that.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Don't ask me to carry an oily rag like that.': 'then' instead of 'don't', 'orange' instead of 'oily', 'with rats' instead of 'like that'"
+    ],
+    "source": "llm",
+    "brain_ms": 3676
+   },
+   {
+    "clip": "M05_2_0370",
+    "heard": "Is it wrong volunteering to jump first?",
+    "truth": "Each one volunteered to jump first.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Each one volunteered to jump first.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Each one volunteered to jump first.': 'is it wrong volunteering' instead of 'each one volunteered'"
+    ],
+    "source": "llm",
+    "brain_ms": 3564
+   },
+   {
+    "clip": "M05_2_0102",
+    "heard": "Everything went really smooth, the ship said.",
+    "truth": "Everything went real smooth the sheriff said.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Everything went real smooth the sheriff said.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Everything went real smooth the sheriff said.': 'ship' instead of 'sheriff'"
+    ],
+    "source": "llm",
+    "brain_ms": 3563
+   },
+   {
+    "clip": "M05_1_0020",
+    "heard": "Except in the wintertime when the winter snow or ice prevents",
+    "truth": "Except in the winter when the ooze or snow or ice prevents.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Except in the winter when the ooze or snow or ice prevents.': 'winter' instead of 'ooze or'"
+    ],
+    "source": "llm",
+    "brain_ms": 3641
+   },
+   {
+    "clip": "M05_2_0368",
+    "heard": "Get a Calico Cat to keep.",
+    "truth": "Get a calico cat to keep.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Get a calico cat to keep.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3611
+   },
+   {
+    "clip": "M05_1_0010",
+    "heard": "is giving out forever in the pronounced feeling of utmost respect.",
+    "truth": "Giving those who observe him a pronounced feeling of the utmost respect.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Giving those who observe him a pronounced feeling of the utmost respect.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Giving those who observe him a pronounced feeling of the utmost respect.': 'out forever in the' instead of 'those who observe him a'"
+    ],
+    "source": "llm",
+    "brain_ms": 3621
+   },
+   {
+    "clip": "M05_1_0101",
+    "heard": "Grandfather likes to be modern in his language.",
+    "truth": "Grandfather likes to be modern in his language.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Grandfather likes to be modern in his language.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3541
+   },
+   {
+    "clip": "M05_1_0089",
+    "heard": "He dares his hands out in an ancient black frog's crew.",
+    "truth": "He dresses himself in an ancient black frock coat.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He dresses himself in an ancient black frock coat.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He dresses himself in an ancient black frock coat.': 'dares his hands out' instead of 'dresses himself', 'frog's crew' instead of 'frock coat'"
+    ],
+    "source": "llm",
+    "brain_ms": 3554
+   },
+   {
+    "clip": "M05_2_0146",
+    "heard": "He further proposed grants for an unspecified sub-fright-perimeter hospital.",
+    "truth": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He further proposed grants of an unspecified sum for experimental hospitals.': 'for' instead of 'of'"
+    ],
+    "source": "llm",
+    "brain_ms": 4271
+   },
+   {
+    "clip": "M05_2_0387",
+    "heard": "He is definitely not a badass.",
+    "truth": "He is definitely a notch above us.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He is definitely a notch above us.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He is definitely a notch above us.': 'badass' instead of 'notch above us'"
+    ],
+    "source": "llm",
+    "brain_ms": 4498
+   },
+   {
+    "clip": "M05_2_0305",
+    "heard": "He really crucified himself. He made it for a yard.",
+    "truth": "He really crucified him he nailed it for a yard loss.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He really crucified him he nailed it for a yard loss.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He really crucified him he nailed it for a yard loss.': 'made' instead of 'nailed'"
+    ],
+    "source": "llm",
+    "brain_ms": 3201
+   },
+   {
+    "clip": "M05_1_0057",
+    "heard": "He surely takes a walk in the open air each day.",
+    "truth": "He slowly takes a short walk in the open air each day.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He slowly takes a short walk in the open air each day.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He slowly takes a short walk in the open air each day.': 'surely' instead of 'slowly'"
+    ],
+    "source": "llm",
+    "brain_ms": 3172
+   },
+   {
+    "clip": "M05_2_0013",
+    "heard": "He will allow his rear line.",
+    "truth": "He will allow a rare lie.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He really crucified him he nailed it for a yard loss.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4246
+   },
+   {
+    "clip": "M05_2_0151",
+    "heard": "Here's a lot of package history.",
+    "truth": "He wrapped the package hastily.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "He wrapped the package hastily.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 7172
+   },
+   {
+    "clip": "M05_2_0170",
+    "heard": "I expect we'll bounce back this week.",
+    "truth": "I expect we'll bounce back this week.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I expect we'll bounce back this week.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3266
+   },
+   {
+    "clip": "M05_2_0008",
+    "heard": "I can, I feel I can play this weekend.",
+    "truth": "I feel I can play this weekend.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I feel I can play this weekend.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I feel I can play this weekend.': 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 3409
+   },
+   {
+    "clip": "M05_2_0213",
+    "heard": "I have had my bed rung.",
+    "truth": "I have had my bell rung.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I have had my bell rung.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I have had my bell rung.': 'bed' instead of 'bell'"
+    ],
+    "source": "llm",
+    "brain_ms": 3021
+   },
+   {
+    "clip": "M05_2_0107",
+    "heard": "I tried, I just tried to do my best.",
+    "truth": "I just try to do my best.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I just try to do my best.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I just try to do my best.': 'tried' instead of 'try', 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 3043
+   },
+   {
+    "clip": "M05_2_0130",
+    "heard": "I looked up and noticed two old men.",
+    "truth": "I looked up and noticed two old men.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I looked up and noticed two old men.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3087
+   },
+   {
+    "clip": "M05_2_0088",
+    "heard": "I grabbed the floor slowly.",
+    "truth": "I scrubbed the floors thoroughly.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He slowly takes a short walk in the open air each day.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3127
+   },
+   {
+    "clip": "M05_2_0068",
+    "heard": "I'm tired to tell people in the community.",
+    "truth": "I tried to tell people in the community.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I tried to tell people in the community.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3701
+   },
+   {
+    "clip": "M05_2_0124",
+    "heard": "I was conscious all the time.",
+    "truth": "I was conscious all the time.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I was conscious all the time.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3856
+   },
+   {
+    "clip": "M05_2_0369",
+    "heard": "I'm waiting to experiment for the first time.",
+    "truth": "I'm willing to experiment for the first time.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I'm willing to experiment for the first time.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3203
+   },
+   {
+    "clip": "M05_2_0215",
+    "heard": "If you are using water, replace it immediately.",
+    "truth": "If you are losing water replace it immediately.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "If you are losing water replace it immediately.",
+    "confidence": "high",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 1127
+   },
+   {
+    "clip": "M05_2_0038",
+    "heard": "\"If you destroy confidence in banks, you do something to that economy,\" he said.",
+    "truth": "If you destroy confidence in banks you do something to the economy he said.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "If you destroy confidence in banks you do something to the economy he said.",
+    "confidence": "low",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked",
+     "high confidence lowered: only partly matches 'If you destroy confidence in banks you do something to the economy he said.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 1092
+   },
+   {
+    "clip": "M05_2_0186",
+    "heard": "It also provides for friends to cheer them and help colleges build dormitory rooms.",
+    "truth": "It also provides for funds to clear slums and help colleges build dormitories.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "It also provides for funds to clear slums and help colleges build dormitories.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'It also provides for funds to clear slums and help colleges build dormitories.': 'cheer them' instead of 'clear slums'"
+    ],
+    "source": "llm",
+    "brain_ms": 3933
+   },
+   {
+    "clip": "M05_2_0165",
+    "heard": "It eventually became a rather proud crime.",
+    "truth": "It eventually became a rather proud claim.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It eventually became a rather proud claim.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4857
+   },
+   {
+    "clip": "M05_2_0201",
+    "heard": "It was a good win for us.",
+    "truth": "It was a good win for us.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It was a good win for us.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2986
+   },
+   {
+    "clip": "M05_2_0365",
+    "heard": "It's fun to roast marshmallows on a gas burner.",
+    "truth": "It's fun to roast marshmallows on a gas burner.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It's fun to roast marshmallows on a gas burner.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3076
+   },
+   {
+    "clip": "M05_2_0100",
+    "heard": "They made more money by working hard.",
+    "truth": "Jane may earn more money by working hard.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Jane may earn more money by working hard.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Jane may earn more money by working hard.': 'they made' instead of 'jane may earn'"
+    ],
+    "source": "llm",
+    "brain_ms": 3061
+   },
+   {
+    "clip": "M05_2_0122",
+    "heard": "Just one side got wet.",
+    "truth": "Just one side got wet.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Just one side got wet.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3211
+   },
+   {
+    "clip": "M05_2_0043",
+    "heard": "My shows yellow dingle aprons",
+    "truth": "Mother sews yellow gingham aprons.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Mother sews yellow gingham aprons.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Mother sews yellow gingham aprons.': 'my shows' instead of 'mother sews', 'dingle' instead of 'gingham'"
+    ],
+    "source": "llm",
+    "brain_ms": 5050
+   },
+   {
+    "clip": "M05_2_0026",
+    "heard": "My system is that flowers kittens.",
+    "truth": "My sister made the flowered curtains.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "My sister made the flowered curtains.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3517
+   },
+   {
+    "clip": "M05_2_0243",
+    "heard": "Night after night, they received annoying phone calls.",
+    "truth": "Night after night they received annoying phone calls.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Night after night they received annoying phone calls.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3249
+   },
+   {
+    "clip": "M05_2_0314",
+    "heard": "Nobody really expects to evacuate.",
+    "truth": "Nobody really expects to evacuate.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Nobody really expects to evacuate.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3369
+   },
+   {
+    "clip": "M05_2_0242",
+    "heard": "Nothing has been done yet to take advantage of law-enabling legislation.",
+    "truth": "Nothing has been done yet to take advantage of the enabling legislation.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nothing has been done yet to take advantage of the enabling legislation.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nothing has been done yet to take advantage of the enabling legislation.': 'law' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 3008
+   },
+   {
+    "clip": "M05_2_0091",
+    "heard": "Nothing is as offensive as in a drink.",
+    "truth": "Nothing is as offensive as innocence.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nothing is as offensive as innocence.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nothing is as offensive as innocence.': 'in a drink' instead of 'innocence'"
+    ],
+    "source": "llm",
+    "brain_ms": 3090
+   },
+   {
+    "clip": "M05_2_0027",
+    "heard": "One validated act of good districts.",
+    "truth": "One validated acts of school districts.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "One validated acts of school districts.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'One validated acts of school districts.': 'good' instead of 'school'"
+    ],
+    "source": "llm",
+    "brain_ms": 3169
+   },
+   {
+    "clip": "M05_2_0385",
+    "heard": "Only lawyers love millions of years.",
+    "truth": "Only lawyers love millionaires.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Only lawyers love millionaires.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 10114
+   },
+   {
+    "clip": "M05_1_0104",
+    "heard": "She had your dark shoot in greasy, lush water oil.",
+    "truth": "She had your dark suit in greasy wash water all year.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "She had your dark suit in greasy wash water all year.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'She had your dark suit in greasy wash water all year.': 'shoot' instead of 'suit', 'lush' instead of 'wash', 'oil' instead of 'all year'"
+    ],
+    "source": "llm",
+    "brain_ms": 3021
+   },
+   {
+    "clip": "M05_2_0076",
+    "heard": "She is thinner than I am.",
+    "truth": "She is thinner than I am.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "She is thinner than I am.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3082
+   },
+   {
+    "clip": "M05_2_0256",
+    "heard": "It's zero warm feeling running over hours.",
+    "truth": "She wore warm fleecy woolen overalls.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 5544
+   },
+   {
+    "clip": "M05_2_0276",
+    "heard": "Sample towers are available nearby.",
+    "truth": "Some hotels are available nearby.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Some hotels are available nearby.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Some hotels are available nearby.': 'sample towers' instead of 'some hotels'"
+    ],
+    "source": "llm",
+    "brain_ms": 2954
+   },
+   {
+    "clip": "M05_2_0238",
+    "heard": "students watched as he got helped.",
+    "truth": "Students watched as he got out.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Students watched as he got out.",
+    "confidence": "low",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked",
+     "high confidence lowered: only partly matches 'Students watched as he got out.': 'helped' instead of 'out'"
+    ],
+    "source": "llm",
+    "brain_ms": 1211
+   },
+   {
+    "clip": "M05_2_0192",
+    "heard": "Sewing your arms as high as you can.",
+    "truth": "Swing your arm as high as you can.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Swing your arm as high as you can.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3077
+   },
+   {
+    "clip": "M05_2_0207",
+    "heard": "The books were really expensive.",
+    "truth": "The books are very expensive.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The books are very expensive.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The books are very expensive.': 'were really' instead of 'are very'"
+    ],
+    "source": "llm",
+    "brain_ms": 3169
+   },
+   {
+    "clip": "M05_2_0152",
+    "heard": "The box contained three sweaters.",
+    "truth": "The box contained three sweaters.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The box contained three sweaters.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3010
+   },
+   {
+    "clip": "M05_2_0239",
+    "heard": "The dolphins slam around our boat.",
+    "truth": "The dolphins swam around our boat.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The dolphins swam around our boat.",
+    "confidence": "high",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 1043
+   },
+   {
+    "clip": "M05_2_0389",
+    "heard": "The hotel meant",
+    "truth": "The hotel man.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The hotel man.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 6131
+   },
+   {
+    "clip": "M05_2_0390",
+    "heard": "The hotel only should.",
+    "truth": "The hotel owner shrugged.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "The hotel man.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 6442
+   },
+   {
+    "clip": "M05_2_0101",
+    "heard": "The humidity is overwhelming here.",
+    "truth": "The humidity is overwhelming there.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The humidity is overwhelming there.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 6148
+   },
+   {
+    "clip": "M05_2_0049",
+    "heard": "The islands are sparsely populated.",
+    "truth": "The islands are sparsely populated.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The islands are sparsely populated.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 9344
+   },
+   {
+    "clip": "M05_2_0204",
+    "heard": "as a job provides many benefits.",
+    "truth": "The job provides many benefits.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The job provides many benefits.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The job provides many benefits.': 'as a' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 2993
+   },
+   {
+    "clip": "M05_2_0163",
+    "heard": "The little cool house is too empty.",
+    "truth": "The little schoolhouse stood empty.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The little schoolhouse stood empty.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3047
+   },
+   {
+    "clip": "M05_2_0236",
+    "heard": "The misguided souls have lost their way.",
+    "truth": "The misguided souls have lost their way.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The misguided souls have lost their way.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 6062
+   },
+   {
+    "clip": "M05_2_0155",
+    "heard": "A museum hires musicians every evening.",
+    "truth": "The museum hires musicians every evening.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The museum hires musicians every evening.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The museum hires musicians every evening.': 'a' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 3525
+   },
+   {
+    "clip": "M05_2_0286",
+    "heard": "The owners regularly look for pyramid leaks.",
+    "truth": "The owners regularly look for plumbing leaks.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The owners regularly look for plumbing leaks.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The owners regularly look for plumbing leaks.': 'pyramid' instead of 'plumbing'"
+    ],
+    "source": "llm",
+    "brain_ms": 3129
+   },
+   {
+    "clip": "M05_2_0393",
+    "heard": "The big issues were new.",
+    "truth": "The pair of shoes was new.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Day after day some new episode is reported.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3335
+   },
+   {
+    "clip": "M05_2_0274",
+    "heard": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "truth": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3701
+   },
+   {
+    "clip": "M05_1_0056",
+    "heard": "That quick brain fucks down over that baby dog.",
+    "truth": "The quick brown fox jumps over the lazy dog.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3721
+   },
+   {
+    "clip": "M05_2_0085",
+    "heard": "That train approached the depot slowly.",
+    "truth": "The train approached the depot slowly.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The train approached the depot slowly.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The train approached the depot slowly.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 3304
+   },
+   {
+    "clip": "M05_2_0291",
+    "heard": "The wait for weeks can be a really good game.",
+    "truth": "The wait for work can be very do it again.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "The wait for work can be very long.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The wait for work can be very long.': 'weeks' instead of 'work', 'a really good game' instead of 'very long'"
+    ],
+    "source": "llm",
+    "brain_ms": 3061
+   },
+   {
+    "clip": "M05_2_0292",
+    "heard": "The wait for weeks can be very long.",
+    "truth": "The wait for work can be very long.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The wait for work can be very long.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The wait for work can be very long.': 'weeks' instead of 'work'"
+    ],
+    "source": "llm",
+    "brain_ms": 3076
+   },
+   {
+    "clip": "M05_2_0082",
+    "heard": "The health is great in the world.",
+    "truth": "Their house is grey and white.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3157
+   },
+   {
+    "clip": "M05_2_0197",
+    "heard": "This is a treehouse up above.",
+    "truth": "There is a treehouse up above.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "There is a treehouse up above.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'There is a treehouse up above.': 'this' instead of 'there'"
+    ],
+    "source": "llm",
+    "brain_ms": 3080
+   },
+   {
+    "clip": "M05_2_0078",
+    "heard": "They carried me off on the stretcher.",
+    "truth": "They carried me off on the stretcher.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "They carried me off on the stretcher.",
+    "confidence": "high",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 2292
+   },
+   {
+    "clip": "M05_2_0179",
+    "heard": "This is a good organization for me.",
+    "truth": "This is a period of transition for me.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "This was easy for us.",
+    "confidence": "low",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked",
+     "high confidence lowered: only partly matches 'This was easy for us.': 'is a good organization' instead of 'was easy', 'me' instead of 'us'"
+    ],
+    "source": "llm",
+    "brain_ms": 1258
+   },
+   {
+    "clip": "M05_2_0260",
+    "heard": "This is not a program of socialized medicine.",
+    "truth": "This is not a program of socialized medicine.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "This is not a program of socialized medicine.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 5097
+   },
+   {
+    "clip": "M05_2_0019",
+    "heard": "This was easy for us.",
+    "truth": "This was easy for us.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "This was easy for us.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3841
+   },
+   {
+    "clip": "M05_2_0282",
+    "heard": "As always musicians, how many nights, marvelously,",
+    "truth": "Those musicians harmonize marvelously.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Those musicians harmonize marvelously.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Those musicians harmonize marvelously.': 'as always' instead of 'those', 'how many nights' instead of 'harmonize'"
+    ],
+    "source": "llm",
+    "brain_ms": 3175
+   },
+   {
+    "clip": "M05_2_0001",
+    "heard": "Today's date.",
+    "truth": "Today's date february 13th.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Today's date february 13th.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 5667
+   },
+   {
+    "clip": "M05_1_0009",
+    "heard": "\"Twice is day,\" he played carefully and read the rest upon our small organ.",
+    "truth": "Twice each day he plays skillfully and with zest upon our small organ.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Twice each day he plays skillfully and with zest upon our small organ.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Twice each day he plays skillfully and with zest upon our small organ.': 'is' instead of 'each', 'read the rest' instead of 'with zest'"
+    ],
+    "source": "llm",
+    "brain_ms": 6127
+   },
+   {
+    "clip": "M05_2_0128",
+    "heard": "Two other cases also were under advisement.",
+    "truth": "Two other cases also were under advisement.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Two other cases also were under advisement.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3461
+   },
+   {
+    "clip": "M05_1_0061",
+    "heard": "Usually, mine is half worth buttons.",
+    "truth": "Usually minus several buttons.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Usually minus several buttons.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Usually minus several buttons.': 'mine is half worth' instead of 'minus several'"
+    ],
+    "source": "llm",
+    "brain_ms": 3059
+   },
+   {
+    "clip": "M05_2_0320",
+    "heard": "He brought a brown chair.",
+    "truth": "We bought a brown chair.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We bought a brown chair.",
+    "confidence": "low",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked",
+     "high confidence lowered: only partly matches 'We bought a brown chair.': 'he' instead of 'we'"
+    ],
+    "source": "llm",
+    "brain_ms": 2903
+   },
+   {
+    "clip": "M05_2_0057",
+    "heard": "We gathered shelves on the beach.",
+    "truth": "We gathered shells on the beach.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "We gathered shells on the beach.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3036
+   },
+   {
+    "clip": "M05_2_0307",
+    "heard": "We have an excellent team.",
+    "truth": "We have an excellent team.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "We have an excellent team.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3113
+   },
+   {
+    "clip": "M05_1_0027",
+    "heard": "We have often aged him to look more and to mock less.",
+    "truth": "We have often urged him to walk more and smoke less.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We have often urged him to walk more and smoke less.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3449
+   },
+   {
+    "clip": "M05_2_0182",
+    "heard": "We rode horse back to that farm.",
+    "truth": "We rode horseback to the farm.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We rode horseback to the farm.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'We rode horseback to the farm.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 8243
+   },
+   {
+    "clip": "M05_1_0015",
+    "heard": "when he is maybe 33 years old.",
+    "truth": "Well he is nearly ninetythree years old.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Well he is nearly ninetythree years old.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Well he is nearly ninetythree years old.': 'when' instead of 'well', 'maybe 33' instead of 'nearly ninetythree'"
+    ],
+    "source": "llm",
+    "brain_ms": 3169
+   },
+   {
+    "clip": "M05_2_0216",
+    "heard": "When all else fails, use force.",
+    "truth": "When all else fails use force.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "When all else fails use force.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4068
+   },
+   {
+    "clip": "M05_1_0074",
+    "heard": "When he speaks, his voice is a bit cracked and grows a trifle.",
+    "truth": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'When he speaks his voice is just a bit cracked and quivers a trifle.': 'grows' instead of 'quivers'"
+    ],
+    "source": "llm",
+    "brain_ms": 3250
+   },
+   {
+    "clip": "M05_2_0002",
+    "heard": "Where were you while we were away?",
+    "truth": "Where were you while we were away.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Where were you while we were away.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3098
+   },
+   {
+    "clip": "M05_2_0287",
+    "heard": "What cat leaves covered in the zap in Target B?",
+    "truth": "Whitecapped waves covered the entire bay.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Get a calico cat to keep.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3042
+   },
+   {
+    "clip": "M05_2_0056",
+    "heard": "Why yell away over silly items?",
+    "truth": "Why yell or worry over silly items.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Why yell or worry over silly items.': 'away' instead of 'or worry'"
+    ],
+    "source": "llm",
+    "brain_ms": 3008
+   },
+   {
+    "clip": "M05_2_0135",
+    "heard": "Was Robin where I yellowed the...",
+    "truth": "Will robin wear a yellow lily.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Will robin wear a yellow lily.': 'was' instead of 'will', 'the' instead of 'lily'"
+    ],
+    "source": "llm",
+    "brain_ms": 3130
+   },
+   {
+    "clip": "M05_1_0077",
+    "heard": "Yet he still thinks as serious as ever.",
+    "truth": "Yet he still thinks as swiftly as ever.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Yet he still thinks as swiftly as ever.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Yet he still thinks as swiftly as ever.': 'serious' instead of 'swiftly'"
+    ],
+    "source": "llm",
+    "brain_ms": 3125
+   },
+   {
+    "clip": "M05_2_0383",
+    "heard": "You can ride a stagecoach.",
+    "truth": "You can ride stagecoach.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "You can ride stagecoach.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3173
+   },
+   {
+    "clip": "M05_1_0062",
+    "heard": "You wished to know all about your grandfather.",
+    "truth": "You wished to know all about my grandfather.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "You wished to know all about my grandfather.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'You wished to know all about my grandfather.': 'your' instead of 'my'"
+    ],
+    "source": "llm",
+    "brain_ms": 3086
+   },
+   {
+    "clip": "M05_2_0138",
+    "heard": "gave me a better off taking a cold shower.",
+    "truth": "You'd be better off taking a cold shower.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "You'd be better off taking a cold shower.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'You'd be better off taking a cold shower.': 'gave me a' instead of 'you'd be'"
+    ],
+    "source": "llm",
+    "brain_ms": 3110
+   },
+   {
+    "clip": "M05_2_0028",
+    "heard": "You're used to being on the field.",
+    "truth": "You're used to being on the field.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "You're used to being on the field.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3032
+   },
+   {
+    "clip": "M05_1_0008",
+    "heard": "Uh",
+    "truth": "scroll_up",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3011
+   },
+   {
+    "clip": "M05_2_0296",
+    "heard": "Oh.",
+    "truth": "scroll_up",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3061
+   },
+   {
+    "clip": "M05_2_0304",
+    "heard": "down",
+    "truth": "scroll_down",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "scroll_down",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 984
+   },
+   {
+    "clip": "M05_2_0129",
+    "heard": "Back",
+    "truth": "go_back",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "go_back",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2988
+   },
+   {
+    "clip": "M05_2_0071",
+    "heard": "Avoid!",
+    "truth": "go_forward",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2968
+   },
+   {
+    "clip": "M05_1_0032",
+    "outcome": "not found",
+    "questions": 0,
+    "heard": "",
+    "truth": "press_left",
+    "source": null,
+    "brain_ms": null,
+    "confidence": null
+   },
+   {
+    "clip": "M05_2_0289",
+    "heard": "Wait",
+    "truth": "press_right",
+    "outcome": "two questions",
+    "questions": 2,
+    "choice": "scroll_up",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2959
+   },
+   {
+    "clip": "M05_2_0099",
+    "heard": "Select",
+    "truth": "press_return",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "press_return",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3050
+   },
+   {
+    "clip": "M05_2_0145",
+    "heard": "He fully proposed drawings of an unexpected sum of experimental hospitals.",
+    "truth": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He further proposed grants of an unspecified sum for experimental hospitals.': 'fully' instead of 'further', 'drawings' instead of 'grants', 'of' instead of 'for'"
+    ],
+    "source": "llm",
+    "brain_ms": 3106
+   },
+   {
+    "clip": "M05_2_0042",
+    "heard": "My little soul is yellow, gray,",
+    "truth": "Mother sews yellow gingham aprons.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "She is thinner than I am.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3021
+   },
+   {
+    "clip": "M05_2_0313",
+    "heard": "Nobody really expects to evacuate the area.",
+    "truth": "Nobody really expects to evacuate.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nobody really expects to evacuate.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nobody really expects to evacuate.': 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 3010
+   },
+   {
+    "clip": "M05_2_0055",
+    "heard": "Why are we always here to think?",
+    "truth": "Why yell or worry over silly items.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Although always again again.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2965
+   },
+   {
+    "clip": "M05_1_0007",
+    "heard": "Up.",
+    "truth": "scroll_up",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "scroll_up",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2978
+   },
+   {
+    "clip": "M05_1_0035",
+    "heard": "Down.",
+    "truth": "scroll_down",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "scroll_down",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2967
+   },
+   {
+    "clip": "M05_1_0066",
+    "heard": "Right",
+    "truth": "press_right",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "press_right",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 2963
+   }
+  ],
+  "enrolled": [
+   {
+    "clip": "M05_2_0279",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "A good attitude is unbeatable.",
+    "truth": "A good attitude is unbeatable.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "A good attitude is unbeatable.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 14128
+   },
+   {
+    "clip": "M05_1_0019",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "A long, snowy beard, killing the hudson.",
+    "truth": "A long flowing beard clings to his chin.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "A long flowing beard clings to his chin.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4107
+   },
+   {
+    "clip": "M05_2_0246",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "A roll of water laying near the sidewalk.",
+    "truth": "A roll of wire lay near the wall.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "A roll of wire lay near the wall.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'A roll of wire lay near the wall.': 'sidewalk' instead of 'wall'"
+    ],
+    "source": "llm",
+    "brain_ms": 3988
+   },
+   {
+    "clip": "M05_2_0147",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I'll find what is healthy for you.",
+    "truth": "Alfalfa is healthy for you.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Alfalfa is healthy for you.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Alfalfa is healthy for you.': 'i'll find what' instead of 'alfalfa'"
+    ],
+    "source": "llm",
+    "brain_ms": 4116
+   },
+   {
+    "clip": "M05_2_0176",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Alimony forms a divided man's wealth.",
+    "truth": "Alimony harms a divorced man's wealth.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Alimony harms a divorced man's wealth.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4350
+   },
+   {
+    "clip": "M05_2_0131",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "All the big messages my friends were traded.",
+    "truth": "All the big baseball players get traded.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "All the big baseball players get traded.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'All the big baseball players get traded.': 'messages my friends were' instead of 'baseball players get'"
+    ],
+    "source": "llm",
+    "brain_ms": 4046
+   },
+   {
+    "clip": "M05_2_0381",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Although, always again, again, again.",
+    "truth": "Although always again again.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Although always again again.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4497
+   },
+   {
+    "clip": "M05_2_0382",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Although always alone, we survive.",
+    "truth": "Although always alone we survive.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Although always alone we survive.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4431
+   },
+   {
+    "clip": "M05_2_0150",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Aluminum silverware can often be found in places.",
+    "truth": "Aluminum silverware can often be flimsy.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Aluminum silverware can often be flimsy.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Aluminum silverware can often be flimsy.': 'found in places' instead of 'flimsy'"
+    ],
+    "source": "llm",
+    "brain_ms": 4364
+   },
+   {
+    "clip": "M05_2_0087",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Are you great? I love them.",
+    "truth": "Are your grades higher or lower than nancy's.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4713
+   },
+   {
+    "clip": "M05_2_0189",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Because the day is exam, we review every formula.",
+    "truth": "Before thursday's exam review every formula.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Before thursday's exam review every formula.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Before thursday's exam review every formula.': 'because the day is' instead of 'before thursday's'"
+    ],
+    "source": "llm",
+    "brain_ms": 4368
+   },
+   {
+    "clip": "M05_2_0321",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "make that good for one guy in every dress.",
+    "truth": "Beg that guard for one gallon of gas.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He dresses himself in an ancient black frock coat.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4330
+   },
+   {
+    "clip": "M05_2_0367",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Being able to dance can help too.",
+    "truth": "Being able to dance can help too.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Being able to dance can help too.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4557
+   },
+   {
+    "clip": "M05_2_0051",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Both figures will grow higher in the later years.",
+    "truth": "Both figures would go higher in later years.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Both figures would go higher in later years.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Both figures would go higher in later years.': 'will grow' instead of 'would go'"
+    ],
+    "source": "llm",
+    "brain_ms": 4545
+   },
+   {
+    "clip": "M05_2_0212",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Both injuries were to the same leg.",
+    "truth": "Both injuries were to the same leg.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Both injuries were to the same leg.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4563
+   },
+   {
+    "clip": "M05_2_0066",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Break is enjoying humans on the ocean.",
+    "truth": "Bright sunshine shimmers on the ocean.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Bright sunshine shimmers on the ocean.': 'break is enjoying humans' instead of 'bright sunshine shimmers'"
+    ],
+    "source": "llm",
+    "brain_ms": 4707
+   },
+   {
+    "clip": "M05_1_0094",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "But he always answers, \"Be then an orange.\"",
+    "truth": "But he always answers banana oil.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'But he always answers banana oil.': 'be then an orange' instead of 'banana oil'"
+    ],
+    "source": "llm",
+    "brain_ms": 4988
+   },
+   {
+    "clip": "M05_2_0265",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Cora lives in a lively home.",
+    "truth": "Carl lives in a lively home.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Carl lives in a lively home.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Carl lives in a lively home.': 'cora' instead of 'carl'"
+    ],
+    "source": "llm",
+    "brain_ms": 4444
+   },
+   {
+    "clip": "M05_2_0219",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "They asked today if some new episode is reported.",
+    "truth": "Day after day some new episode is reported.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Day after day some new episode is reported.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Day after day some new episode is reported.': 'they asked today if' instead of 'day after day'"
+    ],
+    "source": "llm",
+    "brain_ms": 4308
+   },
+   {
+    "clip": "M05_2_0275",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Did I do academic building?",
+    "truth": "Did dad do academic bidding.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Did dad do academic bidding.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Did dad do academic bidding.': 'i' instead of 'dad'"
+    ],
+    "source": "llm",
+    "brain_ms": 4470
+   },
+   {
+    "clip": "M05_1_0078",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Then ask me to carry an orange rag with rats.",
+    "truth": "Don't ask me to carry an oily rag like that.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Don't ask me to carry an oily rag like that.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Don't ask me to carry an oily rag like that.': 'then' instead of 'don't', 'orange' instead of 'oily', 'with rats' instead of 'like that'"
+    ],
+    "source": "llm",
+    "brain_ms": 4556
+   },
+   {
+    "clip": "M05_2_0370",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Is it wrong volunteering to jump first?",
+    "truth": "Each one volunteered to jump first.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Each one volunteered to jump first.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Each one volunteered to jump first.': 'is it wrong volunteering' instead of 'each one volunteered'"
+    ],
+    "source": "llm",
+    "brain_ms": 4381
+   },
+   {
+    "clip": "M05_2_0102",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Everything went really smooth, the ship said.",
+    "truth": "Everything went real smooth the sheriff said.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Everything went real smooth the sheriff said.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Everything went real smooth the sheriff said.': 'ship' instead of 'sheriff'"
+    ],
+    "source": "llm",
+    "brain_ms": 4354
+   },
+   {
+    "clip": "M05_1_0020",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Except in the wintertime when the winter snow or ice prevents",
+    "truth": "Except in the winter when the ooze or snow or ice prevents.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Except in the winter when the ooze or snow or ice prevents.': 'winter' instead of 'ooze or'"
+    ],
+    "source": "llm",
+    "brain_ms": 4872
+   },
+   {
+    "clip": "M05_2_0368",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Get a Calico Cat to keep.",
+    "truth": "Get a calico cat to keep.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Get a calico cat to keep.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4403
+   },
+   {
+    "clip": "M05_1_0010",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "is giving out forever in the pronounced feeling of utmost respect.",
+    "truth": "Giving those who observe him a pronounced feeling of the utmost respect.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Giving those who observe him a pronounced feeling of the utmost respect.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Giving those who observe him a pronounced feeling of the utmost respect.': 'out forever in the' instead of 'those who observe him a'"
+    ],
+    "source": "llm",
+    "brain_ms": 4416
+   },
+   {
+    "clip": "M05_1_0101",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Grandfather likes to be modern in his language.",
+    "truth": "Grandfather likes to be modern in his language.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Grandfather likes to be modern in his language.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4351
+   },
+   {
+    "clip": "M05_1_0089",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "He dares his hands out in an ancient black frog's crew.",
+    "truth": "He dresses himself in an ancient black frock coat.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He dresses himself in an ancient black frock coat.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4304
+   },
+   {
+    "clip": "M05_2_0146",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "He further proposed grants for an unspecified sub-fright-perimeter hospital.",
+    "truth": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He further proposed grants of an unspecified sum for experimental hospitals.': 'for' instead of 'of'"
+    ],
+    "source": "llm",
+    "brain_ms": 4232
+   },
+   {
+    "clip": "M05_2_0387",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "He is definitely not a badass.",
+    "truth": "He is definitely a notch above us.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He is definitely a notch above us.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He is definitely a notch above us.': 'badass' instead of 'notch above us'"
+    ],
+    "source": "llm",
+    "brain_ms": 4631
+   },
+   {
+    "clip": "M05_2_0305",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "He really crucified himself. He made it for a yard.",
+    "truth": "He really crucified him he nailed it for a yard loss.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He really crucified him he nailed it for a yard loss.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 8922
+   },
+   {
+    "clip": "M05_1_0057",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "He surely takes a walk in the open air each day.",
+    "truth": "He slowly takes a short walk in the open air each day.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He slowly takes a short walk in the open air each day.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He slowly takes a short walk in the open air each day.': 'surely' instead of 'slowly'"
+    ],
+    "source": "llm",
+    "brain_ms": 8921
+   },
+   {
+    "clip": "M05_2_0013",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "He will allow his rear line.",
+    "truth": "He will allow a rare lie.",
+    "outcome": "two questions",
+    "questions": 2,
+    "choice": "He really crucified him he nailed it for a yard loss.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3685
+   },
+   {
+    "clip": "M05_2_0151",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Here's a lot of package history.",
+    "truth": "He wrapped the package hastily.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "He wrapped the package hastily.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3864
+   },
+   {
+    "clip": "M05_2_0170",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I expect we'll bounce back this week.",
+    "truth": "I expect we'll bounce back this week.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I expect we'll bounce back this week.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3728
+   },
+   {
+    "clip": "M05_2_0008",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I can, I feel I can play this weekend.",
+    "truth": "I feel I can play this weekend.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I feel I can play this weekend.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I feel I can play this weekend.': 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 3776
+   },
+   {
+    "clip": "M05_2_0213",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I have had my bed rung.",
+    "truth": "I have had my bell rung.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I have had my bell rung.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I have had my bell rung.': 'bed' instead of 'bell'"
+    ],
+    "source": "llm",
+    "brain_ms": 5581
+   },
+   {
+    "clip": "M05_2_0107",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I tried, I just tried to do my best.",
+    "truth": "I just try to do my best.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I just try to do my best.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I just try to do my best.': 'tried' instead of 'try', 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 7951
+   },
+   {
+    "clip": "M05_2_0130",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I looked up and noticed two old men.",
+    "truth": "I looked up and noticed two old men.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I looked up and noticed two old men.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3863
+   },
+   {
+    "clip": "M05_2_0088",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I grabbed the floor slowly.",
+    "truth": "I scrubbed the floors thoroughly.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He slowly takes a short walk in the open air each day.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4005
+   },
+   {
+    "clip": "M05_2_0068",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I'm tired to tell people in the community.",
+    "truth": "I tried to tell people in the community.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I tried to tell people in the community.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3749
+   },
+   {
+    "clip": "M05_2_0124",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I was conscious all the time.",
+    "truth": "I was conscious all the time.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I was conscious all the time.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3671
+   },
+   {
+    "clip": "M05_2_0369",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "I'm waiting to experiment for the first time.",
+    "truth": "I'm willing to experiment for the first time.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I'm willing to experiment for the first time.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3690
+   },
+   {
+    "clip": "M05_2_0215",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "If you are using water, replace it immediately.",
+    "truth": "If you are losing water replace it immediately.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "If you are losing water replace it immediately.",
+    "confidence": "high",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 2867
+   },
+   {
+    "clip": "M05_2_0038",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "\"If you destroy confidence in banks, you do something to that economy,\" he said.",
+    "truth": "If you destroy confidence in banks you do something to the economy he said.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "If you destroy confidence in banks you do something to the economy he said.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'If you destroy confidence in banks you do something to the economy he said.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 3800
+   },
+   {
+    "clip": "M05_2_0186",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "It also provides for friends to cheer them and help colleges build dormitory rooms.",
+    "truth": "It also provides for funds to clear slums and help colleges build dormitories.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "It also provides for funds to clear slums and help colleges build dormitories.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'It also provides for funds to clear slums and help colleges build dormitories.': 'cheer them' instead of 'clear slums'"
+    ],
+    "source": "llm",
+    "brain_ms": 3818
+   },
+   {
+    "clip": "M05_2_0165",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "It eventually became a rather proud crime.",
+    "truth": "It eventually became a rather proud claim.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It eventually became a rather proud claim.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3745
+   },
+   {
+    "clip": "M05_2_0201",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "It was a good win for us.",
+    "truth": "It was a good win for us.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It was a good win for us.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4913
+   },
+   {
+    "clip": "M05_2_0365",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "It's fun to roast marshmallows on a gas burner.",
+    "truth": "It's fun to roast marshmallows on a gas burner.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It's fun to roast marshmallows on a gas burner.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4050
+   },
+   {
+    "clip": "M05_2_0100",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "They made more money by working hard.",
+    "truth": "Jane may earn more money by working hard.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Jane may earn more money by working hard.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Jane may earn more money by working hard.': 'they made' instead of 'jane may earn'"
+    ],
+    "source": "llm",
+    "brain_ms": 4805
+   },
+   {
+    "clip": "M05_2_0122",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Just one side got wet.",
+    "truth": "Just one side got wet.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Just one side got wet.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 7898
+   },
+   {
+    "clip": "M05_2_0043",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "My shows yellow dingle aprons",
+    "truth": "Mother sews yellow gingham aprons.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Mother sews yellow gingham aprons.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Mother sews yellow gingham aprons.': 'my shows' instead of 'mother sews', 'dingle' instead of 'gingham'"
+    ],
+    "source": "llm",
+    "brain_ms": 3734
+   },
+   {
+    "clip": "M05_2_0026",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "My system is that flowers kittens.",
+    "truth": "My sister made the flowered curtains.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "My sister made the flowered curtains.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3727
+   },
+   {
+    "clip": "M05_2_0243",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Night after night, they received annoying phone calls.",
+    "truth": "Night after night they received annoying phone calls.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Night after night they received annoying phone calls.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3774
+   },
+   {
+    "clip": "M05_2_0314",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "Nobody really expects to evacuate.",
+    "truth": "Nobody really expects to evacuate.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Nobody really expects to evacuate.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3752
+   },
+   {
+    "clip": "M05_2_0242",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Nothing has been done yet to take advantage of law-enabling legislation.",
+    "truth": "Nothing has been done yet to take advantage of the enabling legislation.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nothing has been done yet to take advantage of the enabling legislation.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nothing has been done yet to take advantage of the enabling legislation.': 'law' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 4149
+   },
+   {
+    "clip": "M05_2_0091",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Nothing is as offensive as in a drink.",
+    "truth": "Nothing is as offensive as innocence.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nothing is as offensive as innocence.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nothing is as offensive as innocence.': 'in a drink' instead of 'innocence'"
+    ],
+    "source": "llm",
+    "brain_ms": 4346
+   },
+   {
+    "clip": "M05_2_0027",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "One validated act of good districts.",
+    "truth": "One validated acts of school districts.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "One validated acts of school districts.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'One validated acts of school districts.': 'good' instead of 'school'"
+    ],
+    "source": "llm",
+    "brain_ms": 4871
+   },
+   {
+    "clip": "M05_2_0385",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Only lawyers love millions of years.",
+    "truth": "Only lawyers love millionaires.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Only lawyers love millionaires.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4101
+   },
+   {
+    "clip": "M05_1_0104",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "She had your dark shoot in greasy, lush water oil.",
+    "truth": "She had your dark suit in greasy wash water all year.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "She had your dark suit in greasy wash water all year.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'She had your dark suit in greasy wash water all year.': 'shoot' instead of 'suit', 'lush' instead of 'wash', 'oil' instead of 'all year'"
+    ],
+    "source": "llm",
+    "brain_ms": 4723
+   },
+   {
+    "clip": "M05_2_0076",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "She is thinner than I am.",
+    "truth": "She is thinner than I am.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "She is thinner than I am.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 7298
+   },
+   {
+    "clip": "M05_2_0256",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "It's zero warm feeling running over hours.",
+    "truth": "She wore warm fleecy woolen overalls.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3790
+   },
+   {
+    "clip": "M05_2_0276",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Sample towers are available nearby.",
+    "truth": "Some hotels are available nearby.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Some hotels are available nearby.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Some hotels are available nearby.': 'sample towers' instead of 'some hotels'"
+    ],
+    "source": "llm",
+    "brain_ms": 3624
+   },
+   {
+    "clip": "M05_2_0238",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "students watched as he got helped.",
+    "truth": "Students watched as he got out.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Students watched as he got out.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Students watched as he got out.': 'helped' instead of 'out'"
+    ],
+    "source": "llm",
+    "brain_ms": 3601
+   },
+   {
+    "clip": "M05_2_0192",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Sewing your arms as high as you can.",
+    "truth": "Swing your arm as high as you can.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Swing your arm as high as you can.",
+    "confidence": "high",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 1022
+   },
+   {
+    "clip": "M05_2_0207",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The books were really expensive.",
+    "truth": "The books are very expensive.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The books are very expensive.",
+    "confidence": "low",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked",
+     "high confidence lowered: only partly matches 'The books are very expensive.': 'were really' instead of 'are very'"
+    ],
+    "source": "llm",
+    "brain_ms": 2618
+   },
+   {
+    "clip": "M05_2_0152",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The box contained three sweaters.",
+    "truth": "The box contained three sweaters.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The box contained three sweaters.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 5611
+   },
+   {
+    "clip": "M05_2_0239",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The dolphins slam around our boat.",
+    "truth": "The dolphins swam around our boat.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The dolphins swam around our boat.",
+    "confidence": "high",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 2974
+   },
+   {
+    "clip": "M05_2_0389",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The hotel meant",
+    "truth": "The hotel man.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The hotel man.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3726
+   },
+   {
+    "clip": "M05_2_0390",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The hotel only should.",
+    "truth": "The hotel owner shrugged.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "The hotel man.",
+    "confidence": "low",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 3519
+   },
+   {
+    "clip": "M05_2_0101",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The humidity is overwhelming here.",
+    "truth": "The humidity is overwhelming there.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The humidity is overwhelming there.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 11773
+   },
+   {
+    "clip": "M05_2_0049",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The islands are sparsely populated.",
+    "truth": "The islands are sparsely populated.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The islands are sparsely populated.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3769
+   },
+   {
+    "clip": "M05_2_0204",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "as a job provides many benefits.",
+    "truth": "The job provides many benefits.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The job provides many benefits.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The job provides many benefits.': 'as a' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 4360
+   },
+   {
+    "clip": "M05_2_0163",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The little cool house is too empty.",
+    "truth": "The little schoolhouse stood empty.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The little schoolhouse stood empty.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 4158
+   },
+   {
+    "clip": "M05_2_0236",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The misguided souls have lost their way.",
+    "truth": "The misguided souls have lost their way.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The misguided souls have lost their way.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 7231
+   },
+   {
+    "clip": "M05_2_0155",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "A museum hires musicians every evening.",
+    "truth": "The museum hires musicians every evening.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The museum hires musicians every evening.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The museum hires musicians every evening.': 'a' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 3635
+   },
+   {
+    "clip": "M05_2_0286",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The owners regularly look for pyramid leaks.",
+    "truth": "The owners regularly look for plumbing leaks.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The owners regularly look for plumbing leaks.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The owners regularly look for plumbing leaks.': 'pyramid' instead of 'plumbing'"
+    ],
+    "source": "llm",
+    "brain_ms": 4128
+   },
+   {
+    "clip": "M05_2_0393",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The big issues were new.",
+    "truth": "The pair of shoes was new.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Both figures would go higher in later years.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3707
+   },
+   {
+    "clip": "M05_2_0274",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "truth": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3654
+   },
+   {
+    "clip": "M05_1_0056",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "That quick brain fucks down over that baby dog.",
+    "truth": "The quick brown fox jumps over the lazy dog.",
+    "outcome": "two questions",
+    "questions": 2,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3579
+   },
+   {
+    "clip": "M05_2_0085",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "That train approached the depot slowly.",
+    "truth": "The train approached the depot slowly.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The train approached the depot slowly.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The train approached the depot slowly.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 3619
+   },
+   {
+    "clip": "M05_2_0291",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The wait for weeks can be a really good game.",
+    "truth": "The wait for work can be very do it again.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The wait for work can be very do it again.",
+    "confidence": "low",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked",
+     "high confidence lowered: only partly matches 'The wait for work can be very do it again.': 'weeks' instead of 'work', 'a really good game' instead of 'very do it again'"
+    ],
+    "source": "llm",
+    "brain_ms": 1717
+   },
+   {
+    "clip": "M05_2_0292",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The wait for weeks can be very long.",
+    "truth": "The wait for work can be very long.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The wait for work can be very long.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The wait for work can be very long.': 'weeks' instead of 'work'"
+    ],
+    "source": "llm",
+    "brain_ms": 4950
+   },
+   {
+    "clip": "M05_2_0082",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "The health is great in the world.",
+    "truth": "Their house is grey and white.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3882
+   },
+   {
+    "clip": "M05_2_0197",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "This is a treehouse up above.",
+    "truth": "There is a treehouse up above.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "There is a treehouse up above.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'There is a treehouse up above.': 'this' instead of 'there'"
+    ],
+    "source": "llm",
+    "brain_ms": 4391
+   },
+   {
+    "clip": "M05_2_0078",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "They carried me off on the stretcher.",
+    "truth": "They carried me off on the stretcher.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "They carried me off on the stretcher.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3866
+   },
+   {
+    "clip": "M05_2_0179",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "This is a good organization for me.",
+    "truth": "This is a period of transition for me.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "This was easy for us.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'This was easy for us.': 'is a good organization' instead of 'was easy', 'me' instead of 'us'"
+    ],
+    "source": "llm",
+    "brain_ms": 3955
+   },
+   {
+    "clip": "M05_2_0260",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "This is not a program of socialized medicine.",
+    "truth": "This is not a program of socialized medicine.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "This is not a program of socialized medicine.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3746
+   },
+   {
+    "clip": "M05_2_0019",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "This was easy for us.",
+    "truth": "This was easy for us.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "This was easy for us.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3623
+   },
+   {
+    "clip": "M05_2_0282",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "As always musicians, how many nights, marvelously,",
+    "truth": "Those musicians harmonize marvelously.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Those musicians harmonize marvelously.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Those musicians harmonize marvelously.': 'as always' instead of 'those', 'how many nights' instead of 'harmonize'"
+    ],
+    "source": "llm",
+    "brain_ms": 3623
+   },
+   {
+    "clip": "M05_2_0001",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Today's date.",
+    "truth": "Today's date february 13th.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Today's date february 13th.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3787
+   },
+   {
+    "clip": "M05_1_0009",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "\"Twice is day,\" he played carefully and read the rest upon our small organ.",
+    "truth": "Twice each day he plays skillfully and with zest upon our small organ.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Twice each day he plays skillfully and with zest upon our small organ.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Twice each day he plays skillfully and with zest upon our small organ.': 'is' instead of 'each', 'read the rest' instead of 'with zest'"
+    ],
+    "source": "llm",
+    "brain_ms": 3629
+   },
+   {
+    "clip": "M05_2_0128",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Two other cases also were under advisement.",
+    "truth": "Two other cases also were under advisement.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Two other cases also were under advisement.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3726
+   },
+   {
+    "clip": "M05_1_0061",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Usually, mine is half worth buttons.",
+    "truth": "Usually minus several buttons.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Usually minus several buttons.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Usually minus several buttons.': 'mine is half worth' instead of 'minus several'"
+    ],
+    "source": "llm",
+    "brain_ms": 4875
+   },
+   {
+    "clip": "M05_2_0320",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "He brought a brown chair.",
+    "truth": "We bought a brown chair.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We bought a brown chair.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'We bought a brown chair.': 'he' instead of 'we'"
+    ],
+    "source": "llm",
+    "brain_ms": 9732
+   },
+   {
+    "clip": "M05_2_0057",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "We gathered shelves on the beach.",
+    "truth": "We gathered shells on the beach.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "We gathered shells on the beach.",
+    "confidence": "high",
+    "problems": [
+     "first try failed (LLM call failed: BadRequestError: Error code: 400), retry worked"
+    ],
+    "source": "llm",
+    "brain_ms": 1568
+   },
+   {
+    "clip": "M05_2_0307",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "We have an excellent team.",
+    "truth": "We have an excellent team.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "We have an excellent team.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 5673
+   },
+   {
+    "clip": "M05_1_0027",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "We have often aged him to look more and to mock less.",
+    "truth": "We have often urged him to walk more and smoke less.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We have often urged him to walk more and smoke less.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'We have often urged him to walk more and smoke less.': 'look' instead of 'walk', 'to mock' instead of 'smoke'"
+    ],
+    "source": "llm",
+    "brain_ms": 4300
+   },
+   {
+    "clip": "M05_2_0182",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "We rode horse back to that farm.",
+    "truth": "We rode horseback to the farm.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We rode horseback to the farm.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'We rode horseback to the farm.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 10048
+   },
+   {
+    "clip": "M05_1_0015",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "when he is maybe 33 years old.",
+    "truth": "Well he is nearly ninetythree years old.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Well he is nearly ninetythree years old.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Well he is nearly ninetythree years old.': 'when' instead of 'well', 'maybe 33' instead of 'nearly ninetythree'"
+    ],
+    "source": "llm",
+    "brain_ms": 10021
+   },
+   {
+    "clip": "M05_2_0216",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "When all else fails, use force.",
+    "truth": "When all else fails use force.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "When all else fails use force.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 5386
+   },
+   {
+    "clip": "M05_1_0074",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "When he speaks, his voice is a bit cracked and grows a trifle.",
+    "truth": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'When he speaks his voice is just a bit cracked and quivers a trifle.': 'grows' instead of 'quivers'"
+    ],
+    "source": "llm",
+    "brain_ms": 4153
+   },
+   {
+    "clip": "M05_2_0002",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Where were you while we were away?",
+    "truth": "Where were you while we were away.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Where were you while we were away.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3784
+   },
+   {
+    "clip": "M05_2_0287",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "What cat leaves covered in the zap in Target B?",
+    "truth": "Whitecapped waves covered the entire bay.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Get a calico cat to keep.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3747
+   },
+   {
+    "clip": "M05_2_0056",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "Why yell away over silly items?",
+    "truth": "Why yell or worry over silly items.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Why yell or worry over silly items.': 'away' instead of 'or worry'"
+    ],
+    "source": "llm",
+    "brain_ms": 3709
+   },
+   {
+    "clip": "M05_2_0135",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Was Robin where I yellowed the...",
+    "truth": "Will robin wear a yellow lily.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Will robin wear a yellow lily.': 'was' instead of 'will', 'the' instead of 'lily'"
+    ],
+    "source": "llm",
+    "brain_ms": 3736
+   },
+   {
+    "clip": "M05_1_0077",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Yet he still thinks as serious as ever.",
+    "truth": "Yet he still thinks as swiftly as ever.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Yet he still thinks as swiftly as ever.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Yet he still thinks as swiftly as ever.': 'serious' instead of 'swiftly'"
+    ],
+    "source": "llm",
+    "brain_ms": 3738
+   },
+   {
+    "clip": "M05_2_0383",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "You can ride a stagecoach.",
+    "truth": "You can ride stagecoach.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "You can ride stagecoach.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3756
+   },
+   {
+    "clip": "M05_1_0062",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "You wished to know all about your grandfather.",
+    "truth": "You wished to know all about my grandfather.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "You wished to know all about my grandfather.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'You wished to know all about my grandfather.': 'your' instead of 'my'"
+    ],
+    "source": "llm",
+    "brain_ms": 3834
+   },
+   {
+    "clip": "M05_2_0138",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "gave me a better off taking a cold shower.",
+    "truth": "You'd be better off taking a cold shower.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "You'd be better off taking a cold shower.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'You'd be better off taking a cold shower.': 'gave me a' instead of 'you'd be'"
+    ],
+    "source": "llm",
+    "brain_ms": 3747
+   },
+   {
+    "clip": "M05_2_0028",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "You're used to being on the field.",
+    "truth": "You're used to being on the field.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "You're used to being on the field.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3670
+   },
+   {
+    "clip": "M05_1_0008",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "Uh",
+    "truth": "scroll_up",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3731
+   },
+   {
+    "clip": "M05_2_0296",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "Oh.",
+    "truth": "scroll_up",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3657
+   },
+   {
+    "clip": "M05_2_0304",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "down",
+    "truth": "scroll_down",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "scroll_down",
+    "confidence": "high",
+    "problems": [],
+    "source": "fast_path",
+    "brain_ms": 0.13
+   },
+   {
+    "clip": "M05_2_0129",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Back",
+    "truth": "go_back",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "go_back",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3587
+   },
+   {
+    "clip": "M05_2_0071",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Avoid!",
+    "truth": "go_forward",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3707
+   },
+   {
+    "clip": "M05_1_0032",
+    "fold": 0,
+    "outcome": "not found",
+    "questions": 0,
+    "heard": "",
+    "truth": "press_left",
+    "source": null,
+    "brain_ms": null,
+    "confidence": null,
+    "enrolled_item": false
+   },
+   {
+    "clip": "M05_2_0289",
+    "fold": 0,
+    "enrolled_item": true,
+    "heard": "Wait",
+    "truth": "press_right",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3624
+   },
+   {
+    "clip": "M05_2_0099",
+    "fold": 0,
+    "enrolled_item": false,
+    "heard": "Select",
+    "truth": "press_return",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "press_return",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3487
+   },
+   {
+    "clip": "M05_2_0279",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "A good attitude is unbeatable.",
+    "truth": "A good attitude is unbeatable.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "A good attitude is unbeatable.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3509
+   },
+   {
+    "clip": "M05_1_0019",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "A long, snowy beard, killing the hudson.",
+    "truth": "A long flowing beard clings to his chin.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "A long flowing beard clings to his chin.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 831
+   },
+   {
+    "clip": "M05_2_0246",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "A roll of water laying near the sidewalk.",
+    "truth": "A roll of wire lay near the wall.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "A roll of wire lay near the wall.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'A roll of wire lay near the wall.': 'sidewalk' instead of 'wall'"
+    ],
+    "source": "llm",
+    "brain_ms": 910
+   },
+   {
+    "clip": "M05_2_0147",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I'll find what is healthy for you.",
+    "truth": "Alfalfa is healthy for you.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Alfalfa is healthy for you.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Alfalfa is healthy for you.': 'i'll find what' instead of 'alfalfa'"
+    ],
+    "source": "llm",
+    "brain_ms": 920
+   },
+   {
+    "clip": "M05_2_0176",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Alimony forms a divided man's wealth.",
+    "truth": "Alimony harms a divorced man's wealth.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Alimony harms a divorced man's wealth.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 782
+   },
+   {
+    "clip": "M05_2_0131",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "All the big messages my friends were traded.",
+    "truth": "All the big baseball players get traded.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "All the big baseball players get traded.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'All the big baseball players get traded.': 'messages my friends were' instead of 'baseball players get'"
+    ],
+    "source": "llm",
+    "brain_ms": 785
+   },
+   {
+    "clip": "M05_2_0381",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Although, always again, again, again.",
+    "truth": "Although always again again.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Although always again again.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 853
+   },
+   {
+    "clip": "M05_2_0382",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Although always alone, we survive.",
+    "truth": "Although always alone we survive.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Although always alone we survive.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 913
+   },
+   {
+    "clip": "M05_2_0150",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Aluminum silverware can often be found in places.",
+    "truth": "Aluminum silverware can often be flimsy.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Aluminum silverware can often be flimsy.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Aluminum silverware can often be flimsy.': 'found in places' instead of 'flimsy'"
+    ],
+    "source": "llm",
+    "brain_ms": 785
+   },
+   {
+    "clip": "M05_2_0087",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Are you great? I love them.",
+    "truth": "Are your grades higher or lower than nancy's.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1054
+   },
+   {
+    "clip": "M05_2_0189",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Because the day is exam, we review every formula.",
+    "truth": "Before thursday's exam review every formula.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Before thursday's exam review every formula.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Before thursday's exam review every formula.': 'because the day is' instead of 'before thursday's'"
+    ],
+    "source": "llm",
+    "brain_ms": 836
+   },
+   {
+    "clip": "M05_2_0321",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "make that good for one guy in every dress.",
+    "truth": "Beg that guard for one gallon of gas.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He dresses himself in an ancient black frock coat.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 971
+   },
+   {
+    "clip": "M05_2_0367",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Being able to dance can help too.",
+    "truth": "Being able to dance can help too.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Being able to dance can help too.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 964
+   },
+   {
+    "clip": "M05_2_0051",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Both figures will grow higher in the later years.",
+    "truth": "Both figures would go higher in later years.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Both figures would go higher in later years.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Both figures would go higher in later years.': 'will grow' instead of 'would go'"
+    ],
+    "source": "llm",
+    "brain_ms": 972
+   },
+   {
+    "clip": "M05_2_0212",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Both injuries were to the same leg.",
+    "truth": "Both injuries were to the same leg.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Both injuries were to the same leg.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 831
+   },
+   {
+    "clip": "M05_2_0066",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Break is enjoying humans on the ocean.",
+    "truth": "Bright sunshine shimmers on the ocean.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Bright sunshine shimmers on the ocean.': 'break is enjoying humans' instead of 'bright sunshine shimmers'"
+    ],
+    "source": "llm",
+    "brain_ms": 955
+   },
+   {
+    "clip": "M05_1_0094",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "But he always answers, \"Be then an orange.\"",
+    "truth": "But he always answers banana oil.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'But he always answers banana oil.': 'be then an orange' instead of 'banana oil'"
+    ],
+    "source": "llm",
+    "brain_ms": 1300
+   },
+   {
+    "clip": "M05_2_0265",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Cora lives in a lively home.",
+    "truth": "Carl lives in a lively home.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Carl lives in a lively home.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Carl lives in a lively home.': 'cora' instead of 'carl'"
+    ],
+    "source": "llm",
+    "brain_ms": 947
+   },
+   {
+    "clip": "M05_2_0219",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "They asked today if some new episode is reported.",
+    "truth": "Day after day some new episode is reported.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Day after day some new episode is reported.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Day after day some new episode is reported.': 'they asked today if' instead of 'day after day'"
+    ],
+    "source": "llm",
+    "brain_ms": 846
+   },
+   {
+    "clip": "M05_2_0275",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Did I do academic building?",
+    "truth": "Did dad do academic bidding.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Did dad do academic bidding.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 861
+   },
+   {
+    "clip": "M05_1_0078",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Then ask me to carry an orange rag with rats.",
+    "truth": "Don't ask me to carry an oily rag like that.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Don't ask me to carry an oily rag like that.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 823
+   },
+   {
+    "clip": "M05_2_0370",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Is it wrong volunteering to jump first?",
+    "truth": "Each one volunteered to jump first.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Each one volunteered to jump first.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Each one volunteered to jump first.': 'is it wrong volunteering' instead of 'each one volunteered'"
+    ],
+    "source": "llm",
+    "brain_ms": 825
+   },
+   {
+    "clip": "M05_2_0102",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Everything went really smooth, the ship said.",
+    "truth": "Everything went real smooth the sheriff said.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Everything went real smooth the sheriff said.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Everything went real smooth the sheriff said.': 'ship' instead of 'sheriff'"
+    ],
+    "source": "llm",
+    "brain_ms": 815
+   },
+   {
+    "clip": "M05_1_0020",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Except in the wintertime when the winter snow or ice prevents",
+    "truth": "Except in the winter when the ooze or snow or ice prevents.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Except in the winter when the ooze or snow or ice prevents.': 'winter' instead of 'ooze or'"
+    ],
+    "source": "llm",
+    "brain_ms": 981
+   },
+   {
+    "clip": "M05_2_0368",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Get a Calico Cat to keep.",
+    "truth": "Get a calico cat to keep.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Get a calico cat to keep.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1052
+   },
+   {
+    "clip": "M05_1_0010",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "is giving out forever in the pronounced feeling of utmost respect.",
+    "truth": "Giving those who observe him a pronounced feeling of the utmost respect.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Giving those who observe him a pronounced feeling of the utmost respect.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Giving those who observe him a pronounced feeling of the utmost respect.': 'out forever in the' instead of 'those who observe him a'"
+    ],
+    "source": "llm",
+    "brain_ms": 1010
+   },
+   {
+    "clip": "M05_1_0101",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Grandfather likes to be modern in his language.",
+    "truth": "Grandfather likes to be modern in his language.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Grandfather likes to be modern in his language.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 845
+   },
+   {
+    "clip": "M05_1_0089",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "He dares his hands out in an ancient black frog's crew.",
+    "truth": "He dresses himself in an ancient black frock coat.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He dresses himself in an ancient black frock coat.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 844
+   },
+   {
+    "clip": "M05_2_0145",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "He fully proposed drawings of an unexpected sum of experimental hospitals.",
+    "truth": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He further proposed grants of an unspecified sum for experimental hospitals.': 'fully' instead of 'further', 'drawings' instead of 'grants', 'of' instead of 'for'"
+    ],
+    "source": "llm",
+    "brain_ms": 849
+   },
+   {
+    "clip": "M05_2_0387",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "He is definitely not a badass.",
+    "truth": "He is definitely a notch above us.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He is definitely a notch above us.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He is definitely a notch above us.': 'badass' instead of 'notch above us'"
+    ],
+    "source": "llm",
+    "brain_ms": 3758
+   },
+   {
+    "clip": "M05_2_0305",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "He really crucified himself. He made it for a yard.",
+    "truth": "He really crucified him he nailed it for a yard loss.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He really crucified him he nailed it for a yard loss.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 858
+   },
+   {
+    "clip": "M05_1_0057",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "He surely takes a walk in the open air each day.",
+    "truth": "He slowly takes a short walk in the open air each day.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "He slowly takes a short walk in the open air each day.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'He slowly takes a short walk in the open air each day.': 'surely' instead of 'slowly'"
+    ],
+    "source": "llm",
+    "brain_ms": 984
+   },
+   {
+    "clip": "M05_2_0013",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "He will allow his rear line.",
+    "truth": "He will allow a rare lie.",
+    "outcome": "two questions",
+    "questions": 2,
+    "choice": "He really crucified him he nailed it for a yard loss.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 858
+   },
+   {
+    "clip": "M05_2_0151",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Here's a lot of package history.",
+    "truth": "He wrapped the package hastily.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "He wrapped the package hastily.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 974
+   },
+   {
+    "clip": "M05_2_0170",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I expect we'll bounce back this week.",
+    "truth": "I expect we'll bounce back this week.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I expect we'll bounce back this week.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 965
+   },
+   {
+    "clip": "M05_2_0008",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I can, I feel I can play this weekend.",
+    "truth": "I feel I can play this weekend.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I feel I can play this weekend.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I feel I can play this weekend.': 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 952
+   },
+   {
+    "clip": "M05_2_0213",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I have had my bed rung.",
+    "truth": "I have had my bell rung.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I have had my bell rung.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I have had my bell rung.': 'bed' instead of 'bell'"
+    ],
+    "source": "llm",
+    "brain_ms": 965
+   },
+   {
+    "clip": "M05_2_0107",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I tried, I just tried to do my best.",
+    "truth": "I just try to do my best.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "I just try to do my best.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'I just try to do my best.': 'tried' instead of 'try', 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 950
+   },
+   {
+    "clip": "M05_2_0130",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I looked up and noticed two old men.",
+    "truth": "I looked up and noticed two old men.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I looked up and noticed two old men.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 826
+   },
+   {
+    "clip": "M05_2_0088",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I grabbed the floor slowly.",
+    "truth": "I scrubbed the floors thoroughly.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He slowly takes a short walk in the open air each day.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1007
+   },
+   {
+    "clip": "M05_2_0068",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I'm tired to tell people in the community.",
+    "truth": "I tried to tell people in the community.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I tried to tell people in the community.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 957
+   },
+   {
+    "clip": "M05_2_0124",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I was conscious all the time.",
+    "truth": "I was conscious all the time.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I was conscious all the time.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 938
+   },
+   {
+    "clip": "M05_2_0369",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "I'm waiting to experiment for the first time.",
+    "truth": "I'm willing to experiment for the first time.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "I'm willing to experiment for the first time.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 957
+   },
+   {
+    "clip": "M05_2_0215",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "If you are using water, replace it immediately.",
+    "truth": "If you are losing water replace it immediately.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "If you are losing water replace it immediately.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1008
+   },
+   {
+    "clip": "M05_2_0038",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "\"If you destroy confidence in banks, you do something to that economy,\" he said.",
+    "truth": "If you destroy confidence in banks you do something to the economy he said.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "If you destroy confidence in banks you do something to the economy he said.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'If you destroy confidence in banks you do something to the economy he said.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 978
+   },
+   {
+    "clip": "M05_2_0186",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "It also provides for friends to cheer them and help colleges build dormitory rooms.",
+    "truth": "It also provides for funds to clear slums and help colleges build dormitories.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "It also provides for funds to clear slums and help colleges build dormitories.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'It also provides for funds to clear slums and help colleges build dormitories.': 'cheer them' instead of 'clear slums'"
+    ],
+    "source": "llm",
+    "brain_ms": 975
+   },
+   {
+    "clip": "M05_2_0165",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "It eventually became a rather proud crime.",
+    "truth": "It eventually became a rather proud claim.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It eventually became a rather proud claim.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 819
+   },
+   {
+    "clip": "M05_2_0201",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "It was a good win for us.",
+    "truth": "It was a good win for us.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It was a good win for us.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 816
+   },
+   {
+    "clip": "M05_2_0365",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "It's fun to roast marshmallows on a gas burner.",
+    "truth": "It's fun to roast marshmallows on a gas burner.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "It's fun to roast marshmallows on a gas burner.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 961
+   },
+   {
+    "clip": "M05_2_0100",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "They made more money by working hard.",
+    "truth": "Jane may earn more money by working hard.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Jane may earn more money by working hard.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Jane may earn more money by working hard.': 'they made' instead of 'jane may earn'"
+    ],
+    "source": "llm",
+    "brain_ms": 982
+   },
+   {
+    "clip": "M05_2_0122",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Just one side got wet.",
+    "truth": "Just one side got wet.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Just one side got wet.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 962
+   },
+   {
+    "clip": "M05_2_0042",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "My little soul is yellow, gray,",
+    "truth": "Mother sews yellow gingham aprons.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Mother sews yellow gingham aprons.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 822
+   },
+   {
+    "clip": "M05_2_0026",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "My system is that flowers kittens.",
+    "truth": "My sister made the flowered curtains.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "My sister made the flowered curtains.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3676
+   },
+   {
+    "clip": "M05_2_0243",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Night after night, they received annoying phone calls.",
+    "truth": "Night after night they received annoying phone calls.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Night after night they received annoying phone calls.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 961
+   },
+   {
+    "clip": "M05_2_0313",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "Nobody really expects to evacuate the area.",
+    "truth": "Nobody really expects to evacuate.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nobody really expects to evacuate.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nobody really expects to evacuate.': 2 extra words"
+    ],
+    "source": "llm",
+    "brain_ms": 947
+   },
+   {
+    "clip": "M05_2_0242",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Nothing has been done yet to take advantage of law-enabling legislation.",
+    "truth": "Nothing has been done yet to take advantage of the enabling legislation.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nothing has been done yet to take advantage of the enabling legislation.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nothing has been done yet to take advantage of the enabling legislation.': 'law' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 3659
+   },
+   {
+    "clip": "M05_2_0091",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Nothing is as offensive as in a drink.",
+    "truth": "Nothing is as offensive as innocence.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Nothing is as offensive as innocence.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Nothing is as offensive as innocence.': 'in a drink' instead of 'innocence'"
+    ],
+    "source": "llm",
+    "brain_ms": 954
+   },
+   {
+    "clip": "M05_2_0027",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "One validated act of good districts.",
+    "truth": "One validated acts of school districts.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "One validated acts of school districts.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 843
+   },
+   {
+    "clip": "M05_2_0385",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Only lawyers love millions of years.",
+    "truth": "Only lawyers love millionaires.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Only lawyers love millionaires.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 829
+   },
+   {
+    "clip": "M05_1_0104",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "She had your dark shoot in greasy, lush water oil.",
+    "truth": "She had your dark suit in greasy wash water all year.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "She had your dark suit in greasy wash water all year.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'She had your dark suit in greasy wash water all year.': 'shoot' instead of 'suit', 'lush' instead of 'wash', 'oil' instead of 'all year'"
+    ],
+    "source": "llm",
+    "brain_ms": 1012
+   },
+   {
+    "clip": "M05_2_0076",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "She is thinner than I am.",
+    "truth": "She is thinner than I am.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "She is thinner than I am.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 949
+   },
+   {
+    "clip": "M05_2_0256",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "It's zero warm feeling running over hours.",
+    "truth": "She wore warm fleecy woolen overalls.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 949
+   },
+   {
+    "clip": "M05_2_0276",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Sample towers are available nearby.",
+    "truth": "Some hotels are available nearby.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Some hotels are available nearby.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Some hotels are available nearby.': 'sample towers' instead of 'some hotels'"
+    ],
+    "source": "llm",
+    "brain_ms": 975
+   },
+   {
+    "clip": "M05_2_0238",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "students watched as he got helped.",
+    "truth": "Students watched as he got out.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Students watched as he got out.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Students watched as he got out.': 'helped' instead of 'out'"
+    ],
+    "source": "llm",
+    "brain_ms": 919
+   },
+   {
+    "clip": "M05_2_0192",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Sewing your arms as high as you can.",
+    "truth": "Swing your arm as high as you can.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Swing your arm as high as you can.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1067
+   },
+   {
+    "clip": "M05_2_0207",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The books were really expensive.",
+    "truth": "The books are very expensive.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The books are very expensive.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The books are very expensive.': 'were really' instead of 'are very'"
+    ],
+    "source": "llm",
+    "brain_ms": 970
+   },
+   {
+    "clip": "M05_2_0152",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The box contained three sweaters.",
+    "truth": "The box contained three sweaters.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The box contained three sweaters.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 940
+   },
+   {
+    "clip": "M05_2_0239",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The dolphins slam around our boat.",
+    "truth": "The dolphins swam around our boat.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The dolphins swam around our boat.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 904
+   },
+   {
+    "clip": "M05_2_0389",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The hotel meant",
+    "truth": "The hotel man.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The hotel man.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 971
+   },
+   {
+    "clip": "M05_2_0390",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The hotel only should.",
+    "truth": "The hotel owner shrugged.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "The hotel man.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The hotel man.': 'only should' instead of 'man'"
+    ],
+    "source": "llm",
+    "brain_ms": 998
+   },
+   {
+    "clip": "M05_2_0101",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The humidity is overwhelming here.",
+    "truth": "The humidity is overwhelming there.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The humidity is overwhelming there.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 982
+   },
+   {
+    "clip": "M05_2_0049",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The islands are sparsely populated.",
+    "truth": "The islands are sparsely populated.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The islands are sparsely populated.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1011
+   },
+   {
+    "clip": "M05_2_0204",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "as a job provides many benefits.",
+    "truth": "The job provides many benefits.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The job provides many benefits.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The job provides many benefits.': 'as a' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 821
+   },
+   {
+    "clip": "M05_2_0163",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The little cool house is too empty.",
+    "truth": "The little schoolhouse stood empty.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The little schoolhouse stood empty.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 827
+   },
+   {
+    "clip": "M05_2_0236",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The misguided souls have lost their way.",
+    "truth": "The misguided souls have lost their way.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The misguided souls have lost their way.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 858
+   },
+   {
+    "clip": "M05_2_0155",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "A museum hires musicians every evening.",
+    "truth": "The museum hires musicians every evening.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The museum hires musicians every evening.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The museum hires musicians every evening.': 'a' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 850
+   },
+   {
+    "clip": "M05_2_0286",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The owners regularly look for pyramid leaks.",
+    "truth": "The owners regularly look for plumbing leaks.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The owners regularly look for plumbing leaks.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The owners regularly look for plumbing leaks.': 'pyramid' instead of 'plumbing'"
+    ],
+    "source": "llm",
+    "brain_ms": 867
+   },
+   {
+    "clip": "M05_2_0393",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The big issues were new.",
+    "truth": "The pair of shoes was new.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Both figures would go higher in later years.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 973
+   },
+   {
+    "clip": "M05_2_0274",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "truth": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "The prospect of cutting back spending is an unpleasant one for any governor.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 828
+   },
+   {
+    "clip": "M05_1_0056",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "That quick brain fucks down over that baby dog.",
+    "truth": "The quick brown fox jumps over the lazy dog.",
+    "outcome": "two questions",
+    "questions": 2,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 822
+   },
+   {
+    "clip": "M05_2_0085",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "That train approached the depot slowly.",
+    "truth": "The train approached the depot slowly.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The train approached the depot slowly.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The train approached the depot slowly.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 863
+   },
+   {
+    "clip": "M05_2_0291",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The wait for weeks can be a really good game.",
+    "truth": "The wait for work can be very do it again.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The wait for work can be very do it again.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The wait for work can be very do it again.': 'weeks' instead of 'work', 'a really good game' instead of 'very do it again'"
+    ],
+    "source": "llm",
+    "brain_ms": 974
+   },
+   {
+    "clip": "M05_2_0292",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The wait for weeks can be very long.",
+    "truth": "The wait for work can be very long.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "The wait for work can be very long.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'The wait for work can be very long.': 'weeks' instead of 'work'"
+    ],
+    "source": "llm",
+    "brain_ms": 961
+   },
+   {
+    "clip": "M05_2_0082",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "The health is great in the world.",
+    "truth": "Their house is grey and white.",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Bright sunshine shimmers on the ocean.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 954
+   },
+   {
+    "clip": "M05_2_0197",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "This is a treehouse up above.",
+    "truth": "There is a treehouse up above.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "There is a treehouse up above.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'There is a treehouse up above.': 'this' instead of 'there'"
+    ],
+    "source": "llm",
+    "brain_ms": 824
+   },
+   {
+    "clip": "M05_2_0078",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "They carried me off on the stretcher.",
+    "truth": "They carried me off on the stretcher.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "They carried me off on the stretcher.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 818
+   },
+   {
+    "clip": "M05_2_0179",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "This is a good organization for me.",
+    "truth": "This is a period of transition for me.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "This was easy for us.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'This was easy for us.': 'is a good organization' instead of 'was easy', 'me' instead of 'us'"
+    ],
+    "source": "llm",
+    "brain_ms": 951
+   },
+   {
+    "clip": "M05_2_0260",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "This is not a program of socialized medicine.",
+    "truth": "This is not a program of socialized medicine.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "This is not a program of socialized medicine.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 930
+   },
+   {
+    "clip": "M05_2_0019",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "This was easy for us.",
+    "truth": "This was easy for us.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "This was easy for us.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 836
+   },
+   {
+    "clip": "M05_2_0282",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "As always musicians, how many nights, marvelously,",
+    "truth": "Those musicians harmonize marvelously.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Those musicians harmonize marvelously.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Those musicians harmonize marvelously.': 'as always' instead of 'those', 'how many nights' instead of 'harmonize'"
+    ],
+    "source": "llm",
+    "brain_ms": 823
+   },
+   {
+    "clip": "M05_2_0001",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Today's date.",
+    "truth": "Today's date february 13th.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Today's date february 13th.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 877
+   },
+   {
+    "clip": "M05_1_0009",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "\"Twice is day,\" he played carefully and read the rest upon our small organ.",
+    "truth": "Twice each day he plays skillfully and with zest upon our small organ.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Twice each day he plays skillfully and with zest upon our small organ.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Twice each day he plays skillfully and with zest upon our small organ.': 'is' instead of 'each', 'read the rest' instead of 'with zest'"
+    ],
+    "source": "llm",
+    "brain_ms": 871
+   },
+   {
+    "clip": "M05_2_0128",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Two other cases also were under advisement.",
+    "truth": "Two other cases also were under advisement.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Two other cases also were under advisement.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 872
+   },
+   {
+    "clip": "M05_1_0061",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Usually, mine is half worth buttons.",
+    "truth": "Usually minus several buttons.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Usually minus several buttons.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Usually minus several buttons.': 'mine is half worth' instead of 'minus several'"
+    ],
+    "source": "llm",
+    "brain_ms": 1000
+   },
+   {
+    "clip": "M05_2_0320",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "He brought a brown chair.",
+    "truth": "We bought a brown chair.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We bought a brown chair.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'We bought a brown chair.': 'he' instead of 'we'"
+    ],
+    "source": "llm",
+    "brain_ms": 931
+   },
+   {
+    "clip": "M05_2_0057",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "We gathered shelves on the beach.",
+    "truth": "We gathered shells on the beach.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "We gathered shells on the beach.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1013
+   },
+   {
+    "clip": "M05_2_0307",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "We have an excellent team.",
+    "truth": "We have an excellent team.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "We have an excellent team.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 990
+   },
+   {
+    "clip": "M05_1_0027",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "We have often aged him to look more and to mock less.",
+    "truth": "We have often urged him to walk more and smoke less.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We have often urged him to walk more and smoke less.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'We have often urged him to walk more and smoke less.': 'look' instead of 'walk', 'to mock' instead of 'smoke'"
+    ],
+    "source": "llm",
+    "brain_ms": 974
+   },
+   {
+    "clip": "M05_2_0182",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "We rode horse back to that farm.",
+    "truth": "We rode horseback to the farm.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "We rode horseback to the farm.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'We rode horseback to the farm.': 'that' instead of 'the'"
+    ],
+    "source": "llm",
+    "brain_ms": 840
+   },
+   {
+    "clip": "M05_1_0015",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "when he is maybe 33 years old.",
+    "truth": "Well he is nearly ninetythree years old.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Well he is nearly ninetythree years old.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 872
+   },
+   {
+    "clip": "M05_2_0216",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "When all else fails, use force.",
+    "truth": "When all else fails use force.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "When all else fails use force.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1011
+   },
+   {
+    "clip": "M05_1_0074",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "When he speaks, his voice is a bit cracked and grows a trifle.",
+    "truth": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'When he speaks his voice is just a bit cracked and quivers a trifle.': 'grows' instead of 'quivers'"
+    ],
+    "source": "llm",
+    "brain_ms": 1016
+   },
+   {
+    "clip": "M05_2_0002",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Where were you while we were away?",
+    "truth": "Where were you while we were away.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Where were you while we were away.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1012
+   },
+   {
+    "clip": "M05_2_0287",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "What cat leaves covered in the zap in Target B?",
+    "truth": "Whitecapped waves covered the entire bay.",
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Get a calico cat to keep.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 836
+   },
+   {
+    "clip": "M05_2_0055",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "Why are we always here to think?",
+    "truth": "Why yell or worry over silly items.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 991
+   },
+   {
+    "clip": "M05_2_0135",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Was Robin where I yellowed the...",
+    "truth": "Will robin wear a yellow lily.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3548
+   },
+   {
+    "clip": "M05_1_0077",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Yet he still thinks as serious as ever.",
+    "truth": "Yet he still thinks as swiftly as ever.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "Yet he still thinks as swiftly as ever.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'Yet he still thinks as swiftly as ever.': 'serious' instead of 'swiftly'"
+    ],
+    "source": "llm",
+    "brain_ms": 1008
+   },
+   {
+    "clip": "M05_2_0383",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "You can ride a stagecoach.",
+    "truth": "You can ride stagecoach.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "You can ride stagecoach.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1040
+   },
+   {
+    "clip": "M05_1_0062",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "You wished to know all about your grandfather.",
+    "truth": "You wished to know all about my grandfather.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "You wished to know all about my grandfather.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'You wished to know all about my grandfather.': 'your' instead of 'my'"
+    ],
+    "source": "llm",
+    "brain_ms": 997
+   },
+   {
+    "clip": "M05_2_0138",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "gave me a better off taking a cold shower.",
+    "truth": "You'd be better off taking a cold shower.",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "You'd be better off taking a cold shower.",
+    "confidence": "low",
+    "problems": [
+     "high confidence lowered: only partly matches 'You'd be better off taking a cold shower.': 'gave me a' instead of 'you'd be'"
+    ],
+    "source": "llm",
+    "brain_ms": 1018
+   },
+   {
+    "clip": "M05_2_0028",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "You're used to being on the field.",
+    "truth": "You're used to being on the field.",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "You're used to being on the field.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 989
+   },
+   {
+    "clip": "M05_1_0007",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "Up.",
+    "truth": "scroll_up",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "scroll_up",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 880
+   },
+   {
+    "clip": "M05_1_0008",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "Uh",
+    "truth": "scroll_up",
+    "outcome": "one question",
+    "questions": 1,
+    "choice": "scroll_up",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3546
+   },
+   {
+    "clip": "M05_1_0035",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "Down.",
+    "truth": "scroll_down",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "scroll_down",
+    "confidence": "high",
+    "problems": [],
+    "source": "fast_path",
+    "brain_ms": 0.24
+   },
+   {
+    "clip": "M05_2_0129",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Back",
+    "truth": "go_back",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "go_back",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3571
+   },
+   {
+    "clip": "M05_2_0071",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Avoid!",
+    "truth": "go_forward",
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 944
+   },
+   {
+    "clip": "M05_1_0032",
+    "fold": 1,
+    "outcome": "not found",
+    "questions": 0,
+    "heard": "",
+    "truth": "press_left",
+    "source": null,
+    "brain_ms": null,
+    "confidence": null,
+    "enrolled_item": false
+   },
+   {
+    "clip": "M05_1_0066",
+    "fold": 1,
+    "enrolled_item": true,
+    "heard": "Right",
+    "truth": "press_right",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "press_right",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 882
+   },
+   {
+    "clip": "M05_2_0099",
+    "fold": 1,
+    "enrolled_item": false,
+    "heard": "Select",
+    "truth": "press_return",
+    "outcome": "instant",
+    "questions": 0,
+    "choice": "press_return",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3488
+   }
+  ],
+  "outside": [
+   {
+    "clip": "M05_2_0374",
+    "heard": "Ah",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 3675
+   },
+   {
+    "clip": "M05_2_0233",
+    "heard": "End",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "scroll_down",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 899
+   },
+   {
+    "clip": "M05_2_0209",
+    "heard": "Uh...",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 996
+   },
+   {
+    "clip": "M05_2_0232",
+    "heard": "Boring",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1074
+   },
+   {
+    "clip": "M05_1_0114",
+    "heard": "Beat",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1189
+   },
+   {
+    "clip": "M05_1_0016",
+    "heard": "Bitch, bitch, bitch.",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1263
+   },
+   {
+    "clip": "M05_2_0200",
+    "heard": "below",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "scroll_down",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1275
+   },
+   {
+    "clip": "M05_2_0251",
+    "heard": "Bwaht",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1161
+   },
+   {
+    "clip": "M05_1_0102",
+    "heard": "C'mon!",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1172
+   },
+   {
+    "clip": "M05_2_0062",
+    "heard": "Cheers!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1069
+   },
+   {
+    "clip": "M05_2_0022",
+    "heard": "Coop!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 982
+   },
+   {
+    "clip": "M05_2_0160",
+    "heard": "Done",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "press_return",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 856
+   },
+   {
+    "clip": "M05_2_0072",
+    "heard": "DUT",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "scroll_up",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 792
+   },
+   {
+    "clip": "M05_1_0095",
+    "heard": "DAG!",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 900
+   },
+   {
+    "clip": "M05_1_0071",
+    "heard": "Fair",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 960
+   },
+   {
+    "clip": "M05_2_0127",
+    "heard": "fear",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 944
+   },
+   {
+    "clip": "M05_1_0043",
+    "heard": "Sweet!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 959
+   },
+   {
+    "clip": "M05_2_0064",
+    "heard": "So",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 971
+   },
+   {
+    "clip": "M05_2_0166",
+    "heard": "Fuck that",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 903
+   },
+   {
+    "clip": "M05_1_0067",
+    "heard": "DOOO",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "scroll_up",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 889
+   },
+   {
+    "clip": "M05_2_0037",
+    "heard": "Goop",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 912
+   },
+   {
+    "clip": "M05_2_0210",
+    "heard": "Hike!",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Being able to dance can help too.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 883
+   },
+   {
+    "clip": "M05_2_0206",
+    "heard": "hard",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 943
+   },
+   {
+    "clip": "M05_2_0214",
+    "heard": "Him",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "He dresses himself in an ancient black frock coat.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 897
+   },
+   {
+    "clip": "M05_2_0185",
+    "heard": "Um...",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 952
+   },
+   {
+    "clip": "M05_2_0190",
+    "heard": "D-do the it.",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Being able to dance can help too.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 971
+   },
+   {
+    "clip": "M05_1_0072",
+    "heard": "Mmmmmm",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1023
+   },
+   {
+    "clip": "M05_2_0322",
+    "heard": "Not",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 877
+   },
+   {
+    "clip": "M05_2_0225",
+    "heard": "There.",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "The hotel man.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 915
+   },
+   {
+    "clip": "M05_2_0262",
+    "heard": "Bleak!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Except in the winter when the ooze or snow or ice prevents.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 949
+   },
+   {
+    "clip": "M05_2_0097",
+    "heard": "Zip",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 979
+   },
+   {
+    "clip": "M05_2_0092",
+    "heard": "menu",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "scroll_up",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 887
+   },
+   {
+    "clip": "M05_2_0172",
+    "heard": "much",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Both figures would go higher in later years.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 912
+   },
+   {
+    "clip": "M05_2_0391",
+    "heard": "One",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "One validated acts of school districts.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 910
+   },
+   {
+    "clip": "M05_1_0070",
+    "heard": "Break",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "scroll_up",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 893
+   },
+   {
+    "clip": "M05_2_0048",
+    "heard": "pay",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 996
+   },
+   {
+    "clip": "M05_2_0141",
+    "heard": "Good... Good thing...",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "You can ride stagecoach.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1059
+   },
+   {
+    "clip": "M05_2_0140",
+    "heard": "Pretty",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 966
+   },
+   {
+    "clip": "M05_1_0013",
+    "heard": "Wish!",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 929
+   },
+   {
+    "clip": "M05_1_0059",
+    "heard": "Cringe",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 896
+   },
+   {
+    "clip": "M05_2_0363",
+    "heard": "Red",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "He dresses himself in an ancient black frock coat.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 928
+   },
+   {
+    "clip": "M05_2_0023",
+    "heard": "Rock!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 934
+   },
+   {
+    "clip": "M05_2_0229",
+    "heard": "SID.",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "scroll_up",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 885
+   },
+   {
+    "clip": "M05_2_0228",
+    "heard": "Seven",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Whitecapped waves covered the entire bay.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 927
+   },
+   {
+    "clip": "M05_2_0283",
+    "heard": "Yep",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 964
+   },
+   {
+    "clip": "M05_2_0294",
+    "heard": "See you!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 958
+   },
+   {
+    "clip": "M05_2_0202",
+    "heard": "SINE",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 880
+   },
+   {
+    "clip": "M05_2_0384",
+    "heard": "Sink!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 900
+   },
+   {
+    "clip": "M05_2_0310",
+    "heard": "Shit.",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 935
+   },
+   {
+    "clip": "M05_2_0004",
+    "heard": "See you later.",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 1031
+   },
+   {
+    "clip": "M05_2_0119",
+    "heard": "See that?",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 960
+   },
+   {
+    "clip": "M05_2_0167",
+    "heard": "Bit",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 926
+   },
+   {
+    "clip": "M05_1_0124",
+    "heard": "STICK!",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 905
+   },
+   {
+    "clip": "M05_1_0042",
+    "heard": "Damn girl",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "But he always answers banana oil.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 921
+   },
+   {
+    "clip": "M05_2_0006",
+    "heard": "Wheeee",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 985
+   },
+   {
+    "clip": "M05_1_0055",
+    "heard": "KID",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Will robin wear a yellow lily.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 927
+   },
+   {
+    "clip": "M05_1_0121",
+    "heard": "Duh.",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "Why yell or worry over silly items.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 958
+   },
+   {
+    "clip": "M05_2_0115",
+    "heard": "Three",
+    "truth": null,
+    "outcome": "not found",
+    "questions": 2,
+    "choice": "He further proposed grants of an unspecified sum for experimental hospitals.",
+    "confidence": "low",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 902
+   },
+   {
+    "clip": "M05_2_0083",
+    "heard": "Do it.",
+    "truth": null,
+    "outcome": "wrong",
+    "questions": 0,
+    "choice": "When he speaks his voice is just a bit cracked and quivers a trifle.",
+    "confidence": "high",
+    "problems": [],
+    "source": "llm",
+    "brain_ms": 945
+   }
+  ]
+ }
+}

@@ -151,27 +151,29 @@ def evaluate(speaker: str, variant: str = "plain", verbose: bool = True) -> dict
     plain = load_transcripts(speaker, "plain")
     start = time.monotonic()
 
-    fresh_records, enrolled_records, outside_records = [], [], []
-    seen = set()
+    # One profile at a time: LM Studio keeps the instructions it read last, so
+    # switching profile on every clip would make each call several seconds slower.
+    def run(profile, clip, truth, extra=None):
+        text = heard[clip]["heard"]
+        record = {"clip": clip, **(extra or {})}
+        if not text:   # WhisperKit heard nothing usable: nothing can be offered
+            return {**record, "outcome": "not found", "questions": 0, "heard": "", "truth": truth,
+                    "choice": None, "source": None, "brain_ms": None, "confidence": None, "problems": []}
+        return {**record, **simulate(profile, llm, text, truth)}
+
+    def is_enrolled_item(clip):
+        return normalize(setup["reference"][clip]) in setup["enrolled_once"]
+
+    seen = sorted({clip for fold in setup["folds"] for clip in fold["test"]})
+    fresh_records = [run(setup["profile"], clip, setup["truth"][clip]) for clip in seen]
+    enrolled_records, outside_records = [], []
     for fold in range(len(setup["folds"])):
         enrolled = enrolled_profile(setup, fold, variant)
         for clip in setup["folds"][fold]["test"]:
-            truth, text = setup["truth"][clip], heard[clip]["heard"]
-            enrolled_records.append({"clip": clip, "fold": fold, "enrolled_item": normalize(setup["reference"][clip]) in setup["enrolled_once"],
-                                     **simulate(enrolled, llm, text, truth)} if text else
-                                    {"clip": clip, "fold": fold, "outcome": "not found", "questions": 0, "heard": "",
-                                     "truth": truth, "source": None, "brain_ms": None, "confidence": None,
-                                     "enrolled_item": normalize(setup["reference"][clip]) in setup["enrolled_once"]})
-            if clip not in seen:
-                seen.add(clip)
-                fresh_records.append({"clip": clip, **simulate(setup["profile"], llm, text, truth)} if text else
-                                     {"clip": clip, "outcome": "not found", "questions": 0, "heard": "", "truth": truth,
-                                      "source": None, "brain_ms": None, "confidence": None})
+            enrolled_records.append(run(enrolled, clip, setup["truth"][clip],
+                                        {"fold": fold, "enrolled_item": is_enrolled_item(clip)}))
         if fold == 0:
-            for clip in setup["outside"]:
-                text = heard[clip]["heard"]
-                if text:
-                    outside_records.append({"clip": clip, **simulate(enrolled, llm, text, None)})
+            outside_records = [r for r in (run(enrolled, clip, None) for clip in setup["outside"]) if r["heard"]]
 
     test_clips = sorted(seen)
     all_pairs = [(setup["reference"][c], plain[c]["heard"]) for c in test_clips]

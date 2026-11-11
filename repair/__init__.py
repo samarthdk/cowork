@@ -39,9 +39,17 @@ def repair(heard: str, profile: dict, llm, context: dict | None = None) -> Inten
                 return intent
             intent = validate(parse_json(reply.text), profile, context)
             intent.stats = stats
+            if intent.choice:
+                score = support.evidence(heard, intent.choice, profile, intent.args)
+                intent.stats["evidence"] = round(score, 2)
             if intent.confidence == "high" and intent.choice:
-                # Don't trust "high" when what was heard only partly matches.
+                # "High" from the model is not enough on its own (measured on real
+                # impaired speech: its confident answers were often wrong). The heard
+                # words must back the choice up, and no part may contradict it.
                 ok, reason = support.check(heard, intent.choice, profile)
+                if ok and score < config.HIGH_EVIDENCE:
+                    ok, reason = False, (f"the heard words only match it {score:.0%} "
+                                         f"(at least {config.HIGH_EVIDENCE:.0%} needed to act without asking)")
                 if not ok:
                     intent.confidence = "low"
                     intent.problems.append(f"high confidence lowered: {reason}")

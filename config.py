@@ -28,6 +28,9 @@ LLM_TIMEOUT_S = 60
 LLM_MAX_TOKENS = 80    # a normal answer is 11-25 tokens; a reply message can add about 30
 GUESS_MAX_TOKENS = 120 # a free guess: one sentence plus up to 3 key words
 
+# When may "high confidence" be trusted? (see repair/support.py and eval/calibrate.py)
+HIGH_EVIDENCE = 0.7         # share of the heard words / the phrase that must agree to act without asking
+
 # Learning and options
 FAST_PATH_SIMILARITY = 90   # % similar to a learned example to skip the LLM
 FAST_PATH_MIN_CHARS = 5     # shorter than this must match a learned example exactly

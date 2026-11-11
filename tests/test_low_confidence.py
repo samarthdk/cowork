@@ -135,7 +135,8 @@ said, asked, _, _ = run_demo({"choice": "open_app", "args": {"app": "Safari", "t
                               "options": []}, ["y"])
 check("open_app with Safari: shows the app", asked[1], "Did you mean: open_app (app: Safari)? (y/n)")
 check("  ...yes: no extra question", said, ["Opening Safari."])
-said, asked, _, _ = run_demo({"choice": "scroll_down", "args": NO_ARGS, "confidence": "high", "options": []}, [])
+said, asked, _, _ = run_demo({"choice": "scroll_down", "args": NO_ARGS, "confidence": "high", "options": []}, [],
+                             heard="scroll down")
 check("high confidence: no question at all", (len(asked), said), (2, ["Scrolling down."]))
 
 print(f"\n{sum(results)}/{len(results)} passed" + ("  ALL PASS" if all(results) else "  SOME FAILED"))

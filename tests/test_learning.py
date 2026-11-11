@@ -157,7 +157,7 @@ with tempfile.TemporaryDirectory() as tmp:
     printed, _ = session(["undo"], [], path)
     check("nothing left to undo", has(printed, "Nothing to undo."), True)
 
-    printed, calls = session(["wah tur pleez"], [], path, confidence="high")
+    printed, calls = session(["I'm thirsty could I have some water"], [], path, confidence="high")
     p = open_profile(path)
     check("high-confidence answers are NOT learned (nobody confirmed them)", len(p["examples"]), 0)
     printed, _ = session([], ["--fresh"], path)

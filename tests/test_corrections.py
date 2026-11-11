@@ -77,7 +77,8 @@ check("THE PEPSI CASE: model says HIGH water -> lowered to low", intent.confiden
 check("  ...reason recorded", any("pep see" in x for x in intent.problems), True)
 check("learned sentence itself stays high", repair(LEARNED, p, Model()).confidence, "high")
 check("learned sentence + 'pleez' stays high", repair(LEARNED + " pleez", p, Model()).confidence, "high")
-check("nothing learned, garbled: model's high stands", repair(PEPSI, copy.deepcopy(BASE), Model()).confidence, "high")
+check("nothing learned, garbled: the model's 'high' alone is not trusted (no evidence in the words)",
+      repair(PEPSI, copy.deepcopy(BASE), Model()).confidence, "low")
 check("clear 'could I have some pepsi': lowered", repair("could I have some pepsi", copy.deepcopy(BASE),
                                                          Model()).confidence, "low")
 p = copy.deepcopy(BASE)
@@ -147,10 +148,10 @@ printed, said, _, calls = session([LEARNED, "y"], profile=with_water_example())
 check("'y' in the window keeps it", (has(printed, "CANCELLED"), said), (False, [WATER]))
 printed, said, _, _ = session([LEARNED, ""], profile=with_water_example())
 check("nothing typed in the window keeps it", (has(printed, "CANCELLED"), said), (False, [WATER]))
-printed, said, _, _ = session([LEARNED, "baffroom pleez", ""], profile=with_water_example(),
+printed, said, _, _ = session([LEARNED, "i need to use the bathroom", ""], profile=with_water_example(),
                               model=Model(choice="P2"))
 check("a sentence typed in the window is the next sentence, not a cancel",
-      (has(printed, "CANCELLED"), has(printed, "> baffroom pleez")), (False, True))
+      (has(printed, "CANCELLED"), has(printed, "> i need to use the bathroom")), (False, True))
 printed, said, _, _ = session([LEARNED, "n", ""], profile=with_water_example())
 check("cancel, then pick nothing: 'Nothing chosen'", has(printed, "Nothing chosen."), True)
 
