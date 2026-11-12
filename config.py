@@ -33,6 +33,14 @@ HIGH_EVIDENCE = 0.7         # share of the heard words / the phrase that must ag
 
 SECOND_OPINION = True       # after a "no", ask the Brain again with that choice ruled out
 
+# Listening again (see repair/confirm.py; thresholds measured in eval/relisten.py)
+AUDIO_CONFIRM = True          # check the Brain's guess against the sound; if it fits, speak without asking
+AUDIO_CONFIRM_MATCH = 0.8     # how much of the guess's words must come back
+AUDIO_CONFIRM_LOGPROB = -0.3  # and how sure WhisperKit must be (closer to 0 = more sure)
+RELISTEN_AFTER_NO = True      # after a "no", look through the phrases for one that fits the sound
+RELISTEN_CHUNK = 12           # phrases hinted per pass
+RELISTEN_MAX_S = 8.0          # stop looking after this long
+
 # Learning and options
 FAST_PATH_SIMILARITY = 90   # % similar to a learned example to skip the LLM
 FAST_PATH_MIN_CHARS = 5     # shorter than this must match a learned example exactly

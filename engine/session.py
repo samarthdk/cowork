@@ -35,11 +35,12 @@ from dataclasses import dataclass, field
 
 import config
 from choose.answers import Answer
+from repair import confirm as listen_again
 from repair import repair, warm_up
 from repair.guess import MAX_GUESSES, free_guess, is_repeat
 from repair.learning import fast_path
-from repair.profile import find_command, is_risky, phrase_codes
-from repair.rank import SOMETHING_ELSE, group_of, rank_options
+from repair.profile import all_choices, find_command, is_risky, phrase_codes
+from repair.rank import SOMETHING_ELSE, group_of, rank_options, score
 from repair.store import (add_example, add_phrase, add_vocabulary, delete_example,
                           save_profile, similarity, undo_last)
 
@@ -99,6 +100,7 @@ class Session:
         self.profile_path = profile_path
         self.on_event = on_event or (lambda event: None)
         self.warm = warm          # prime LM Studio in the background after the prompt changes
+        self._rehear = None       # set per request when it came from audio
         self._warming: threading.Thread | None = None
 
     # ---- helpers ---------------------------------------------------------
@@ -159,10 +161,13 @@ class Session:
 
     # ---- the flow --------------------------------------------------------
 
-    def hear(self, heard: str, source: str = "keyboard"):
+    def hear(self, heard: str, source: str = "keyboard", rehear=None):
         """Generator: yields Questions, receives Answers, returns a pending
-        sentence (said during the correction window) or None."""
+        sentence (said during the correction window) or None.
+        `rehear(hint) -> Transcript`: given when the request came from audio, so a
+        guess can be checked against the sound itself (see repair/confirm.py)."""
         profile = self.profile
+        self._rehear = rehear
         self.emit("heard", text=heard, source=source)
         context = self.context()
 
@@ -180,6 +185,7 @@ class Session:
             took_ms = (time.perf_counter() - start) * 1000
             self.emit("brain", intent=intent.to_dict(), took_ms=took_ms,
                       meaning=describe(intent.choice, intent.args, profile) if intent.choice else None)
+            self._confirm_by_sound(intent)
 
         result = yield from self._decide(heard, intent, context)
         rejected = ()
@@ -230,6 +236,23 @@ class Session:
         self.emit("done")
         return pending
 
+    def _confirm_by_sound(self, intent) -> None:
+        """Unsure, but there is audio: listen again for exactly this guess. If the
+        sound backs it up, it can be spoken without asking. Never used when a
+        part of what was heard contradicts the guess (the Pepsi case)."""
+        if (self._rehear is None or not config.AUDIO_CONFIRM or intent.confidence != "low" or not intent.choice
+                or any("instead of" in p or "extra words" in p for p in intent.problems)):
+            return
+        ok, details = listen_again.confirm(intent.choice, self.profile, self._rehear)
+        if not details:
+            return
+        intent.stats["sound_check"] = details
+        if ok:
+            intent.confidence = "high"
+            intent.stats["confirmed_by_sound"] = True
+        self.emit("sound_check", confirmed=ok, meaning=describe(intent.choice, intent.args, self.profile),
+                  intent=intent.to_dict(), **details)
+
     def _decide(self, heard: str, intent, context):
         """Work out what the person meant. Risky commands are always confirmed
         first, even at high confidence."""
@@ -258,7 +281,15 @@ class Session:
         "Something else"."""
         profile = self.profile
         second = None
-        if rejected and config.SECOND_OPINION:
+        if rejected and self._rehear is not None and config.RELISTEN_AFTER_NO:
+            # The guess was wrong, but there is audio: look through the phrases for
+            # one that fits the sound (likeliest first). Its result is only offered.
+            self.emit("relisten_start")
+            order = sorted(all_choices(profile), key=lambda c: -score(heard, c, profile))
+            second, details = listen_again.scan(profile, self._rehear, order, exclude=rejected,
+                                                on_progress=lambda done, total: self.emit("relisten_progress", done=done, total=total))
+            self.emit("relisten", meaning=second, **details)
+        if rejected and second is None and config.SECOND_OPINION:
             # The first guess was wrong: ask the Brain once more with it ruled out,
             # and put its new pick in the first square.
             start = time.perf_counter()

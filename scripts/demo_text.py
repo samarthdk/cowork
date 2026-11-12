@@ -54,6 +54,10 @@ def show(event: dict) -> None:
         print(f"took {event['took_ms']:.0f} ms (LLM)")
     elif kind == "second_opinion" and event["meaning"]:
         print(f"(second opinion took {event['took_ms']:.0f} ms)")
+    elif kind == "sound_check" and event["confirmed"]:
+        print(f"(listened again: the sound fits '{event['meaning']}', so no need to ask)")
+    elif kind == "relisten" and event["meaning"]:
+        print(f"(listened again and found: '{event['meaning']}')")
     elif kind == "risky_notice":
         print("(risky action: always confirmed first)")
     elif kind == "guess_failed":
