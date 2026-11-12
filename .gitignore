@@ -24,3 +24,6 @@ profiles/backups/
 
 # Ready-made audio for phrases (re-made automatically)
 cache/
+
+# Learning done with the fake model (python -m ui --fake)
+profiles/fake_profile.json

@@ -92,3 +92,27 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
   checks that expected "act immediately on the model's say-so" were updated to the new rule.
 - The threshold was chosen on M05 only; runs on F03 and M01 were started but stopped to keep
   the Mac free. Their partial answers are cached; `eval/calibrate.py` can finish the comparison.
+
+## The app's screen (ui/)
+
+- **No new packages.** FastAPI and uvicorn were already installed. Live updates use
+  Server-Sent Events (a plain, one-way stream built into every browser) instead of
+  WebSockets, which would have needed another package.
+- **The core is separate from the web code.** `ui/app.py` runs the conversation and keeps
+  everything the screen shows; `ui/server.py` only passes inputs in and updates out. So the
+  whole app can be checked with the fakes and no browser (`tests/test_app.py`).
+- **One conversation at a time**, on its own thread. Anything said while one is running
+  waits its turn. Answers given before a question appeared are thrown away, so a stray
+  click or word can't answer a question the person hasn't seen yet.
+- **An unanswered question closes after 60 s with nothing chosen** (silence is not a "no").
+- **Speech can answer questions.** When a yes/no, grid or correction-window question
+  opens and the microphone is on, it listens for the answer by itself; only words that
+  clearly answer the question count.
+- **With no question open, a raised hand means "listen now"** (when the microphone is on).
+- **`--fake` learns into `profiles/fake_profile.json`**, so the fake model never
+  changes the real profile.
+- **The page loads nothing from the internet** (no web fonts, no outside scripts), so it
+  works with Wi-Fi off. It is checked for this in `tests/test_app.py`.
+- **After the person picks a different option, "Understood" shows what they picked**,
+  with the Brain's first guess underneath, so judges aren't confused.
+- The page has test buttons for the six hand signals until the camera is connected.

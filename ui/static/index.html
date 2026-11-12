@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Second Voice</title>
+<!-- Fully offline: no web fonts, no outside scripts. Served by ui/server.py on this Mac only. -->
+<style>
+:root {
+  --bg: #0a0d12;
+  --panel: #131922;
+  --panel-2: #1a2230;
+  --line: #2a3546;
+  --text: #f3f6fa;
+  --muted: #a9b4c4;
+  --faint: #6f7d91;
+  --accent: #5cc8ff;
+  --accent-ink: #04121c;
+  --yes: #3ddc84;
+  --yes-ink: #03170b;
+  --no: #ff6b6b;
+  --no-ink: #1e0505;
+  --low: #ffb84d;
+  --low-ink: #1f1300;
+  --fast: #c79bff;
+  --radius: 18px;
+  --gap: 18px;
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+  --mono: "SF Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); }
+body { min-height: 100vh; font-size: 18px; line-height: 1.35; }
+button { font: inherit; color: inherit; cursor: pointer; }
+button:focus-visible, input:focus-visible { outline: 4px solid var(--accent); outline-offset: 3px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+/* ---- header ---- */
+header {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding: 14px 24px; border-bottom: 1px solid var(--line); background: #0d1219;
+}
+.brand { display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.45rem; letter-spacing: -0.01em; }
+.brand svg { width: 34px; height: 34px; }
+.status {
+  display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 999px;
+  background: var(--panel-2); font-weight: 600; font-size: 1.05rem;
+}
+.status .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--faint); }
+.status[data-s="thinking"] .dot, .status[data-s="hearing"] .dot, .status[data-s="listening again"] .dot { background: var(--accent); animation: pulse 1s infinite; }
+.status[data-s="asking"] .dot { background: var(--low); animation: pulse 1.4s infinite; }
+.status[data-s="speaking"] .dot { background: var(--yes); animation: pulse .8s infinite; }
+.status[data-s="ready"] .dot { background: var(--yes); }
+@keyframes pulse { 50% { opacity: .35; } }
+.spacer { flex: 1; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.chip {
+  font-size: .82rem; font-weight: 600; padding: 5px 10px; border-radius: 8px;
+  background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); white-space: nowrap;
+}
+.chip.fake { color: var(--low); border-color: #5a4318; }
+.offline { display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px; border-radius: 12px; font-weight: 700; }
+.offline svg { width: 22px; height: 22px; }
+.offline.ok { background: #0f2a1b; color: var(--yes); border: 2px solid #1f6b40; }
+.offline.warn { background: #2a1f0a; color: var(--low); border: 2px solid #6b4f1f; }
+.offline.unknown { background: var(--panel-2); color: var(--muted); border: 2px solid var(--line); }
+
+/* ---- layout ---- */
+main {
+  display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(320px, 1fr);
+  gap: var(--gap); padding: var(--gap) 24px 24px;
+}
+.col { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+@media (max-width: 1050px) { main { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 600px) { main { padding: 12px 16px; } header { padding: 12px 16px; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px 22px; min-width: 0; }
+.label { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .09em; color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; gap: 10px; }
+.meta { color: var(--muted); font-size: .95rem; margin-top: 8px; }
+
+/* ---- heard + understood ---- */
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: var(--gap); }
+@media (max-width: 800px) { .pair { grid-template-columns: 1fr; } }
+.heard-text { font-size: 1.9rem; font-family: var(--mono); color: #dfe7f2; word-break: break-word; min-height: 2.4rem; }
+.heard-text.empty, .meaning.empty { color: var(--faint); font-family: var(--font); font-size: 1.3rem; }
+.meaning { font-size: 2.1rem; font-weight: 700; letter-spacing: -0.01em; word-break: break-word; min-height: 2.6rem; }
+.badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.badge { font-size: .9rem; font-weight: 800; padding: 5px 11px; border-radius: 8px; letter-spacing: .03em; }
+.badge.high { background: var(--yes); color: var(--yes-ink); }
+.badge.low { background: var(--low); color: var(--low-ink); }
+.badge.fast { background: var(--fast); color: #170a2a; }
+.badge.brain { background: var(--panel-2); color: var(--text); border: 1px solid var(--line); }
+.badge.sound { background: var(--accent); color: var(--accent-ink); }
+.reason { margin-top: 10px; padding: 10px 12px; border-left: 4px solid var(--low); background: #1d1708; border-radius: 6px; color: #ffe2b0; font-size: 1rem; }
+.result { margin-top: 10px; font-size: 1.05rem; color: var(--muted); }
+.result strong { color: var(--text); }
+
+/* ---- question ---- */
+.ask { border: 2px solid var(--line); min-height: 330px; display: flex; flex-direction: column; }
+.ask.open { border-color: var(--accent); box-shadow: 0 0 0 4px #5cc8ff22; }
+.ask.guess { border-color: var(--fast); box-shadow: 0 0 0 4px #c79bff22; }
+.qtext { font-size: 2.3rem; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 16px; word-break: break-word; }
+.banner { display: inline-block; font-weight: 800; padding: 6px 12px; border-radius: 8px; margin-bottom: 10px; font-size: .95rem; }
+.banner.guess { background: var(--fast); color: #170a2a; }
+.banner.risky { background: var(--no); color: var(--no-ink); }
+.idle { color: var(--muted); font-size: 1.5rem; margin: auto 0; text-align: center; }
+.idle strong { color: var(--text); }
+.speaking { font-size: 2rem; font-weight: 700; color: var(--yes); margin: auto 0; text-align: center; }
+.hint { color: var(--muted); font-size: 1rem; margin-top: 14px; }
+.timer { height: 8px; background: var(--panel-2); border-radius: 8px; overflow: hidden; margin-top: 14px; }
+.timer > div { height: 100%; background: var(--accent); width: 100%; transform-origin: left; }
+
+.yesno { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--gap); }
+.big {
+  min-height: 130px; border-radius: 16px; border: 3px solid transparent; padding: 14px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+}
+.big .word { font-size: 2.6rem; font-weight: 800; letter-spacing: .02em; }
+.big .cue { font-size: .95rem; font-weight: 600; opacity: .85; }
+.big.yes { background: var(--yes); color: var(--yes-ink); }
+.big.no { background: var(--no); color: var(--no-ink); }
+.big:hover { filter: brightness(1.08); }
+.big:active { transform: scale(.99); }
+
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.square {
+  min-height: 120px; border-radius: 16px; background: var(--panel-2); border: 3px solid var(--line);
+  padding: 14px 16px; text-align: left; display: flex; flex-direction: column; justify-content: space-between; gap: 10px;
+}
+.square:hover { border-color: var(--accent); }
+.square .opt { font-size: 1.45rem; font-weight: 700; word-break: break-word; }
+.square .cue { display: flex; justify-content: space-between; color: var(--muted); font-size: .9rem; font-weight: 600; }
+.square .key { font-family: var(--mono); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; color: var(--text); }
+.square.first { border-color: #3c6f8f; }
+.square.else { border-style: dashed; border-color: var(--fast); }
+.square.else .opt { color: var(--fast); }
+.square.empty { visibility: hidden; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.btn {
+  min-height: 56px; padding: 10px 20px; border-radius: 12px; border: 2px solid var(--line);
+  background: var(--panel-2); font-weight: 700; font-size: 1.1rem;
+}
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { background: var(--no); color: var(--no-ink); border-color: var(--no); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ---- input bar ---- */
+.inputbar { display: flex; gap: 12px; align-items: stretch; flex-wrap: wrap; }
+.inputbar input {
+  flex: 1 1 240px; min-width: 0; min-height: 64px; font: inherit; font-size: 1.4rem; padding: 0 18px;
+  background: var(--bg); color: var(--text); border: 2px solid var(--line); border-radius: 14px;
+}
+.inputbar input::placeholder { color: var(--faint); }
+.listen { min-width: 190px; display: inline-flex; align-items: center; justify-content: center; gap: 10px; }
+.listen svg { width: 24px; height: 24px; }
+.listen.on { background: var(--yes); color: var(--yes-ink); border-color: var(--yes); animation: pulse 1.2s infinite; }
+.level { height: 10px; border-radius: 6px; background: var(--panel-2); overflow: hidden; margin-top: 10px; }
+.level > div { height: 100%; width: 0; background: var(--accent); transition: width .12s linear; }
+.keys { color: var(--faint); font-size: .9rem; margin-top: 10px; }
+.keys kbd { font-family: var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 0 6px; }
+
+/* ---- hands ---- */
+.hands { display: flex; gap: 18px; align-items: center; }
+.ring { width: 110px; height: 110px; flex: none; }
+.ring circle { fill: none; stroke-width: 10; }
+.ring .track { stroke: var(--panel-2); }
+.ring .prog { stroke: var(--accent); stroke-linecap: round; transform: rotate(-90deg); transform-origin: 50% 50%; transition: stroke-dashoffset .1s linear; }
+.ring text { fill: var(--text); font-size: 15px; font-weight: 700; font-family: var(--font); }
+.sigs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 12px; }
+.sigs button { min-height: 40px; font-size: .78rem; font-weight: 700; border-radius: 8px; background: var(--panel-2); border: 1px solid var(--line); }
+.sigs button:hover { border-color: var(--accent); }
+
+/* ---- feed ---- */
+.feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 330px; overflow-y: auto; }
+.feed li { padding: 10px 12px; border-radius: 10px; background: var(--panel-2); font-size: 1rem; }
+.feed li.fresh { animation: arrive .35s ease-out; }
+.feed .k { font-size: .75rem; font-weight: 800; text-transform: uppercase; letter-spacing: .07em; margin-right: 8px; }
+.feed .k.learned { color: var(--yes); } .feed .k.fast { color: var(--fast); } .feed .k.undo { color: var(--no); } .feed .k.sound { color: var(--accent); } .feed .k.new { color: var(--low); }
+.feed .arrow { color: var(--faint); }
+.feed .empty { background: none; color: var(--muted); padding: 0; }
+@keyframes arrive { from { opacity: 0; transform: translateY(-6px); } }
+
+/* ---- metrics ---- */
+.steps { display: flex; flex-direction: column; gap: 8px; }
+.step { display: grid; grid-template-columns: minmax(110px, 1fr) 2fr auto; gap: 10px; align-items: center; font-size: .95rem; }
+.step .bar { height: 12px; background: var(--panel-2); border-radius: 6px; overflow: hidden; }
+.step .bar > div { height: 100%; background: var(--accent); border-radius: 6px; }
+.step .bar.fast > div { background: var(--fast); }
+.step .v { font-family: var(--mono); color: var(--muted); min-width: 64px; text-align: right; }
+.figures { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+.fig { background: var(--panel-2); border-radius: 12px; padding: 10px 12px; }
+.fig .n { font-size: 1.6rem; font-weight: 800; font-variant-numeric: tabular-nums; }
+.fig .t { font-size: .8rem; color: var(--muted); font-weight: 600; }
+.mem { margin-top: 14px; }
+.membar { position: relative; height: 22px; background: var(--panel-2); border-radius: 8px; overflow: hidden; display: flex; }
+.membar > span { height: 100%; }
+.membar .budget { position: absolute; top: 0; bottom: 0; width: 3px; background: var(--text); }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: .85rem; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: 0; }
+
+/* ---- notice ---- */
+.notice {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); max-width: min(760px, calc(100% - 32px));
+  background: #2a1f0a; color: #ffe2b0; border: 2px solid #6b4f1f; padding: 14px 20px; border-radius: 14px;
+  font-size: 1.1rem; font-weight: 600; box-shadow: 0 10px 30px #0008; transition: opacity .3s; z-index: 10;
+}
+.notice[hidden] { display: block; opacity: 0; pointer-events: none; }
+.disconnected { background: var(--no); color: var(--no-ink); text-align: center; font-weight: 800; padding: 8px; }
+
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div id="disconnected" class="disconnected" hidden>Lost contact with Second Voice. Is it still running in Terminal? Reconnecting…</div>
+<header>
+  <div class="brand" aria-label="Second Voice">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="18" fill="#5cc8ff22" stroke="#5cc8ff" stroke-width="2.5"/><path d="M12 22c2-6 4-6 6 0s4 6 6 0 3-5 5-2" fill="none" stroke="#5cc8ff" stroke-width="3" stroke-linecap="round"/></svg>
+    Second Voice
+  </div>
+  <div class="status" id="status" data-s="ready" role="status"><span class="dot"></span><span id="status-text">Ready</span></div>
+  <div class="spacer"></div>
+  <div class="chips" id="backends"></div>
+  <div class="offline unknown" id="offline"></div>
+</header>
+
+<main>
+  <div class="col">
+    <div class="pair">
+      <section class="card" aria-labelledby="h-heard">
+        <h2 class="label" id="h-heard">Heard</h2>
+        <div class="heard-text empty" id="heard">Nothing yet</div>
+        <div class="meta" id="heard-meta"></div>
+      </section>
+      <section class="card" aria-labelledby="h-meant">
+        <h2 class="label" id="h-meant">Understood</h2>
+        <div class="meaning empty" id="meaning">—</div>
+        <div class="badges" id="badges"></div>
+        <div id="reason"></div>
+        <div class="result" id="result"></div>
+      </section>
+    </div>
+
+    <section class="card ask" id="ask" aria-live="polite" aria-labelledby="h-ask">
+      <h2 class="label" id="h-ask">Question</h2>
+      <div id="ask-body"></div>
+    </section>
+
+    <section class="card" aria-label="Say something">
+      <form class="inputbar" id="say-form" autocomplete="off">
+        <label class="sr" for="say">What the person said</label>
+        <input id="say" placeholder="Type what was said (garbled is fine)…" spellcheck="false">
+        <button class="btn primary" type="submit">Say</button>
+        <button class="btn listen" type="button" id="listen" title="Listen now (Space)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 15a3 3 0 0 0 3-3V6a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3Zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2Z"/></svg>
+          <span id="listen-text">Listen now</span>
+        </button>
+        <button class="btn" type="button" id="undo" title="Forget the last thing learned (U)">Undo</button>
+      </form>
+      <div class="level" id="level" hidden><div></div></div>
+      <div class="keys">Keys: <kbd>Y</kbd> yes · <kbd>N</kbd> no · <kbd>1</kbd>–<kbd>4</kbd> pick · <kbd>Esc</kbd> none of these · <kbd>Space</kbd> listen · <kbd>U</kbd> undo · <kbd>/</kbd> type</div>
+    </section>
+  </div>
+
+  <div class="col">
+    <section class="card" aria-labelledby="h-hands">
+      <h2 class="label" id="h-hands">Hand signals</h2>
+      <div class="hands">
+        <svg class="ring" viewBox="0 0 110 110" aria-hidden="true">
+          <circle class="track" cx="55" cy="55" r="45"/>
+          <circle class="prog" id="ring" cx="55" cy="55" r="45" stroke-dasharray="282.7" stroke-dashoffset="282.7"/>
+          <text id="ring-text" x="55" y="60" text-anchor="middle">—</text>
+        </svg>
+        <div>
+          <div id="camera-note" class="meta" style="margin-top:0"></div>
+          <div class="meta">Hold a signal for about a second to answer. When unsure, nothing is selected.</div>
+        </div>
+      </div>
+      <div class="sigs" aria-label="Test hand signals without the camera">
+        <button data-sig="LEFT_UP">Left thumb up</button><button data-sig="LEFT">Left hand</button><button data-sig="RIGHT_UP">Right thumb up</button>
+        <button data-sig="LEFT_DOWN">Left thumb down</button><button data-sig="RIGHT">Right hand</button><button data-sig="RIGHT_DOWN">Right thumb down</button>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-feed">
+      <h2 class="label" id="h-feed">Learning <span class="chip" id="counts"></span></h2>
+      <ul class="feed" id="feed"></ul>
+    </section>
+
+    <section class="card" aria-labelledby="h-metrics">
+      <h2 class="label" id="h-metrics">This request, step by step</h2>
+      <div class="steps" id="steps"></div>
+      <div class="figures">
+        <div class="fig"><div class="n" id="tps">—</div><div class="t">Brain tokens / second</div></div>
+        <div class="fig"><div class="n" id="total-ms">—</div><div class="t">Total time this request</div></div>
+      </div>
+      <div class="mem">
+        <h2 class="label" style="margin-top:6px">Memory (models) <span class="chip" id="mem-total"></span></h2>
+        <div class="membar" id="membar"></div>
+        <div class="legend" id="legend"></div>
+        <div class="meta" id="sysmem"></div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="notice" id="notice" role="alert" hidden></div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+let state = null;
+let timerFrame = null;
+
+// ---- helpers ----------------------------------------------------------
+function el(tag, attrs = {}, ...children) {
+  const node = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") node.className = v;
+    else if (k.startsWith("on")) node.addEventListener(k.slice(2), v);
+    else if (v !== null && v !== undefined && v !== false) node.setAttribute(k, v);
+  }
+  for (const c of children.flat()) if (c !== null && c !== undefined) node.append(c instanceof Node ? c : String(c));
+  return node;
+}
+function ms(v) {
+  if (v === null || v === undefined) return "—";
+  return v >= 1000 ? (v / 1000).toFixed(1) + " s" : Math.round(v) + " ms";
+}
+async function post(path, body) {
+  try {
+    const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+    return await r.json();
+  } catch (e) { return null; }
+}
+const answer = (kind, value) => post("/api/answer", { kind, value });
+
+// ---- header -----------------------------------------------------------
+const STATUS = { ready: "Ready", thinking: "Thinking…", asking: "Waiting for an answer", speaking: "Speaking",
+                 hearing: "Hearing…", "listening again": "Listening again…" };
+function renderHeader(s) {
+  $("status").dataset.s = s.status;
+  $("status-text").textContent = STATUS[s.status] || s.status;
+  const chips = $("backends"); chips.replaceChildren();
+  for (const [name, kind] of Object.entries(s.backends || {}))
+    chips.append(el("span", { class: "chip" + (kind === "fake" ? " fake" : "") }, `${name}: ${kind === "fake" ? "FAKE" : "real"}`));
+  const off = s.metrics.offline, box = $("offline");
+  const wifi = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 18.5a1.5 1.5 0 1 1 0 3 1.5 1.5 0 0 1 0-3ZM4.2 10.9a11 11 0 0 1 15.6 0l-1.4 1.4a9 9 0 0 0-12.8 0Zm2.8 2.8a7 7 0 0 1 10 0l-1.4 1.4a5 5 0 0 0-7.2 0Z"/><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M3 3l18 18"/></svg>';
+  if (!off) { box.className = "offline unknown"; box.innerHTML = wifi + "<span>Checking network…</span>"; }
+  else if (off.offline) { box.className = "offline ok"; box.innerHTML = wifi + "<span>OFFLINE · nothing leaves this Mac</span>"; }
+  else {
+    box.className = "offline warn";
+    box.innerHTML = wifi + `<span>${off.wifi_on ? "Wi-Fi ON" : "Network connected"} · still runs only on this Mac</span>`;
+  }
+}
+
+// ---- heard + understood ---------------------------------------------------
+function renderTurn(s) {
+  const t = s.turn;
+  const heard = $("heard"), meaning = $("meaning");
+  if (!t) {
+    heard.textContent = "Nothing yet"; heard.className = "heard-text empty";
+    meaning.textContent = "—"; meaning.className = "meaning empty";
+    $("heard-meta").textContent = ""; $("badges").replaceChildren(); $("reason").replaceChildren(); $("result").replaceChildren();
+    return;
+  }
+  heard.textContent = `“${t.heard}”`; heard.className = "heard-text";
+  $("heard-meta").textContent = t.source === "microphone"
+    ? `From the microphone · WhisperKit ${ms(t.asr_ms)}` : `Typed (${t.source})`;
+  const changed = t.final && t.final !== t.meaning;   // the person picked something other than the first guess
+  const shown = t.final || t.meaning;
+  meaning.textContent = shown || (s.status === "thinking" ? "Thinking…" : "No match yet");
+  meaning.className = "meaning" + (shown ? "" : " empty");
+  const b = $("badges"); b.replaceChildren();
+  if (t.final) b.append(el("span", { class: "badge high" }, changed ? "✓ CHOSEN BY THE PERSON" : "✓ CONFIRMED BY THE PERSON"));
+  else if (t.confidence) b.append(el("span", { class: "badge " + t.confidence }, t.confidence === "high" ? "HIGH CONFIDENCE" : "LOW CONFIDENCE · ASKING"));
+  if (t.how === "fast_path") b.append(el("span", { class: "badge fast" }, t.exact_phrase ? "⚡ FAST PATH · one of your phrases" : `⚡ FAST PATH · ${t.similarity}% like before`));
+  if (t.how === "brain" && !changed) b.append(el("span", { class: "badge brain" }, "Chosen by the Brain"));
+  if (t.how === "sound") b.append(el("span", { class: "badge sound" }, "✓ Confirmed by listening again"));
+  const r = $("reason"); r.replaceChildren();
+  if (changed) { r.append(el("div", { class: "meta" }, t.meaning ? `First guess (said no to): ${t.meaning}` : "")); return renderResult(t); }
+  const lowered = (t.reasons || []).filter((x) => x.startsWith("high confidence lowered"));
+  if (t.confidence === "low" && lowered.length)
+    r.append(el("div", { class: "reason" }, "Why it's asking: " + lowered[0].replace(/^high confidence lowered:\s*/, "")));
+  else if (t.confidence === "low" && t.how === "brain" && t.meaning)
+    r.append(el("div", { class: "reason" }, "Why it's asking: the Brain wasn't sure."));
+  renderResult(t);
+}
+function renderResult(t) {
+  const res = $("result"); res.replaceChildren();
+  if (t.result) {
+    if (t.result.kind === "speak") res.append("Spoke: ", el("strong", {}, `“${t.result.text}”`));
+    else {
+      const args = Object.entries(t.result.args || {}).map(([k, v]) => `${k}: ${v}`).join(", ");
+      res.append("Did on the Mac: ", el("strong", {}, t.result.command + (args ? ` (${args})` : "")));
+      if (t.result.ok === false) res.append(el("div", { style: "color:var(--no)" }, "Couldn't: " + (t.result.problem || "")));
+    }
+  }
+}
+
+// ---- question -------------------------------------------------------------
+const SQUARE_CUES = ["Left thumb up", "Right thumb up", "Left thumb down", "Right thumb down"];
+function renderQuestion(s) {
+  const q = s.question, box = $("ask"), body = $("ask-body");
+  box.className = "card ask" + (q ? (q.stage === "guess" ? " guess open" : " open") : "");
+  body.replaceChildren();
+  cancelAnimationFrame(timerFrame);
+  if (!q) {
+    if (s.speaking) body.append(el("div", { class: "speaking" }, "🔊 ", `“${s.speaking}”`));
+    else if (s.status === "thinking" || s.status === "hearing" || s.status === "listening again")
+      body.append(el("div", { class: "idle" }, STATUS[s.status]));
+    else body.append(el("div", { class: "idle" }, "Type what was said below, or press ", el("strong", {}, "Listen now"), "."));
+    return;
+  }
+  if (q.stage === "guess") body.append(el("div", { class: "banner guess" }, `GUESS ${q.data.attempt} OF ${q.data.total} · NOT FROM YOUR LIST`));
+  if (q.data && q.data.risky) body.append(el("div", { class: "banner risky" }, "RISKY ACTION · always asked first"));
+
+  if (q.kind === "yes_no") {
+    body.append(el("div", { class: "qtext" }, q.stage === "guess" ? `“${q.data.guess}”` : q.text));
+    body.append(el("div", { class: "yesno" },
+      el("button", { class: "big no", onclick: () => answer("no") }, el("span", { class: "word" }, "NO"), el("span", { class: "cue" }, "Left hand · thumb down · N")),
+      el("button", { class: "big yes", onclick: () => answer("yes") }, el("span", { class: "word" }, "YES"), el("span", { class: "cue" }, "Right hand · thumb up · Y"))));
+  } else if (q.kind === "choice") {
+    body.append(el("div", { class: "qtext" }, q.text));
+    const grid = el("div", { class: "grid" });
+    for (let i = 0; i < 4; i++) {
+      const opt = q.options[i];
+      if (opt === undefined) { grid.append(el("div", { class: "square empty" })); continue; }
+      const isElse = opt === "Something else";
+      grid.append(el("button", { class: "square" + (i === 0 ? " first" : "") + (isElse ? " else" : ""), onclick: () => answer("pick", i) },
+        el("span", { class: "opt" }, isElse ? "Something else… (a guess)" : opt),
+        el("span", { class: "cue" }, el("span", {}, SQUARE_CUES[i]), el("span", { class: "key" }, String(i + 1)))));
+    }
+    body.append(grid);
+    body.append(el("div", { class: "row" }, el("button", { class: "btn", onclick: () => answer("none") }, "None of these (Esc)")));
+  } else if (q.kind === "window") {
+    body.append(el("div", { class: "qtext" }, `Done: ${q.data.meaning || ""}`));
+    body.append(el("div", { class: "row" },
+      el("button", { class: "btn danger", style: "min-height:90px;font-size:1.5rem;flex:1", onclick: () => answer("no") }, "Cancel  (N · left hand)"),
+      el("button", { class: "btn", style: "min-height:90px;font-size:1.3rem", onclick: () => answer("yes") }, "Keep (Y)")));
+  } else if (q.kind === "detail") {
+    body.append(el("div", { class: "qtext" }, `Which ${q.data.name}?`));
+    const values = q.data.values || [];
+    if (values.length) body.append(el("div", { class: "row" }, values.slice(0, 12).map((v) => el("button", { class: "btn", onclick: () => answer("text", v) }, v))));
+    const input = el("input", { placeholder: `Type the ${q.data.name}…`, style: "flex:1;min-height:56px;font:inherit;font-size:1.2rem;padding:0 14px;background:var(--bg);color:var(--text);border:2px solid var(--line);border-radius:12px" });
+    body.append(el("form", { class: "row", onsubmit: (e) => { e.preventDefault(); if (input.value.trim()) answer("text", input.value.trim()); } },
+      input, el("button", { class: "btn primary", type: "submit" }, "OK")));
+    setTimeout(() => input.focus(), 0);
+  }
+  body.append(el("div", { class: "hint" }, q.hint || ""));
+  const bar = el("div"), timer = el("div", { class: "timer", "aria-hidden": "true" }, bar);
+  body.append(timer);
+  const total = (q.closes_at - Date.now() / 1000);
+  const tick = () => {
+    const left = Math.max(0, q.closes_at - Date.now() / 1000);
+    bar.style.transform = `scaleX(${total > 0 ? left / total : 0})`;
+    if (left > 0) timerFrame = requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+// ---- hands, feed, metrics -------------------------------------------------
+function renderHands(s) {
+  $("camera-note").textContent = s.camera.on ? "Camera on." : (s.camera.note || "Camera off.");
+  const p = s.hold ? s.hold.progress : 0;
+  $("ring").style.strokeDashoffset = String(282.7 * (1 - p));
+  $("ring-text").textContent = s.hold ? s.hold.signal.replace("_", " ").toLowerCase() : "—";
+}
+
+function feedItem(e) {
+  const k = (cls, text) => el("span", { class: "k " + cls }, text);
+  const ar = el("span", { class: "arrow" }, " → ");
+  switch (e.kind) {
+    case "learned": return [k("learned", "Learned"), `“${e.heard}”`, ar, el("strong", {}, e.meaning)];
+    case "fast_path": return [k("fast", "⚡ Fast path"), el("strong", {}, e.meaning), ` (${Math.round(e.similarity)}% match, ${e.latency_ms.toFixed(1)} ms, no model)`];
+    case "undone": return [k("undo", "Forgot"), `“${e.heard}”`, ar, e.meaning];
+    case "cancelled": return [k("undo", "Cancelled"), e.meaning];
+    case "forgot": return [k("undo", "Forgot wrong example"), `“${e.heard}”`, ar, e.meaning];
+    case "new_phrase": return [k("new", "New phrase"), el("strong", {}, e.phrase)];
+    case "new_words": return [k("new", "New words"), e.words.join(", ")];
+    case "sound_check": return [k("sound", "Listened again"), el("strong", {}, e.meaning), e.confirmed ? " fits the sound" : " not confirmed"];
+    case "relisten": return [k("sound", "Found by sound"), el("strong", {}, e.meaning), " (offered first)"];
+    default: return [e.kind];
+  }
+}
+let feedSeen = Date.now() / 1000;   // only items newer than this fade in
+function renderFeed(s) {
+  const list = $("feed"); list.replaceChildren();
+  if (!s.feed.length) list.append(el("li", { class: "empty" }, "Every confirmed answer is learned. It shows up here."));
+  for (const e of s.feed) list.append(el("li", { class: e.time > feedSeen ? "fresh" : "" }, feedItem(e)));
+  if (s.feed.length) feedSeen = Math.max(feedSeen, s.feed[0].time);
+  $("counts").textContent = `${s.counts.phrases} phrases · ${s.counts.examples} learned`;
+}
+
+const PART_COLORS = { "WhisperKit (speech in)": "#5cc8ff", "TTSKit (speech out)": "#3ddc84", "Bonsai model (llama-server)": "#c79bff", "Second Voice app + camera": "#ffb84d" };
+function renderMetrics(s) {
+  const steps = (s.turn && s.turn.steps) || [];
+  const box = $("steps"); box.replaceChildren();
+  const max = Math.max(1, ...steps.map((x) => x.ms || 0));
+  if (!steps.length) box.append(el("div", { class: "meta", style: "margin:0" }, "Times for each step appear here."));
+  for (const st of steps) {
+    const bar = el("div", { class: "bar" + (st.name.startsWith("Fast") ? " fast" : "") }, el("div", { style: `width:${Math.max(2, 100 * (st.ms || 0) / max)}%` }));
+    box.append(el("div", { class: "step" }, el("span", {}, st.name), bar, el("span", { class: "v" }, ms(st.ms))));
+  }
+  const t = s.turn;
+  $("tps").textContent = t && t.tokens_per_s ? t.tokens_per_s.toFixed(1) : (s.metrics.llm_tps ? s.metrics.llm_tps.toFixed(1) : "—");
+  $("total-ms").textContent = steps.length ? ms(steps.reduce((a, x) => a + (x.ms || 0), 0)) : "—";
+
+  const mem = s.metrics.memory, budget = s.metrics.budget_mb || 3584;
+  const bar = $("membar"), legend = $("legend"); bar.replaceChildren(); legend.replaceChildren();
+  if (!mem) { $("mem-total").textContent = "measuring…"; return; }
+  const scale = Math.max(budget * 1.15, mem.models_total);
+  for (const [part, color] of Object.entries(PART_COLORS)) {
+    const mb = mem[part] || 0;
+    if (mb > 0) bar.append(el("span", { style: `width:${100 * mb / scale}%;background:${color}`, title: `${part}: ${mb} MB` }));
+    legend.append(el("span", {}, el("i", { style: `background:${color}` }), `${part.replace(/ \(.*\)/, "")} ${(mb / 1024).toFixed(2)} GB`));
+  }
+  bar.append(el("div", { class: "budget", style: `left:${100 * budget / scale}%`, title: "budget" }));
+  const total = $("mem-total");
+  total.textContent = `${(mem.models_total / 1024).toFixed(2)} GB of ${(budget / 1024).toFixed(1)} GB budget`;
+  total.style.color = mem.models_total > budget ? "var(--no)" : "var(--yes)";
+  const sys = s.metrics.system;
+  $("sysmem").textContent = sys ? `Mac: ${(sys.available_mb / 1024).toFixed(1)} GB free of ${(sys.total_mb / 1024).toFixed(0)} GB · swap ${(sys.swap_used_mb / 1024).toFixed(1)} GB` : "";
+}
+
+// ---- notices + mic level -------------------------------------------------------
+let noticeTimer = null, lastNotice = 0;
+function renderNotice(s) {
+  if (!s.notice || s.notice.time <= lastNotice) return;
+  lastNotice = s.notice.time;
+  const n = $("notice"); n.textContent = s.notice.text; n.hidden = false;
+  clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { n.hidden = true; }, 6000);
+}
+function renderMic(s) {
+  const btn = $("listen");
+  btn.disabled = !s.mic.on;
+  btn.title = s.mic.on ? "Listen now (Space)" : "Microphone off: start the app with --mic";
+  btn.classList.toggle("on", !!s.mic.listening);
+  $("listen-text").textContent = s.mic.listening ? "Listening…" : (s.mic.on ? "Listen now" : "Mic off");
+  $("level").hidden = !s.mic.on;
+}
+function showLevel(m) {
+  const pct = Math.max(0, Math.min(100, (m.level + 70) / 60 * 100));
+  const bar = $("level").firstElementChild;
+  bar.style.width = pct + "%";
+  bar.style.background = m.speaking ? "var(--yes)" : "var(--accent)";
+  $("listen").classList.toggle("on", !!m.listening);
+}
+
+function render(s) {
+  state = s;
+  renderHeader(s); renderTurn(s); renderQuestion(s); renderHands(s); renderFeed(s); renderMetrics(s); renderNotice(s); renderMic(s);
+}
+
+// ---- live updates -----------------------------------------------------------
+function connect() {
+  const source = new EventSource("/api/stream");
+  source.onopen = () => { $("disconnected").hidden = true; };
+  source.onmessage = (msg) => {
+    const m = JSON.parse(msg.data);
+    if (m.type === "level") showLevel(m);
+    else if (m.state) render(m.state);
+  };
+  source.onerror = () => { $("disconnected").hidden = false; };
+}
+connect();
+
+// ---- inputs -------------------------------------------------------------------
+$("say-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const box = $("say"), text = box.value.trim();
+  if (!text) return;
+  box.value = "";
+  await post("/api/say", { text });
+});
+$("listen").addEventListener("click", () => post("/api/listen"));
+$("undo").addEventListener("click", () => post("/api/undo"));
+document.querySelectorAll("[data-sig]").forEach((b) => b.addEventListener("click", () => post("/api/signal", { signal: b.dataset.sig })));
+
+document.addEventListener("keydown", (e) => {
+  const typing = ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName);
+  if (typing) { if (e.key === "Escape") document.activeElement.blur(); return; }
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const q = state && state.question, key = e.key.toLowerCase();
+  if (key === "/" || key === "t") { e.preventDefault(); $("say").focus(); return; }
+  if (key === " ") { e.preventDefault(); if (!q) post("/api/listen"); return; }
+  if (key === "u" && !q) { post("/api/undo"); return; }
+  if (!q) return;
+  if (key === "y" && (q.kind === "yes_no" || q.kind === "window")) answer("yes");
+  else if (key === "n" && (q.kind === "yes_no" || q.kind === "window")) answer("no");
+  else if (q.kind === "choice" && ["1", "2", "3", "4"].includes(key) && Number(key) <= q.options.length) answer("pick", Number(key) - 1);
+  else if (q.kind === "choice" && key === "escape") answer("none");
+});
+</script>
+</body>
+</html>

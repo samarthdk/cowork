@@ -12,13 +12,13 @@ as next steps, but both are finished and committed. Trust this file over it.
 ## Health check right now
 
 - Branch `fable-build`, nothing uncommitted.
-- **All 360 automated checks pass** (10 test files, run on 2026-11-12).
+- **All 456 automated checks pass** (12 test files, last run on 2026-11-12).
   To run them yourself:
 
       for t in tests/test_*.py; do .venv/bin/python $t | tail -1; done
 
-- The last commit ("WIP: save Fable's unfinished work") was a save point made when
-  the previous session ran out. Its new code has **no checks of its own yet** (see "Half-done").
+- The previous session's unfinished "listening again" code now has its own checks
+  (`tests/test_listen_again.py`, 41 checks).
 
 ## A correction about the M04 evaluation
 
@@ -93,33 +93,38 @@ figure is from before the fix. The fix was measured separately and brought that 
    - A second use: after a "no", look through all phrases for one that fits the sound.
      Right 62 times out of 63 when it finds one, but it sometimes "hears" a phrase that wasn't
      said (4 in 60), so it is only ever offered, never acted on.
-   - Code is written (`repair/confirm.py`) and plugged into the conversation engine, and it is
-     switched on in `config.py`. **But:** it has no automated checks, nothing in the app gives it
-     audio yet (so it never actually runs), and the full M04 evaluation has not been re-run with it.
+   - Code is written (`repair/confirm.py`), plugged into the conversation engine, switched on in
+     `config.py`, and now checked (41 checks, with a fake recording). The app passes it the
+     microphone recording. **Still to do:** try it with real WhisperKit, and re-run the full M04
+     evaluation with it on (a long job).
 2. **Acting on the Mac** (open app, scroll, click on-screen buttons, read/reply email). Code is
    written with plain-English permission messages. Only "open app" has been checked. The rest
    needs you to grant Accessibility permission first (see below). Email replies are prepared
    but not sent, on purpose.
-3. **The voice loop end to end.** All the pieces exist (mic, WhisperKit, Brain, voice out), but
-   there is no single program that joins them into a live conversation yet. That job belongs to
-   the app (next section).
-4. **Memory measurement.** The tool exists, but the brief's "all models running together" number
+3. **The app's screen** (`ui/`). Built and working with the fakes: what was heard, what was
+   understood and how sure, why it's asking, the yes/no buttons and 2x2 grid that match the hand
+   signals, the correction window, the learning feed, fast path, times per step, tokens/second,
+   memory against the 3.5 GB budget, and the offline indicator. 55 checks. **Not yet tried with
+   the real Brain, WhisperKit, voice or microphone.**
+   Try it:  `.venv/bin/python -m ui --fake`  (Safari opens at http://localhost:8765)
+4. **The voice loop end to end.** The app now joins mic, WhisperKit, Brain and voice
+   (`--mic`), but this has only been checked with fakes, not with a real microphone.
+5. **Memory measurement.** The tool exists, but the brief's "all models running together" number
    hasn't been taken. LM Studio was holding 4.7 GB after the long evaluations, so it needs a
    clean reload first.
-5. **Evaluation write-up.** Numbers exist; the chart for slides (`eval/chart.py`) and the
+6. **Evaluation write-up.** Numbers exist; the chart for slides (`eval/chart.py`) and the
    word-error-rate table have not been made.
 
 ## Not started
 
-1. **The app's screen** (brief item 4): the FastAPI web page with transcript, confidence,
-   2x2 grid, learning feed, metrics and offline indicator. The `ui/` folder doesn't exist yet.
-   **This is the biggest missing piece for the demo.**
-2. **Camera feeding gestures into the app** (the detector works alone, but isn't connected).
-3. **One start command** with checks (LM Studio running, models present, thinking off, Wi-Fi off).
-4. **Demo mode** following the story, and the **backup** that uses recorded clips if the mic fails.
-5. **README.md for judges**, **CLAUDE.md update**, **manual test checklist**, **docs/SUMMARY.md**.
-6. **Parkinson's baseline** from MDVR-KCL (optional in the brief).
-7. **Stretch goals**: head gestures, SpeakerKit (ignore other voices), energy per request.
+1. **Camera feeding gestures into the app** (the detector works alone; the app is ready to
+   receive its signals and show the hold-to-confirm ring, but they aren't connected yet).
+   **This is now the biggest missing piece for the demo.**
+2. **One start command** with checks (LM Studio running, models present, thinking off, Wi-Fi off).
+3. **Demo mode** following the story, and the **backup** that uses recorded clips if the mic fails.
+4. **README.md for judges**, **CLAUDE.md update**, **manual test checklist**, **docs/SUMMARY.md**.
+5. **Parkinson's baseline** from MDVR-KCL (optional in the brief).
+6. **Stretch goals**: head gestures, SpeakerKit (ignore other voices), energy per request.
 
 ## Things only you can do
 
@@ -130,10 +135,10 @@ figure is from before the fix. The fix was measured separately and brought that 
 
 ## Suggested order from here (before Saturday)
 
-1. Add checks for "listening again" (quick, uses fakes), then decide whether to re-run M04
-   with it on. That's a long job (WhisperKit + Bonsai on every clip), so ask first.
-2. Build the app screen and connect mic, Brain, voice and camera into it. This is the demo.
-3. One start command + demo mode + recorded-clip backup.
-4. Chart of the M04 results for the slides.
-5. Grant permissions, then test Mac actions by hand.
-6. README, checklist, summary.
+1. Try the app with the real Brain (LM Studio), then with the microphone and WhisperKit.
+2. Connect the camera's hand signals to the app.
+3. Decide whether to re-run M04 with "listening again" on (long job, ask first).
+4. One start command + demo mode + recorded-clip backup.
+5. Chart of the M04 results for the slides.
+6. Grant permissions, then test Mac actions by hand.
+7. README, checklist, summary.

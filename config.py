@@ -55,6 +55,10 @@ WHISPERKIT_MODEL_PATH = HF_MODELS / "argmaxinc" / "whisperkit-coreml" / "openai_
 WHISPERKIT_PORT = 50060
 ASR_TIMEOUT_S = 30
 
+# The app's screen (ui/)
+UI_PORT = 8765               # http://localhost:8765 (only reachable from this Mac)
+MODEL_MEMORY_BUDGET_GB = 3.5 # all models together must stay under this (shown on the metrics panel)
+
 # Acting on the Mac (see actions/mac.py)
 EMAIL_REALLY_SEND = False   # False: a reply is prepared in a Mail window but NOT sent
 MAX_APPS = 40               # how many app names the Brain may choose from
