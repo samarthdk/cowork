@@ -192,6 +192,15 @@ def main() -> None:
     wait(ready)
     pump(0.5)
     snapshot(web, out / "9_conversation.png")
+
+    core.new_task()
+    core.camera_state({"on": False, "problem": f'The built-in "{config.CAMERA_NAME}" was not found, so the camera '
+                                               "is off. No other camera is used."})
+    core.say("wan oop en noat")
+    wait(asking)
+    pump(0.6)
+    snapshot(web, out / "10_camera_not_found.png")
+    core.answer("no")
     server.should_exit = True
     shutil.rmtree(work, ignore_errors=True)
 

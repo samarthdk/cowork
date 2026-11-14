@@ -86,6 +86,62 @@ check("search address", search_url("weather in boston"), "https://www.google.com
 check("contact name to address", recipient("anna", {"Anna": "anna@example.com"}), "anna@example.com")
 check("an address stays", recipient("x@y.org", {"Anna": "a@b"}), "x@y.org")
 
+# ---- camera: the built-in FaceTime HD Camera by name, never anything else ----
+import types  # noqa: E402
+
+
+def with_cameras(*devices):
+    """Swap in a fake macOS camera list: (name, is_iphone) pairs."""
+    class Device:
+        def __init__(self, name, iphone):
+            self.name, self.iphone = name, iphone
+
+        def localizedName(self):
+            return self.name
+
+        def isContinuityCamera(self):
+            return self.iphone
+
+    fake = types.SimpleNamespace(AVMediaTypeVideo="vide", AVCaptureDevice=types.SimpleNamespace(
+        devicesWithMediaType_=lambda kind: [Device(n, i) for n, i in devices]))
+    sys.modules["AVFoundation"] = fake
+
+
+def pick():
+    try:
+        return config.pick_camera()
+    except config.CameraNotFound as error:
+        return str(error)
+
+
+real_av = sys.modules.get("AVFoundation")
+with_cameras(("Samarth's iPhone Camera", True), ("FaceTime HD Camera", False))
+check("built-in camera chosen by name, after an iPhone", pick(), 1)
+with_cameras(("FaceTime HD Camera", True))
+check("an iPhone pretending to be it is not used", isinstance(pick(), str), True)
+with_cameras(("Samarth's iPhone Camera", True), ("USB Webcam", False))
+message = pick()
+check("missing built-in camera: no fallback, a clear message",
+      isinstance(message, str) and "FaceTime HD Camera" in message and "No other camera" in message, True)
+check("  ...names the cameras it saw", "USB Webcam" in message, True)
+if real_av is not None:
+    sys.modules["AVFoundation"] = real_av
+else:
+    sys.modules.pop("AVFoundation", None)
+camera_messages = []
+from choose.camera import Camera  # noqa: E402
+cam = Camera.__new__(Camera)
+cam.on_state, cam._wanted, cam._wanted_until = camera_messages.append, False, 99e9
+cam._give_up("The built-in camera was not found.")
+check("  ...the camera reports it and stays off", (camera_messages[-1]["on"], cam._needed()), (False, False))
+page_text = (config.ROOT / "ui" / "static" / "cowork.html").read_text()
+check("the page itself never opens a camera", "getUserMedia" in page_text or "mediaDevices" in page_text, False)
+core, tts, actions = make()
+core.attach_camera(types.SimpleNamespace(want=lambda on: None, jpeg=lambda: None))
+core.camera_state({"on": False, "problem": "The built-in camera was not found."})
+check("  ...the screen shows the message", (core.state["camera"]["problem"], core.state["notice"]["text"]),
+      ("The built-in camera was not found.", "The built-in camera was not found."))
+
 # ---- conversation: unsure -> permission card -> step card --------------------
 core, tts, actions = make()
 core.say("plea op en male")
@@ -188,8 +244,13 @@ check("  ...never says 'Claude'", b"claude" in page.lower(), False)
 check("the earlier page is still at /classic", get("/classic")[0], 200)
 check("no camera: no frame", get("/api/camera.jpg")[0], 204)
 check("clip endpoint", post("/api/clip", {"id": "M04_2_0034"})["ok"], True)
-check("new task clears the screen", finished(core, 1) and core.state["question"] is None and
-      (core.answer("yes") or True) and post("/api/new", {})["ok"] and wait_for(lambda: core.state["history"] == [] or core.busy), True)
+for _ in range(6):   # finish the clip's request, answering whatever it asks
+    if finished(core, 1) and core.state["question"] is None:
+        break
+    if core.state["question"] is not None:
+        core.answer("none" if core.state["question"]["kind"] == "choice" else "yes")
+        time.sleep(0.2)
+check("new task clears the screen", post("/api/new", {})["ok"] and core.state["history"], [])
 server.should_exit = True
 
 print(f"\n{sum(results)}/{len(results)} passed  {'ALL PASS' if all(results) else 'SOME FAILED'}")

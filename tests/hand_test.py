@@ -102,7 +102,12 @@ def main() -> int:
     )
     landmarker = vision.HandLandmarker.create_from_options(options)
 
-    camera = config.pick_camera()  # the MacBook camera, never an iPhone
+    try:
+        camera = config.pick_camera()  # the built-in FaceTime HD Camera, by name, never an iPhone
+    except config.CameraNotFound as missing:
+        print(missing)
+        landmarker.close()
+        return 1
     cap = cv2.VideoCapture(camera)
     if not cap.isOpened():
         print("Could not open the webcam. Check System Settings > Privacy & Security > Camera "

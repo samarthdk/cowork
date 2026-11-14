@@ -348,6 +348,9 @@ class App:
         self._set(camera=dict(self.state["camera"], connected=True, note=""))
 
     def camera_state(self, changes: dict) -> None:
+        problem = changes.get("problem")
+        if problem and problem != self.state["camera"].get("problem"):
+            self._notice(problem)   # say it once, in plain words
         self._set(camera=dict(self.state["camera"], **changes))
 
     # ---- the conversation thread ------------------------------------------

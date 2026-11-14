@@ -59,6 +59,12 @@ class Camera:
         with self._lock:
             return self._frame
 
+    def _give_up(self, problem: str) -> None:
+        """No usable built-in camera: say why, and stay off until asked again."""
+        self.problem = problem
+        self.on_state({"on": False, "problem": problem})
+        self._wanted_until = 0.0
+
     def _needed(self) -> bool:
         return self._wanted or time.monotonic() < self._wanted_until
 
@@ -82,10 +88,22 @@ class Camera:
         import mediapipe as mp
         from mediapipe.tasks.python import BaseOptions, vision
 
+        try:
+            index = config.pick_camera()   # the built-in FaceTime HD Camera, by name, never an iPhone
+        except config.CameraNotFound as error:
+            self._give_up(str(error))
+            return
         landmarker = vision.HandLandmarker.create_from_options(vision.HandLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(MODEL_PATH)),
             running_mode=vision.RunningMode.VIDEO, num_hands=2))
-        capture = cv2.VideoCapture(config.pick_camera())
+        capture = cv2.VideoCapture(index)
+        if capture.isOpened() and config.camera_names()[index:index + 1] != [config.CAMERA_NAME]:
+            # the camera list changed between choosing and opening (one was plugged in or out)
+            capture.release()
+            landmarker.close()
+            self._give_up(f'The camera list changed while opening the "{config.CAMERA_NAME}". '
+                          "Try again; no other camera is used.")
+            return
         if not capture.isOpened():
             landmarker.close()
             self.problem = ("Could not open the camera. System Settings > Privacy & Security > Camera: "

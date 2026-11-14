@@ -138,6 +138,11 @@ def main(argv=None) -> None:
             print("Camera off:", problem)
         else:
             core.attach_camera(Camera(on_signal=core.signal, on_hold=core.hold, on_state=core.camera_state))
+            try:
+                config.pick_camera()   # the built-in FaceTime HD Camera only; say so now if it's missing
+            except config.CameraNotFound as missing:
+                print("Camera:", missing)
+                core.camera_state({"problem": str(missing)})
 
     import uvicorn
     url = f"http://localhost:{options.port}"

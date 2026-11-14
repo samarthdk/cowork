@@ -24,7 +24,7 @@ The old screen is still at http://localhost:8765/classic.
 | The screen | `ui/static/cowork.html` (one offline file) |
 | Conversation, cards, steps, test clips | `ui/app.py`, wording in `ui/wording.py` |
 | Its own window | `ui/window.py` (WebKit inside the app) |
-| Camera -> hand answers + preview | `choose/camera.py` (on only while a request is being handled) |
+| Camera -> hand answers + preview | `choose/camera.py`: only the built-in "FaceTime HD Camera", by name; on only while a request is handled |
 | New Mac actions | `actions/mac.py` |
 | The demo profile (TORGO M04 + everyday phrases + actions) | `profiles/cowork_base.json`, made by `scripts/make_cowork_profile.py` |
 | Test clips + TORGO credit | `ui/clips.py` |

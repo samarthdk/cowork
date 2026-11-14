@@ -137,3 +137,10 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
 - **The demo profile** = TORGO M04's phrases, command words and enrollment examples (fold 0,
   exactly as evaluated) + the 4 everyday phrases + the Cowork actions. Test clips are all held-out
   M04 clips that reached the right answer in the evaluation.
+- **Camera chosen by name: the built-in "FaceTime HD Camera" only** (`config.CAMERA_NAME`,
+  `config.pick_camera`). Never an iPhone (Continuity Camera), never any other camera. If it isn't
+  found there is no fallback: the camera stays off and the screen says so (status strip, camera
+  tile, a notice; Terminal at start-up). Voice and keyboard keep working. OpenCV numbers cameras
+  with the same macOS call (`devicesWithMediaType:`, checked in its binary), and the name is checked
+  again right after opening in case a camera was plugged in or out in between.
+  The web page never opens a camera itself: its preview only shows pictures from the Python side.

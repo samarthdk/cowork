@@ -229,7 +229,7 @@ button { cursor: pointer; }
 .cam { position: fixed; top: 16px; right: 18px; width: 304px; border-radius: 16px; overflow: hidden; background: #111; border: 3px solid var(--text); box-shadow: 0 12px 30px rgba(0,0,0,.25); z-index: 15; transform: translateX(calc(100% + 40px)); visibility: hidden; transition: transform .35s ease, visibility .35s; }
 .cam.show { transform: none; visibility: visible; }
 .cam img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #222; }
-.cam .off { aspect-ratio: 4 / 3; display: grid; place-items: center; text-align: center; color: #ddd; font-size: 15px; padding: 16px; }
+.cam .off { min-height: 200px; display: grid; place-items: center; text-align: center; color: #ddd; font-size: 15px; padding: 16px; }
 .cam .off svg { width: 34px; height: 34px; margin-bottom: 6px; opacity: .8; }
 .cam .cap { background: var(--text); color: #fff; font-size: 14px; font-weight: 600; padding: 7px 10px; display: flex; align-items: center; gap: 8px; }
 .cam .rec { width: 9px; height: 9px; border-radius: 50%; background: #3DDC84; flex: none; }
@@ -360,7 +360,10 @@ function stripHtml(s) {
     const fake = mode === "fake";
     chips.push(`<span class="chip${fake ? "" : " ok"}"><span class="dot"></span>${name}${fake ? ' <span class="tag">test</span>' : ""}</span>`);
   }
-  if (s.camera && s.camera.connected) chips.push(`<span class="chip${s.camera.on ? " ok" : ""}"><span class="dot"></span>Camera ${s.camera.on ? "watching" : "ready"}</span>`);
+  if (s.camera && s.camera.connected) {
+    if (s.camera.problem) chips.push(`<span class="chip warn" title="${esc(s.camera.problem)}"><span class="dot"></span>Built-in camera not found</span>`);
+    else chips.push(`<span class="chip${s.camera.on ? " ok" : ""}"><span class="dot"></span>Camera ${s.camera.on ? "watching" : "ready"}</span>`);
+  }
   if (s.mic && s.mic.on) chips.push(`<span class="chip ok"><span class="dot"></span>Microphone</span>`);
   chips.push('<span class="spacer"></span>');
   const t = lastTurn(s);
@@ -498,11 +501,14 @@ function camHtml(s) {
   const c = s.camera || {};
   const hold = s.hold && s.hold.signal ? s.hold : null;
   const ring = hold ? `<svg class="ring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" stroke="rgba(255,255,255,.35)"/><circle cx="27" cy="27" r="22" stroke="#F3B49F" stroke-dasharray="${(138 * hold.progress).toFixed(1)} 138" transform="rotate(-90 27 27)" stroke-linecap="round"/></svg>` : "";
-  const picture = c.connected
+  const picture = c.connected && c.problem
+    ? `<div class="off"><div>${ICON.cam}<br>${esc(c.problem)}</div></div>`
+    : c.connected
     ? `<img id="camImg" alt="">${ring}`
     : `<div class="off"><div>${ICON.cam}<br>Camera not connected<br><small>start with --camera to answer by hand</small></div></div>`;
-  const cap = c.connected ? (c.problem ? esc(c.problem) : "Watching for your answer — nothing is recorded") : "Hand answers need the camera";
-  return `${picture}<div class="cap"><span class="rec"></span>${cap}</div>`;
+  const cap = !c.connected ? "Hand answers need the camera"
+    : c.problem ? "Answer by voice or keyboard instead" : "Watching for your answer — nothing is recorded";
+  return `${picture}<div class="cap"><span class="rec"${c.problem || !c.connected ? ' style="background:#E3A72F"' : ""}></span>${cap}</div>`;
 }
 
 let camKey = "";

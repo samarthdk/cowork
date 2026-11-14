@@ -13,6 +13,7 @@ TTS = "fake"    # text-to-speech:  "fake" or "real"
 ACTIONS = "fake"  # acting on the Mac: "fake" (nothing really happens) or "real"
 
 CAMERA = "builtin"  # always the MacBook's own camera, never an iPhone
+CAMERA_NAME = "FaceTime HD Camera"  # chosen by this exact name; no other camera is ever used
 
 # ---- Details (rarely changed) ---------------------------------------------
 ROOT = Path(__file__).resolve().parent
@@ -93,22 +94,31 @@ TTSKIT_MODELS_PATH = HF_MODELS / "argmaxinc" / "ttskit-coreml"
 TTSKIT_TOKENIZER_PATH = HF_MODELS / "Qwen" / "Qwen3-0.6B"
 
 
-def pick_camera() -> int:
-    """Return the OpenCV camera number of the MacBook's built-in camera.
+class CameraNotFound(RuntimeError):
+    """The built-in camera isn't there. The message says so in plain words."""
 
-    OpenCV numbers cameras in the same order as macOS's camera list, so we
-    look through that list and pick the built-in one, skipping iPhones
-    (Continuity Camera) and other external cameras.
-    """
+
+def camera_names() -> list[str]:
+    """Cameras macOS sees, in the order OpenCV numbers them (OpenCV asks macOS
+    the same way: AVCaptureDevice devicesWithMediaType)."""
+    import AVFoundation as AV
+    return [str(d.localizedName()) for d in AV.AVCaptureDevice.devicesWithMediaType_(AV.AVMediaTypeVideo)]
+
+
+def pick_camera() -> int:
+    """The OpenCV camera number of the built-in "FaceTime HD Camera", chosen by
+    name. An iPhone (Continuity Camera) or any other camera is never used: if the
+    built-in camera isn't found, CameraNotFound is raised instead of falling back."""
     if CAMERA != "builtin":
         raise ValueError(f'Unknown CAMERA setting "{CAMERA}" (expected "builtin")')
     import AVFoundation as AV
 
     devices = AV.AVCaptureDevice.devicesWithMediaType_(AV.AVMediaTypeVideo)
     for index, device in enumerate(devices):
-        is_builtin = device.deviceType() == AV.AVCaptureDeviceTypeBuiltInWideAngleCamera
         is_iphone = bool(getattr(device, "isContinuityCamera", lambda: False)())
-        if is_builtin and not is_iphone:
+        if str(device.localizedName()) == CAMERA_NAME and not is_iphone:
             return index
-    names = ", ".join(d.localizedName() for d in devices) or "none"
-    raise RuntimeError(f"No built-in MacBook camera found (cameras seen: {names}).")
+    seen = ", ".join(str(d.localizedName()) for d in devices) or "none"
+    raise CameraNotFound(f'The built-in "{CAMERA_NAME}" was not found, so the camera is off '
+                         f"(cameras seen: {seen}). No other camera is used. Hand answers are off; "
+                         "voice and keyboard still work.")
