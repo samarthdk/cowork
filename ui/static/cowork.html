@@ -109,6 +109,21 @@ button { cursor: pointer; }
 .spoken .label svg { width: 18px; height: 18px; }
 .spoken .words { font: 500 26px/1.35 var(--serif); margin-top: 4px; }
 .spoken.undone .words { text-decoration: line-through; color: var(--muted); }
+.typed { border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 12px 16px; }
+.typed .label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--ok); text-transform: uppercase; letter-spacing: .05em; }
+.typed.failed .label { color: var(--bad); }
+.typed .label svg { width: 18px; height: 18px; }
+.typed .words { font: 500 26px/1.35 var(--serif); margin-top: 4px; }
+.typed.undone .words { text-decoration: line-through; color: var(--muted); }
+.typed .problem { color: var(--bad); font-size: 15px; }
+.dictation { display: flex; align-items: center; gap: 12px; max-width: 820px; margin: 0 auto 10px; font-size: 17px; }
+.switch { display: inline-flex; align-items: center; gap: 10px; border: 2px solid var(--line-strong); background: var(--panel); border-radius: 999px; padding: 6px 14px 6px 6px; font-weight: 700; min-height: 48px; }
+.switch .knob { width: 46px; height: 28px; border-radius: 999px; background: var(--line-strong); position: relative; flex: none; }
+.switch .knob::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: left .2s; }
+.switch[aria-pressed="true"] { border-color: var(--ok); }
+.switch[aria-pressed="true"] .knob { background: var(--ok); }
+.switch[aria-pressed="true"] .knob::after { left: 21px; }
+.dictation .where { color: var(--muted); }
 .email { grid-column: 2 / 4; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--panel-2); font-size: 16px; }
 .email div { overflow-wrap: anywhere; } .email b { color: var(--muted); font-weight: 600; display: inline-block; min-width: 72px; }
 .undo { grid-column: 1 / 4; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--warn-soft); border-radius: 10px; padding: 8px 12px; font-size: 16px; }
@@ -191,6 +206,8 @@ button { cursor: pointer; }
 .clips .play { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
 .clips .play svg { width: 14px; height: 14px; }
 .clips .secs { font-size: 14px; color: var(--muted); }
+.clips .clip-label { display: block; font-size: 14px; color: var(--muted); font-weight: 600; }
+.clips .step-n { display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--text); color: #fff; font-size: 13px; margin-right: 4px; }
 .clips .credit { margin: 8px; }
 
 /* ---- right panel ---- */
@@ -242,7 +259,7 @@ button { cursor: pointer; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes rise { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes pulse { 50% { box-shadow: 0 0 0 8px var(--accent-soft); } }
-html.still *, html.still *::before { animation: none !important; transition: none !important; }   /* screenshots */
+html.still *, html.still *::before, html.still *::after { animation: none !important; transition: none !important; }   /* screenshots */
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
 
 @media (max-width: 1180px) { .app { grid-template-columns: 220px minmax(0, 1fr) 290px; } }
@@ -274,6 +291,7 @@ html.still *, html.still *::before { animation: none !important; transition: non
       <div class="convo" id="convo" aria-live="polite"></div>
     </div>
     <div class="composer-wrap">
+      <div class="dictation"><button class="switch" id="dictBtn" aria-pressed="false"><span class="knob"></span><span>Dictation</span></button><span class="where" id="dictWhere"></span></div>
       <div class="composer">
         <button class="speak" id="speak" title="Listen now (Space when nothing is asked)">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
@@ -405,6 +423,10 @@ function spokenHtml(item, open) {
   const label = item.status === "running" ? "Saying out loud…" : item.status === "undone" ? "Stopped" : "Said out loud";
   return `<div class="spoken ${item.status}"><div class="label">${ICON.speaker}${label}${voiceTag(item)}</div><div class="words">${esc(item.text)}</div>${item.undo_until && open ? `<div style="margin-top:10px">${undoHtml(item.undo_until)}</div>` : ""}</div>`;
 }
+function typedHtml(item, open) {
+  const label = item.status === "failed" ? `Couldn't type into ${item.app}` : item.status === "undone" ? `Removed from ${item.app}` : `Typed into ${item.app}`;
+  return `<div class="typed ${item.status}"><div class="label">${ICON.keys}${esc(label)}${voiceTag(item)}</div><div class="words">${esc(item.text)}</div>${item.problem && item.status === "failed" ? `<div class="problem">${esc(item.problem)}</div>` : ""}${item.undo_until && open ? `<div style="margin-top:10px">${undoHtml(item.undo_until)}</div>` : ""}</div>`;
+}
 function resolvedHtml(item) {
   const c = item.card || {};
   const q = c.body ? `${esc(c.title)} <b>${esc(c.body)}</b>` : esc(c.title);
@@ -455,6 +477,7 @@ function turnHtml(t, isLast) {
     if (item.type === "note") html += `<div class="note ${item.icon}">${ICON[item.icon] || ""}<span>${esc(item.text)}</span></div>`;
     else if (item.type === "step") html += stepHtml(item, open);
     else if (item.type === "spoken") html += spokenHtml(item, open);
+    else if (item.type === "typed") html += typedHtml(item, open);
     else if (item.type === "reply") html += `<div class="reply${item.error ? " error" : ""}">${item.read_aloud ? `<div class="label">${ICON.speaker}Read aloud${voiceTag(item)}</div>` : ""}${esc(item.text)}</div>`;
     else if (item.type === "permission") {
       if (item.status === "open" && open && S.question && S.question.id === item.qid) html += permHtml(S.question);
@@ -481,6 +504,7 @@ function progressHtml(s) {
     if (item.type === "permission") rows.push({ cls: item.status === "open" ? "open" : item.status === "denied" || item.status === "none" ? "failed" : "done", text: (item.card || {}).title + (item.answer ? ` — ${item.answer}` : "") });
     else if (item.type === "step") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: item.title });
     else if (item.type === "spoken") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: "Say it out loud" });
+    else if (item.type === "typed") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: `Type it into ${item.app}` });
   }
   return rows.map((r) => `<li class="${r.cls}"><span class="pi">${r.cls === "done" ? ICON.check : r.cls === "failed" ? ICON.x : ""}</span><span>${esc(r.text)}</span></li>`).join("");
 }
@@ -527,6 +551,9 @@ function render(s) {
   $("counts").innerHTML = `<div><b>${counts.examples ?? 0}</b><span>ways you say things</span></div><div><b>${counts.phrases ?? 0}</b><span>your phrases</span></div>`;
   $("feed").innerHTML = feedHtml(s);
   $("credit").textContent = s.credit || "";
+  const dict = s.dictation || {};
+  $("dictBtn").setAttribute("aria-pressed", dict.on ? "true" : "false");
+  $("dictWhere").textContent = dict.on ? `Confirmed sentences are typed into ${dict.app || "the app you were using"}, then read back.` : "Off: sentences are said out loud.";
   const mic = s.mic || {};
   $("speak").disabled = !mic.on;
   $("speak").title = mic.on ? "Listen now" : "The microphone is off (start Cowork with --mic)";
@@ -601,11 +628,15 @@ document.addEventListener("submit", (e) => {
 });
 $("speak").addEventListener("click", () => post("/api/listen"));
 $("newTask").addEventListener("click", () => post("/api/new"));
+$("dictBtn").addEventListener("click", () => post("/api/dictation", { on: !(S && S.dictation && S.dictation.on) }));
 $("clipBtn").addEventListener("click", () => ($("clips").hidden ? showClips() : hideClips()));
 function showClips() {
   const clips = (S && S.clips) || [];
-  $("clips").innerHTML = `<h4>Real recordings of dysarthric speech</h4>` + (clips.length ? clips.map((c) =>
-    `<button data-clip="${esc(c.id)}"><span class="play">${ICON.play}</span><span>“${esc(c.said)}”</span><span class="secs">${c.seconds ? c.seconds.toFixed(1) + " s" : ""}</span></button>`).join("") : '<p class="feed-empty" style="padding:0 8px">No clips found on this Mac.</p>') + `<div class="credit">${esc((S && S.credit) || "")}</div>`;
+  const row = (c, n) => `<button data-clip="${esc(c.id)}"><span class="play">${ICON.play}</span><span>${n ? `<b class="step-n">${n}</b> ` : ""}“${esc(c.said)}”${c.label ? `<span class="clip-label">${esc(c.label)}</span>` : ""}</span><span class="secs">${c.seconds ? c.seconds.toFixed(1) + " s" : ""}</span></button>`;
+  const demo = clips.filter((c) => c.demo), more = clips.filter((c) => !c.demo);
+  $("clips").innerHTML = (clips.length ? `<h4>Dictation demo — play in this order</h4>` + demo.map((c, i) => row(c, i + 1)).join("") +
+    (more.length ? `<h4>More recordings</h4>` + more.map((c) => row(c, 0)).join("") : "")
+    : '<p class="feed-empty" style="padding:0 8px">No clips found on this Mac.</p>') + `<div class="credit">${esc((S && S.credit) || "")}</div>`;
   $("clips").hidden = false; $("clipBtn").setAttribute("aria-expanded", "true");
   const first = $("clips").querySelector("button"); if (first) first.focus();
 }

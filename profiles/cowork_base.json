@@ -31,35 +31,6 @@
       "request": "Open {app}"
     },
     {
-      "name": "open_website",
-      "description": "Open a well-known website in the browser.",
-      "safety": "safe",
-      "args": {
-        "site": "Name of the website"
-      },
-      "said_as": [
-        "open website",
-        "go to"
-      ],
-      "say": "Opening {site}.",
-      "request": "Open {site}"
-    },
-    {
-      "name": "search_web",
-      "description": "Search Google in the browser for some words.",
-      "safety": "safe",
-      "args": {
-        "query": "What to search for, in a few words"
-      },
-      "said_as": [
-        "search for",
-        "google",
-        "look up"
-      ],
-      "say": "Searching for {query}.",
-      "request": "Search Google for “{query}”"
-    },
-    {
       "name": "compose_email",
       "description": "Write a new email in Mail (it is NOT sent; sending is a separate command).",
       "safety": "safe",
@@ -214,7 +185,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     },
     {
       "heard": "Well...",
@@ -222,7 +193,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     },
     {
       "heard": "You wish... to meet another horrible grandfiler.",
@@ -230,7 +201,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     },
     {
       "heard": "Up.",
@@ -238,7 +209,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     },
     {
       "heard": "Don't...",
@@ -246,7 +217,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     },
     {
       "heard": "back",
@@ -254,7 +225,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     },
     {
       "heard": "That",
@@ -262,7 +233,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     },
     {
       "heard": "Right?",
@@ -270,7 +241,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:53:07"
+      "time": "2026-11-14 15:09:52"
     }
   ],
   "answer_words": {

@@ -5,7 +5,9 @@
 No browser is opened: the page is drawn by WebKit inside this script (off
 screen) and saved as PNG files. Nothing on the Mac is touched (fake actions),
 the real profile is not changed (a temporary copy is used), and the camera is
-not used: the camera preview shows a labelled test picture instead.
+not used: the camera preview shows a labelled test picture instead. The clips use
+what the real WhisperKit heard; the Brain is the fake one (the real Bonsai results
+for the same clips are in docs/COWORK.md).
 """
 
 import shutil
@@ -95,7 +97,9 @@ def main() -> None:
     shutil.copyfile(config.ROOT / "profiles" / "cowork_base.json", profile_path)
     profile = open_profile(profile_path, profile_path)
 
-    core = App(profile, FakeLLM(), FakeTTS(quiet=True), actions=FakeActions(), profile_path=profile_path,
+    tts = FakeTTS(quiet=True)
+    tts.which_voice = lambda text: "TTSKit"   # every sentence in the demo is a prepared one
+    core = App(profile, FakeLLM(), tts, actions=FakeActions(), profile_path=profile_path,
                backends={"Speech in": "real", "Brain": "real", "Voice": "real", "Mac actions": "fake"},
                question_wait_s=600)
     core.set_clips(load_clips(), CREDIT)
@@ -131,28 +135,52 @@ def main() -> None:
     asking = lambda: core.state["question"] is not None and core.state["question"]["kind"] != "window"  # noqa: E731
     ready = lambda: core.state["question"] is None and core.state["status"] == "ready"  # noqa: E731
 
-    snapshot(web, out / "1_start.png")
+    for old in out.glob("*.png"):
+        old.unlink()
+    core.set_dictation(True)
+    pump(0.5)
+    snapshot(web, out / "01_start_dictation_on.png")
 
-    core.say("plea op en male")
-    wait(asking)
-    core.hold("RIGHT", 0.65)
-    pump(0.8)
-    snapshot(web, out / "2_did_you_mean_with_camera.png")
-    core.hold(None, 0)
-    core.answer("yes")
+    web.evaluateJavaScript_completionHandler_("document.getElementById('clipBtn').click()", None)
+    pump(0.6)
+    snapshot(web, out / "02_clip_list.png")
+    web.evaluateJavaScript_completionHandler_("document.getElementById('clipBtn').click()", None)
+
+    def play(clip):
+        n = len(core.state["history"])
+        core.play_clip(clip, play_sound=False)
+        wait(lambda: core.state["question"] is not None or len(core.state["history"]) > n, 10)
+        return n
+
+    n = play("demo1")                       # understood directly -> typed
     wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "window")
     pump(0.6)
-    snapshot(web, out / "3_step_done_with_undo.png")
+    snapshot(web, out / "03_clip1_typed_directly.png")
+    core.answer("yes")
     wait(ready)
 
-    core.say("plea op en male")
-    wait(lambda: core.state["question"] is not None)
-    core.answer("yes")   # keep it (closes the correction window)
+    play("demo2")                           # needs "Did you mean"
+    wait(asking)
+    core.hold("RIGHT", 0.6)
+    pump(0.8)
+    snapshot(web, out / "04_clip2_did_you_mean_camera.png")
+    core.hold(None, 0)
+    core.answer("yes", source="hand")
+    wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "window")
+    pump(0.6)
+    snapshot(web, out / "05_clip2_typed_and_learned.png")
+    core.answer("yes")
     wait(ready)
+
+    play("demo3")                           # replay: instant
+    wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "window")
+    pump(0.6)
+    snapshot(web, out / "06_clip3_replay_instant.png")
+    core.answer("yes")
+    wait(ready)
+
     core.say("email anna saying lunch at noon")
     wait(asking)
-    pump(0.6)
-    snapshot(web, out / "4_email_card.png")
     core.answer("yes")
     wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "window")
     core.answer("yes")
@@ -160,7 +188,7 @@ def main() -> None:
     core.say("send it")
     wait(asking)
     pump(0.6)
-    snapshot(web, out / "5_risky_send.png")
+    snapshot(web, out / "07_risky_send.png")
     core.answer("yes")
     wait(ready)
 
@@ -170,28 +198,12 @@ def main() -> None:
     wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "choice")
     core.hold("RIGHT_UP", 0.4)
     pump(0.8)
-    snapshot(web, out / "6_four_options.png")
+    snapshot(web, out / "08_four_options.png")
     core.hold(None, 0)
-    core.answer("pick", 1)
-    wait(ready, 12)
-    if core.state["question"]:
-        core.answer("yes")
-        wait(ready)
-
-    web.evaluateJavaScript_completionHandler_("document.getElementById('clipBtn').click()", None)
-    pump(0.6)
-    snapshot(web, out / "7_test_clips.png")
-    web.evaluateJavaScript_completionHandler_("document.getElementById('clipBtn').click()", None)
-    core.play_clip("M04_2_0015", play_sound=False)   # "up" -> scroll up
-    wait(lambda: core.state["turn"] and core.state["turn"]["source"] == "test clip", 5)
-    wait(lambda: core.state["question"] is not None or ready(), 8)
-    pump(0.6)
-    snapshot(web, out / "8_torgo_clip.png")
-    if core.state["question"]:
-        core.answer("yes")
+    core.answer("none")
     wait(ready)
-    pump(0.5)
-    snapshot(web, out / "9_conversation.png")
+    pump(0.4)
+    snapshot(web, out / "09_conversation.png")
 
     core.new_task()
     core.camera_state({"on": False, "problem": f'The built-in "{config.CAMERA_NAME}" was not found, so the camera '

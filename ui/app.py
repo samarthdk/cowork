@@ -130,6 +130,7 @@ class App:
             "history": [],              # finished requests, oldest first (the conversation)
             "clips": [],                # TORGO test clips (see ui/clips.py)
             "credit": "",               # where the test clips come from
+            "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
             "question": None,
             "speaking": None,
             "feed": [],
@@ -315,7 +316,8 @@ class App:
 
     def set_clips(self, clips: list[dict], credit: str) -> None:
         self._clips = {c["id"]: c for c in clips}
-        self._set(clips=[{k: c[k] for k in ("id", "said", "seconds")} for c in clips], credit=credit)
+        shown = ("id", "said", "seconds", "label", "note", "demo")
+        self._set(clips=[{k: c.get(k) for k in shown} for c in clips], credit=credit)
 
     def play_clip(self, clip_id: str, play_sound: bool = True) -> str:
         """Play a recording out loud and feed it in as if the person said it.
@@ -347,7 +349,39 @@ class App:
         threading.Thread(target=run, daemon=True, name="clip").start()
         return ""
 
-    # ---- camera -----------------------------------------------------------
+    # ---- dictation ----------------------------------------------------------
+
+    def set_dictation(self, on: bool) -> None:
+        """On: a confirmed sentence is typed into the app you were using (and read back)."""
+        self._set(dictation={"on": bool(on), "app": self._typing_app()})
+
+    def _typing_app(self) -> str:
+        actions = self.session.actions
+        try:
+            return actions.front_app_name() if actions is not None and hasattr(actions, "front_app_name") else ""
+        except Exception:
+            return ""
+
+    def _type_sentence(self, text: str) -> dict:
+        """Type a confirmed sentence (outside the state lock: it takes a moment)."""
+        actions = self.session.actions
+        app = self._typing_app() or "the app"
+        typed = text.strip() + " "
+        try:
+            outcome = actions.run("type_text", {"text": typed})
+        except Exception as error:
+            from actions.base import ActionResult
+            outcome = ActionResult(False, problem=f"{type(error).__name__}: {error}")
+        return {"type": "typed", "text": text, "app": app, "chars": len(typed),
+                "status": "done" if outcome.ok else "failed", "problem": outcome.problem}
+
+    def _untype(self, item: dict) -> None:
+        try:
+            self.session.actions.run("delete_text", {"count": item["chars"]})
+        except Exception as error:
+            self._notice(f"Couldn't delete the typed text: {error}")
+
+        # ---- camera -----------------------------------------------------------
 
     def attach_camera(self, camera) -> None:
         self.camera = camera
@@ -410,7 +444,7 @@ class App:
             if turn is None:
                 return
             for item in reversed(turn["items"]):
-                if ((item["type"] == "spoken" and item["text"] == text)
+                if ((item["type"] in ("spoken", "typed") and item["text"] == text)
                         or (item["type"] == "step" and item["title"] == wording.step_title(text))
                         or (item["type"] == "reply" and item["text"] == text)):
                     item["voice"] = voice
@@ -426,7 +460,7 @@ class App:
             for item in turn["items"]:
                 if item["type"] == "step" and item["status"] == "running":
                     item["status"] = "done"
-            if not any(i["type"] in ("step", "spoken", "reply") for i in turn["items"]):
+            if not any(i["type"] in ("step", "spoken", "typed", "reply") for i in turn["items"]):
                 turn["items"].append({"type": "reply", "text": "Okay — I didn't do anything."})
             self.state["history"].append(copy.deepcopy(turn))
             del self.state["history"][:-HISTORY_MAX]
@@ -460,7 +494,7 @@ class App:
                 if turn["response_ms"] is None:
                     turn["response_ms"] = round((time.time() - turn["started"]) * 1000)
                 if question.kind == "window":
-                    steps = [i for i in turn["items"] if i["type"] in ("step", "spoken")]
+                    steps = [i for i in turn["items"] if i["type"] in ("step", "spoken", "typed")]
                     if steps:
                         steps[-1]["undo_until"] = shown["closes_at"]
                 else:
@@ -570,11 +604,16 @@ class App:
             turn["request"] = turn["request"] or event["text"]
             if turn["response_ms"] is None:
                 turn["response_ms"] = round((time.time() - turn["started"]) * 1000)
-            items.append({"type": "spoken", "text": event["text"], "status": "running"})
+            if event.get("typed"):
+                items.append(event["typed"])   # dictation: typed into the app, then read back
+            else:
+                items.append({"type": "spoken", "text": event["text"], "status": "running"})
         elif kind == "speak" and event.get("kind_of") == "result":
             items.append({"type": "reply", "text": event["text"], "read_aloud": True})
         elif kind == "spoke":
             spoken = next((i for i in reversed(items) if i["type"] == "spoken" and i["status"] == "running"), None)
+            if spoken is None:
+                self.state["dictation"]["app"] = self._typing_app() or self.state["dictation"]["app"]
             if spoken:
                 spoken["status"] = "done"
         elif kind == "learned":
@@ -583,7 +622,7 @@ class App:
                           "text": f"Learned: “{event['heard']}” means “{meant}”"})
         elif kind == "cancelled":
             for item in reversed(items):
-                if item["type"] in ("step", "spoken"):
+                if item["type"] in ("step", "spoken", "typed"):
                     item["status"] = "undone"
                     break
             turn["request"] = None
@@ -608,7 +647,18 @@ class App:
 
     def _on_event(self, event: dict) -> None:
         kind = event["kind"]
+        typed = None
+        if (kind == "speak" and event.get("kind_of") == "phrase" and self.state["dictation"]["on"]
+                and self.session.actions is not None):
+            typed = self._type_sentence(event["text"])   # typed first, then read back
+        if kind == "cancelled":
+            turn = self.state["turn"]
+            last = next((i for i in reversed(turn["items"]) if i["type"] in ("typed", "step", "spoken")), None) if turn else None
+            if last is not None and last["type"] == "typed" and last["status"] == "done":
+                self._untype(last)
         with self._lock:
+            if typed is not None and self.state["turn"] is not None:
+                event = dict(event, typed=typed)
             turn = self.state["turn"]
             steps = turn["steps"] if turn else []
             if turn is not None and not turn.get("finished"):

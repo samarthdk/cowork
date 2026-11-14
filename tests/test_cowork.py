@@ -64,8 +64,10 @@ def finished(core, n):
 # ---- the profile ----------------------------------------------------------
 names = [c["name"] for c in BASE["commands"]]
 check("Cowork profile has the new actions", all(n in names for n in (
-    "open_app", "open_website", "search_web", "compose_email", "send_email", "read_latest_email",
+    "open_app", "compose_email", "send_email", "read_latest_email",
     "type_text", "close_app", "scroll_down", "scroll_up")), True)
+check("  ...websites and search are hidden (they need the internet)",
+      "open_website" in names or "search_web" in names, False)
 check("  ...sending is risky, writing is not",
       {c["name"]: c["safety"] for c in BASE["commands"] if c["name"] in ("send_email", "compose_email")},
       {"send_email": "risky", "compose_email": "safe"})
@@ -75,8 +77,8 @@ check("  ...flaky actions are left out (click, reply_email)", "click" in names o
 check("request wording: command", wording.request_text("open_app", {"app": "Mail"}, BASE), "Open Mail")
 check("request wording: missing detail", wording.request_text("open_app", {}, BASE), "Open an app")
 check("request wording: phrase", wording.request_text(BASE["phrases"][0], {}, BASE), BASE["phrases"][0])
-check("from the engine's description", wording.from_meaning("search_web (query: cats, dogs)", BASE),
-      "Search Google for “cats, dogs”")
+check("from the engine's description", wording.from_meaning("type_text (text: cats, dogs)", BASE), "Type \u201ccats, dogs\u201d")
+
 check("step title", wording.step_title("Opening Mail."), "Opening Mail")
 
 # ---- helpers of the real actions (no Mac touched) ---------------------------
@@ -224,16 +226,20 @@ check("email card shows to / message", (email["to"], email["body"]), ("Anna", "l
 
 # ---- test clips -----------------------------------------------------------------
 clips = load_clips()
-check("TORGO test clips found", len(clips), len(CLIP_IDS))
+check("TORGO test clips found (3 demo + the rest)", len(clips), len(CLIP_IDS) + 3)
+check("  ...the demo three first, in order", [c["label"] for c in clips[:3]],
+      ["Understood directly", "Needs \u201cDid you mean\u201d", "Replay: now instant"])
+check("  ...the replay is the same recording", clips[1]["recording"] == clips[2]["recording"], True)
 check("  ...credit names the dataset", "TORGO" in CREDIT and "Rudzicz" in CREDIT, True)
 core, tts, actions = make()
 core.set_clips(clips, CREDIT)
 check("clips are listed on screen (no file paths)", "path" in core.state["clips"][0], False)
 check("unknown clip refused", core.play_clip("nope", play_sound=False), "No such clip.")
+up = next(c for c in clips if c["id"] == "M04_2_0015")
 check("a clip plays into the pipeline", core.play_clip("M04_2_0015", play_sound=False), "")
 check("  ...as a 'test clip' request with what WhisperKit heard",
       wait_for(lambda: core.state["turn"] is not None) and
-      (core.state["turn"]["source"], core.state["turn"]["heard"]), ("test clip", clips[0]["heard"]))
+      (core.state["turn"]["source"], core.state["turn"]["heard"]), ("test clip", up["heard"]))
 
 # ---- web endpoints ------------------------------------------------------------------
 core, tts, actions = make()

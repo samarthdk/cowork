@@ -13,7 +13,8 @@ def sentences(profile: dict, apps: list[str], step_apps: int = STEP_APPS) -> lis
     every phrase, then "Opening <website>." for the websites."""
     from engine.speech import sentences_to_prepare
     steps = [f"Opening {app}." for app in apps[:step_apps]]
-    sites = [f"Opening {site}." for site in config.SITES]
+    offered = {c["name"] for c in profile["commands"]}
+    sites = [f"Opening {site}." for site in config.SITES] if "open_website" in offered else []
     everything = sentences_to_prepare(profile)
     commands = [s for s in everything if s not in profile["phrases"]]
     return list(dict.fromkeys(commands + steps + profile["phrases"] + sites))

@@ -35,8 +35,20 @@ CLIP_IDS = [   # commands first, then sentences (all from evaluation fold 0, hel
 ]
 
 
+# The dictation demo, in this order (checked with the real WhisperKit and Bonsai on 2026-11-14):
+DEMO = [
+    ("M04_2_0264", "Understood directly",
+     "WhisperKit hears \u201cBut humanity is overwhelming.\u201d; it is typed at once"),
+    ("M04_2_0174", "Needs \u201cDid you mean\u201d",
+     "WhisperKit hears \u201cWe can get a joke on the beach.\u201d; one Yes, then it is typed and learned"),
+    ("M04_2_0174", "Replay: now instant",
+     "the same recording again: recognised from what was learned, typed instantly"),
+]
+
+
 def load_clips() -> list[dict]:
-    """[{"id", "path", "said", "heard", "seconds"}] for the clips that are on this Mac."""
+    """[{"id", "recording", "path", "said", "heard", "seconds", "label", "note", "demo"}]:
+    the 3 demo clips first (in order), then the other recordings."""
     try:
         index = {u["id"]: u for u in json.loads((TORGO / "utterances.json").read_text())}
         heard = {}
@@ -45,13 +57,18 @@ def load_clips() -> list[dict]:
             heard[record["id"]] = record.get("heard", "")
     except (OSError, ValueError):
         return []
-    clips = []
-    for clip_id in CLIP_IDS:
-        utterance = index.get(clip_id)
+
+    def clip(recording, key, label="", note="", demo=False):
+        utterance = index.get(recording)
         if not utterance:
-            continue
+            return None
         path = TORGO / "wav" / utterance["file"]
-        if path.exists():
-            clips.append({"id": clip_id, "path": str(path), "said": utterance["text"],
-                          "heard": heard.get(clip_id, ""), "seconds": utterance.get("duration")})
-    return clips
+        if not path.exists():
+            return None
+        return {"id": key, "recording": recording, "path": str(path), "said": utterance["text"],
+                "heard": heard.get(recording, ""), "seconds": utterance.get("duration"),
+                "label": label, "note": note, "demo": demo}
+
+    clips = [clip(rec, f"demo{n}", label, note, True) for n, (rec, label, note) in enumerate(DEMO, 1)]
+    clips += [clip(rec, rec) for rec in CLIP_IDS]
+    return [c for c in clips if c is not None]

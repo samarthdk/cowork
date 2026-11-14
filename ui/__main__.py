@@ -6,6 +6,7 @@
     .venv/bin/python -m ui --fresh          start learning from scratch (the old profile is backed up)
 
 Other switches:
+    --dictation        start with dictation on (confirmed sentences are typed into Word / the app you were using)
     --no-camera        don't use the camera (hand answers off)
     --camera           use the camera even with --fake
     --profile personal use your own profile (profiles/profile.json) instead of the Cowork demo profile
@@ -67,6 +68,8 @@ def main(argv=None) -> None:
     parser.add_argument("--fresh", action="store_true", help="start learning from scratch")
     parser.add_argument("--camera", action="store_true", help="use the camera even with --fake")
     parser.add_argument("--no-camera", action="store_true", help="don't use the camera")
+    parser.add_argument("--dictation", action="store_true",
+                        help="start with dictation on: confirmed sentences are typed into the app you were using")
     parser.add_argument("--profile", choices=sorted(PROFILES), default="cowork")
     parser.add_argument("--port", type=int, default=config.UI_PORT)
     parser.add_argument("--browser", action="store_true", help="open the page in Safari instead of a window")
@@ -106,6 +109,8 @@ def main(argv=None) -> None:
     core = App(profile, get_llm(), tts, asr=get_asr(), actions=actions, profile_path=profile_path,
                backends=backends, warm=config.LLM == "real")
     core.set_clips(load_clips(), CREDIT)
+    if options.dictation:
+        core.set_dictation(True)
     core.start_metrics()
 
     if hasattr(tts, "prepare"):   # make the TTSKit voice ready in the background (real voice only)

@@ -29,5 +29,8 @@ class FakeActions:
         return ActionResult(True, say=say, detail=f"[fake] {command} {args or ''}".strip(),
                             undo=lambda: self.undone.append(command))
 
+    def front_app_name(self) -> str:
+        return "Word"
+
     def permissions(self) -> list[Permission]:
         return [Permission("Fake actions", True, "testing without touching the Mac")]

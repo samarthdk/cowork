@@ -12,8 +12,8 @@ What is in it:
     to fill in, never a free plan:
 
       open_app       {app}               one of the apps installed on this Mac
-      open_website   {site}              one of config.SITES
-      search_web     {query}             words to search Google for
+      open_website   {site}              one of config.SITES        (hidden: needs the internet)
+      search_web     {query}             words to search Google for (hidden: needs the internet)
       compose_email  {to, subject, body} "to" is one of profiles/contacts.json
       send_email                         RISKY: always asks first
       read_latest_email
@@ -69,6 +69,8 @@ COMMANDS = [
      "args": {}, "said_as": ["close", "quit", "close app"],
      "say": "Closing the app.", "request": "Close the app"},
 ]
+# Kept in the code but not offered: websites and Google search can't load with Wi-Fi off (offline demo).
+HIDDEN = {"open_website", "search_web"}
 REQUESTS = {"scroll_up": "Scroll up", "scroll_down": "Scroll down", "go_back": "Go back",
             "go_forward": "Go forward", "press_left": "Press the left arrow", "press_right": "Press the right arrow",
             "press_return": "Press Return"}
@@ -92,7 +94,7 @@ def make() -> dict:
         command["request"] = REQUESTS.get(command["name"], command["name"].replace("_", " ").capitalize())
         command["said_as"] = command.get("said_as", []) + EXTRA_SAID_AS.get(command["name"], [])
         torgo_commands.append(command)
-    profile["commands"] = COMMANDS + torgo_commands
+    profile["commands"] = [c for c in COMMANDS if c["name"] not in HIDDEN] + torgo_commands
     profile["user"] = (f"Cowork demo: TORGO speaker {SPEAKER} (research recordings) "
                        "plus everyday phrases and Mac actions")
     return profile

@@ -41,7 +41,7 @@ APP_FOLDERS = ["/Applications", "/System/Applications", "/System/Applications/Ut
                str(Path.home() / "Applications")]
 SKIP_APPS = ("shim", "uninstall", "python", "helper", "deploy", "installer")
 CLICKABLE_ROLES = {"AXButton", "AXLink", "AXMenuButton", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXTab"}
-KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12}
+KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12, "delete": 51}
 COMMAND_KEY = 0x100000  # kCGEventFlagMaskCommand
 SCROLL_LINES = 12
 NOT_A_TARGET = ("Terminal", "iTerm2")   # where Second Voice is started: never typed into
@@ -451,6 +451,26 @@ class MacActions:
                 Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
             time.sleep(0.02)
         return ActionResult(True, detail=f"Typed into {self.front.name}: {text}")
+
+    def _do_delete_text(self, args: dict) -> ActionResult:
+        """Delete the last N characters typed (Backspace N times): undo for dictation.
+        Not a command the Brain can choose; only used by the undo button."""
+        count = int(args.get("count", 0) or 0)
+        if count <= 0:
+            return ActionResult(True, detail="Nothing to delete")
+        if not accessibility_allowed():
+            return ActionResult(False, problem="Deleting needs the Accessibility permission. " + ACCESSIBILITY_FIX)
+        if not self.front.bring_forward():
+            return ActionResult(False, problem="The app with the text is not open any more.")
+        import Quartz
+        for _ in range(count):
+            for down in (True, False):
+                Quartz.CGEventPost(Quartz.kCGHIDEventTap, Quartz.CGEventCreateKeyboardEvent(None, KEYS["delete"], down))
+            time.sleep(0.004)
+        return ActionResult(True, detail=f"Deleted {count} characters in {self.front.name}")
+
+    def front_app_name(self) -> str:
+        return self.front.name
 
     def _do_close_app(self, args: dict) -> ActionResult:
         """Quit the app the person was using, exactly as if they pressed Command+Q
