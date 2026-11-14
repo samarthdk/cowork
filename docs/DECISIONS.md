@@ -183,3 +183,26 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
   still checks the result as usual. Otherwise: "Couldn't make out the words. Try again, a little closer."
 - **Live view while listening**: a sound-level bar and the words heard so far (WhisperKit on the audio
   so far, once a second, one at a time). Speak now toggles: press again to stop listening.
+
+## Dictation target (2026-11-14)
+
+- **Typing goes into the app the person is working in**: the front window that is not Cowork,
+  Terminal or Finder, followed a few times a second; the composer pill shows it ("Dictation: Chrome").
+  With no target yet, a card asks "Which app should I type into?" (3 most recent apps + Something else).
+- **Opening an app by voice makes it the target** and puts the cursor where typing starts:
+  browsers get a **new tab** (Command+T) with the cursor in its address bar; Command+L was not used
+  because typing would replace the page already open. Mail: a new message with the cursor in the body
+  (Tab until the body has the focus; measured: setting the focus through Accessibility did not move
+  Mail's cursor). Notes: a new note. Word / TextEdit: a new document only if none is open.
+- **Apps are brought forward by activating them**, not with `open -b`: measured, Chrome answers the
+  "reopen" event with its "Who's using Chrome?" window, which took the keystrokes.
+- **Every key event carries its own modifier flags (none, or Command)**: right after Command+N the
+  next Tab arrived as Command+Tab (the app switcher) and typed text went missing.
+- **"Hit search" / "press enter"** = press_return in the target. Sending email is unchanged
+  (permission card + EMAIL_REALLY_SEND + only to "Me").
+- **"Open Notes and type see you at noon"**: split on the joining words in the UI (ui/compound.py),
+  the command goes through the engine as usual, then the rest is typed. A near match ("and right ...")
+  asks "Did you mean ...?" first.
+- **Free dictation needs "type ..."**: plain words that are not a phrase ("weather in boston") are
+  matched against the person's phrases (the model never guesses freely); "type weather in boston" is
+  understood with high confidence.

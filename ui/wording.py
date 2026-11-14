@@ -76,6 +76,17 @@ def permission(question: dict, profile: dict, turn: dict | None) -> dict:
                 card["options"].append({"text": request_text(option, intent_args, profile), "kind": "command"})
             else:
                 card["options"].append({"text": option, "kind": "phrase"})
+    elif stage == "target":
+        card["title"] = "Which app should I type into?"
+        card["options"] = [{"text": o if o != "Something else" else "Something else\u2026",
+                            "kind": "else" if o == "Something else" else "value"} for o in question.get("options", [])]
+    elif stage == "target_other":
+        card["title"] = "Which app?"
+        card["options"] = [{"text": v, "kind": "value"} for v in (data.get("values") or [])[:8]]
+    elif stage == "split":
+        card["title"] = "Did you mean\u2026?"
+        card["body"] = f"\u201c{data.get('first', '')}\u201d, then type \u201c{data.get('rest', '')}\u201d"
+        card["allow"], card["deny"] = "Yes, do both", "No, it's one request"
     elif stage == "detail":
         name = data.get("name", "")
         nice = {"app": "Which app?", "site": "Which website?", "to": "Who is it for?", "query": "Search for what?",

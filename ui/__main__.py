@@ -118,6 +118,7 @@ def main(argv=None) -> None:
     core = App(profile, get_llm(), tts, asr=get_asr(), actions=actions, profile_path=profile_path,
                backends=backends, warm=config.LLM == "real")
     core.set_clips(load_clips(), CREDIT)
+    core.watch_target()   # the dictation pill follows the app the person is working in
     if options.dictation:
         core.set_dictation(True)
     core.start_metrics()

@@ -41,10 +41,15 @@ APP_FOLDERS = ["/Applications", "/System/Applications", "/System/Applications/Ut
                str(Path.home() / "Applications")]
 SKIP_APPS = ("shim", "uninstall", "python", "helper", "deploy", "installer")
 CLICKABLE_ROLES = {"AXButton", "AXLink", "AXMenuButton", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXTab"}
-KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12, "delete": 51}
+KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12, "delete": 51, "l": 37, "n": 45, "t": 17}
 COMMAND_KEY = 0x100000  # kCGEventFlagMaskCommand
 SCROLL_LINES = 12
-NOT_A_TARGET = ("Terminal", "iTerm2")   # where Second Voice is started: never typed into
+NOT_A_TARGET = ("Terminal", "iTerm2", "Finder", "loginwindow", "Python")   # never typed into (Python = Cowork)
+# Where the cursor goes when an app is opened by voice (the natural place to start typing):
+BROWSERS = ("Google Chrome", "Safari", "Firefox", "Arc", "Microsoft Edge", "Brave Browser")
+NEW_ITEM_APPS = ("Mail", "Notes")                     # Command+N: a new message / a new note
+DOCUMENT_APPS = ("Microsoft Word", "TextEdit", "Pages")   # Command+N only if no document is open yet
+LAUNCH_WAIT_S = 12.0
 NEVER_CLOSE = ("Finder", "Terminal", "loginwindow", "Dock", "Python")
 NOT_A_WINDOW_OWNER = ("Window Server", "Dock", "Control Center", "SystemUIServer", "Notification Center",
                       "Spotlight", "WindowManager", "Wallpaper", "TextInputMenuAgent", "screencaptureui")
@@ -123,6 +128,7 @@ class FrontApp:
     def __init__(self, own_pid: int | None = None):
         self.own_pid = own_pid or os.getpid()
         self.pid, self.name = None, ""
+        self.recent: list[str] = []   # app names, most recent first (for "Which app should I type into?")
         self._stop = threading.Event()
         threading.Thread(target=self._watch, daemon=True, name="front-app").start()
 
@@ -135,10 +141,34 @@ class FrontApp:
         try:
             for window in front_windows():
                 if window["pid"] != self.own_pid and window["app"] not in NOT_A_TARGET:
-                    self.pid, self.name = window["pid"], window["app"]
+                    self._remember(window["pid"], window["app"])
                     return
+            if self.pid and not pid_alive(self.pid):   # the target was closed and nothing else is open
+                self.pid, self.name = None, ""
         except Exception:
             pass
+
+    def _remember(self, pid: int, name: str) -> None:
+        self.pid, self.name = pid, name
+        if name in self.recent:
+            self.recent.remove(name)
+        self.recent.insert(0, name)
+        del self.recent[6:]
+
+    def windows_of(self, name: str) -> list[dict]:
+        return [w for w in front_windows() if w["app"] == name]
+
+    def wait_until_front(self, name: str, seconds: float) -> bool:
+        """After opening an app: wait for its window to come to the front, then make it the target."""
+        end = time.monotonic() + seconds
+        while time.monotonic() < end:
+            windows = front_windows()
+            if windows and windows[0]["app"] == name:
+                self._remember(windows[0]["pid"], name)
+                time.sleep(0.3)   # let it finish drawing before keys arrive
+                return True
+            time.sleep(0.1)
+        return False
 
     def bounds(self) -> dict | None:
         for window in front_windows():
@@ -156,11 +186,19 @@ class FrontApp:
             return False
         if front_windows()[:1] and front_windows()[0]["pid"] == self.pid:
             return True
+        # Activate it directly first. ("open -b" sends a "reopen" event: measured, Chrome then shows
+        # its "Who's using Chrome?" window, which takes the keystrokes.) "open" only as a fallback.
+        app.activateWithOptions_(2)   # NSApplicationActivateIgnoringOtherApps
+        end = time.monotonic() + 0.8
+        while time.monotonic() < end:
+            windows = front_windows()
+            if windows and windows[0]["pid"] == self.pid:
+                time.sleep(0.15)
+                return True
+            time.sleep(0.05)
         bundle = app.bundleIdentifier()
         if bundle:
             subprocess.run(["open", "-b", bundle], capture_output=True, timeout=config.ACTION_TIMEOUT_S)
-        else:
-            app.activateWithOptions_(2)   # NSApplicationActivateIgnoringOtherApps
         end = time.monotonic() + 2.0
         while time.monotonic() < end:
             windows = front_windows()
@@ -300,15 +338,27 @@ class MacActions:
         if app not in self._apps:
             return ActionResult(False, problem=f"'{app}' is not an app on this Mac.")
         was_running = app in running_apps()
-        done = subprocess.run(["open", "-a", app], capture_output=True, text=True, timeout=config.ACTION_TIMEOUT_S)
-        if done.returncode != 0:
-            return ActionResult(False, problem=done.stderr.strip() or f"Could not open {app}.")
+        windows = self.front.windows_of(app)
+        had_windows = bool(windows)
+        if windows:   # already open: bring it forward without a "reopen" (see FrontApp.bring_forward)
+            self.front._remember(windows[0]["pid"], app)
+            if not self.front.bring_forward():
+                return ActionResult(False, problem=f"Could not bring {app} forward.")
+        else:
+            done = subprocess.run(["open", "-a", app], capture_output=True, text=True, timeout=config.ACTION_TIMEOUT_S)
+            if done.returncode != 0:
+                return ActionResult(False, problem=done.stderr.strip() or f"Could not open {app}.")
+        detail = f"Opened {app}"
+        # It becomes the dictation target, with the cursor where typing naturally starts.
+        if app not in NOT_A_TARGET and self.front.wait_until_front(app, LAUNCH_WAIT_S):
+            placed = self._place_cursor(app, had_windows) if accessibility_allowed() else ""
+            detail += f" · typing goes here{f' ({placed})' if placed else ''}"
 
         def undo():
             if not was_running:   # only close what this action opened
                 run_applescript(["on run argv", "tell application (item 1 of argv) to quit", "end run"], app)
 
-        return ActionResult(True, detail=f"Opened {app}", undo=undo)
+        return ActionResult(True, detail=detail, undo=undo)
 
     def _scroll(self, lines: int) -> ActionResult:
         if not accessibility_allowed():
@@ -338,8 +388,7 @@ class MacActions:
         import Quartz
         for down in (True, False):
             event = Quartz.CGEventCreateKeyboardEvent(None, KEYS[key], down)
-            if command_key:
-                Quartz.CGEventSetFlags(event, COMMAND_KEY)
+            Quartz.CGEventSetFlags(event, COMMAND_KEY if command_key else 0)   # never inherit a held modifier
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
         undo = (lambda: self._key(undo_key, command_key)) if undo_key else None
         return ActionResult(True, detail=f"Pressed {'Command + ' if command_key else ''}{key}", undo=undo)
@@ -447,6 +496,7 @@ class MacActions:
             chunk = text[start:start + TYPE_CHUNK]
             for down in (True, False):
                 event = Quartz.CGEventCreateKeyboardEvent(None, 0, down)
+                Quartz.CGEventSetFlags(event, 0)   # plain typing, whatever was pressed before
                 Quartz.CGEventKeyboardSetUnicodeString(event, len(chunk), chunk)
                 Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
             time.sleep(0.02)
@@ -465,12 +515,77 @@ class MacActions:
         import Quartz
         for _ in range(count):
             for down in (True, False):
-                Quartz.CGEventPost(Quartz.kCGHIDEventTap, Quartz.CGEventCreateKeyboardEvent(None, KEYS["delete"], down))
+                event = Quartz.CGEventCreateKeyboardEvent(None, KEYS["delete"], down)
+                Quartz.CGEventSetFlags(event, 0)
+                Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
             time.sleep(0.004)
         return ActionResult(True, detail=f"Deleted {count} characters in {self.front.name}")
 
     def front_app_name(self) -> str:
-        return self.front.name
+        return self.target_name()
+
+    # ---- the dictation target: the app the person is working in ----------------
+
+    def target_name(self) -> str:
+        """The app typing goes into ('' if there is none yet). Never Finder, Terminal or Cowork."""
+        return self.front.name if self.front.pid and pid_alive(self.front.pid) else ""
+
+    def recent_targets(self, count: int = 3) -> list[str]:
+        return [name for name in self.front.recent if name not in NOT_A_TARGET][:count]
+
+    def set_target(self, name: str) -> bool:
+        """Type into this app from now on (opening it if needed)."""
+        if not name or name in NOT_A_TARGET:
+            return False
+        windows = self.front.windows_of(name)
+        if windows:
+            self.front._remember(windows[0]["pid"], name)
+            return self.front.bring_forward()
+        done = subprocess.run(["open", "-a", name], capture_output=True, text=True, timeout=config.ACTION_TIMEOUT_S)
+        return done.returncode == 0 and self.front.wait_until_front(name, LAUNCH_WAIT_S)
+
+    def _tab_to(self, pid: int, role: str, window_title: str = "New Message", most: int = 6) -> bool:
+        """Press Tab until the focused element has this role (e.g. Mail: To -> Cc -> Subject -> body).
+        Measured: setting the focus through Accessibility did not move Mail's cursor; Tab does."""
+        import ApplicationServices as AS
+        import Quartz
+        app = AS.AXUIElementCreateApplication(pid)
+        end = time.monotonic() + 3.0   # wait for the new window to open and take the focus
+        while time.monotonic() < end:
+            error, window = AS.AXUIElementCopyAttributeValue(app, "AXFocusedWindow", None)
+            if error == 0 and AS.AXUIElementCopyAttributeValue(window, "AXTitle", None)[1] == window_title:
+                break
+            time.sleep(0.1)
+        else:
+            return False
+        time.sleep(0.2)
+        for _ in range(most + 1):
+            error, focused = AS.AXUIElementCopyAttributeValue(app, "AXFocusedUIElement", None)
+            if error == 0 and AS.AXUIElementCopyAttributeValue(focused, "AXRole", None)[1] == role:
+                return True
+            for down in (True, False):
+                event = Quartz.CGEventCreateKeyboardEvent(None, 48, down)
+                Quartz.CGEventSetFlags(event, 0)   # a plain Tab (right after Command+N it became Command+Tab)
+                Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
+            time.sleep(0.25)
+        return False
+
+    def _place_cursor(self, app: str, had_windows: bool) -> str:
+        """Put the cursor where typing naturally starts. Returns what was done, in words."""
+        if app in BROWSERS:
+            # Command+T: a new tab with the cursor in its address bar. (Command+L would put the cursor
+            # in the address bar of the page already open, and typing would replace that page.)
+            return "a new tab, cursor in the address bar" if self._key("t", command_key=True).ok else ""
+        if app in NEW_ITEM_APPS:
+            what = "a new message" if app == "Mail" else "a new note"
+            if not self._key("n", command_key=True).ok:
+                return ""
+            if app == "Mail":   # a new message starts in "To:"; the person dictates the message itself
+                what += ", cursor in the body" if self._tab_to(self.front.pid, "AXWebArea") else ""
+            return what
+        if app in DOCUMENT_APPS and not had_windows:
+            return "a new document" if self._key("n", command_key=True).ok else ""
+        return ""
 
     def _do_close_app(self, args: dict) -> ActionResult:
         """Quit the app the person was using, exactly as if they pressed Command+Q

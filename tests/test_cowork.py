@@ -232,6 +232,48 @@ core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeAct
 core.attach_listener(FakeListener())
 check("Speak starts listening, a second press stops it", (core.listen_toggle(), core.listen_toggle()), (True, False))
 
+# ---- the dictation target -------------------------------------------------------
+from ui.compound import split as split_compound  # noqa: E402
+check("split: command, then type the rest", split_compound("open notes and type see you at noon"),
+      ("open notes", "see you at noon", True))
+check("  ...a near match is only a guess (ask first)", split_compound("open chrome and right weather in boston"),
+      ("open chrome", "weather in boston", False))
+check("  ...one request stays one request", split_compound("I need to use the bathroom"), None)
+
+core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions(target=""))
+core.set_dictation(True)
+fa = core.session.actions._actions
+core.say("I need to use the bathroom")
+check("no target yet: 'Which app should I type into?'", asking(core, "choice") and core.state["question"]["card"]["title"],
+      "Which app should I type into?")
+check("  ...3 recent apps plus Something else", [o["text"] for o in core.state["question"]["card"]["options"]],
+      ["Google Chrome", "Notes", "Microsoft Word", "Something else\u2026"])
+core.answer("pick", 1)
+check("  ...the chosen app is the target and the sentence is typed there",
+      wait_for(lambda: ("type_text", {"text": "I need to use the bathroom. "}) in fa.done) and fa.target, "Notes")
+check("  ...the pill shows it", wait_for(lambda: core.state["dictation"]["app"] == "Notes"), True)
+core.answer("yes")
+finished(core, 1)
+
+core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions(apps=("Notes", "Mail"), target=""))
+fa = core.session.actions._actions
+core.say("open notes and type see you at noon")
+if asking(core, "yes_no"):
+    core.answer("yes")   # the fake Brain may ask "Did you mean: Open Notes?"
+check("'open notes and type ...': opens Notes, then types the rest there",
+      wait_for(lambda: ("type_text", {"text": "see you at noon "}) in fa.done, 5) and
+      [c for c, _ in fa.done][:2], ["open_app", "type_text"])
+check("  ...one message on screen with both", wait_for(lambda: "then type" in (core.state["turn"]["request"] or "")), True)
+if asking(core, "window"):
+    core.answer("yes")
+finished(core, 1)
+
+core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions(apps=("Google Chrome",)))
+core.say("open chrome and right weather in boston")
+check("unsure split: 'Did you mean' first", asking(core, "yes_no") and core.state["question"]["card"]["body"],
+      "\u201copen chrome\u201d, then type \u201cweather in boston\u201d")
+core.answer("no")
+
 # ---- conversation: unsure -> permission card -> step card --------------------
 core, tts, actions = make()
 core.say("plea op en male")

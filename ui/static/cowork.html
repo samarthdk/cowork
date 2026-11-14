@@ -450,11 +450,12 @@ function resolvedHtml(item) {
   return `<div class="resolved ${item.status}"><span class="q">${q}</span><span class="a">${esc(item.answer || "")}</span>${item.by ? `<span class="by">${esc(item.by)}</span>` : ""}</div>`;
 }
 
+function shortApp(name) { return (name || "").replace(/^(Microsoft|Google) /, ""); }
 function yesText(c) {
   // The Yes button says what will happen.
   if (c.allow && c.allow !== "Yes" && c.allow !== "Allow" && !c.guess) return c.allow;
   const dict = (S && S.dictation) || {};
-  const app = (dict.app || "").replace(/^Microsoft /, "") || "the app";
+  const app = shortApp(dict.app) || "the app";
   if (c.say_aloud) return dict.on ? `Yes, type it into ${app}` : "Yes, say it";
   if (c.body) return `Yes, ${c.body.charAt(0).toLowerCase()}${c.body.slice(1)}`;
   return c.allow || "Yes";
@@ -583,9 +584,9 @@ function render(s) {
   $("credit").textContent = s.credit || "";
   const dict = s.dictation || {};
   $("dictBtn").setAttribute("aria-pressed", dict.on ? "true" : "false");
-  const where = (dict.app || "").replace(/^Microsoft /, "") || "app";
-  $("dictLabel").textContent = dict.on ? `Dictation: ${where}` : "Dictation: off";
-  $("dictBtn").title = dict.on ? `Confirmed sentences are typed into ${dict.app || "the app you were using"}, then read back` : "Off: sentences are said out loud";
+  const where = shortApp(dict.app);
+  $("dictLabel").textContent = dict.on ? (where ? `Dictation: ${where}` : "Dictation: choose an app") : (where ? `Dictation off · ${where}` : "Dictation: off");
+  $("dictBtn").title = dict.on ? `Confirmed sentences are typed into ${dict.app || "the app you choose"}, then read back` : "Off: sentences are said out loud";
   const mic = s.mic || {};
   $("speak").disabled = !mic.on;
   const why = mic.on ? "" : mic.problem

@@ -73,7 +73,7 @@
     },
     {
       "name": "type_text",
-      "description": "Type some words into the app the person is using.",
+      "description": "Type words the person dictates into the app they are using (anything to write that is not one of the phrases or commands, e.g. a search or a message).",
       "safety": "safe",
       "args": {
         "text": "The exact words to type"
@@ -168,14 +168,19 @@
     },
     {
       "name": "press_return",
-      "description": "Press Return to select the current item. The person says: select.",
+      "description": "Press Return (Enter) in the app being typed into, e.g. to run a search. The person says: hit search, press enter, select.",
       "safety": "safe",
       "said_as": [
-        "select"
+        "select",
+        "hit search",
+        "press enter",
+        "hit enter",
+        "enter",
+        "search"
       ],
       "args": {},
-      "say": "Selected.",
-      "request": "Press Return"
+      "say": "Pressing Enter.",
+      "request": "Press Enter"
     }
   ],
   "examples": [
@@ -185,7 +190,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     },
     {
       "heard": "Well...",
@@ -193,7 +198,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     },
     {
       "heard": "You wish... to meet another horrible grandfiler.",
@@ -201,7 +206,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     },
     {
       "heard": "Up.",
@@ -209,7 +214,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     },
     {
       "heard": "Don't...",
@@ -217,7 +222,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     },
     {
       "heard": "back",
@@ -225,7 +230,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     },
     {
       "heard": "That",
@@ -233,7 +238,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     },
     {
       "heard": "Right?",
@@ -241,7 +246,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 15:09:52"
+      "time": "2026-11-14 16:25:31"
     }
   ],
   "answer_words": {

@@ -62,7 +62,10 @@ COMMANDS = [
     {"name": "read_latest_email", "description": "Read the newest email out loud.", "safety": "safe",
      "args": {}, "said_as": ["read email", "read my mail"],
      "say": "Reading your latest email.", "request": "Read my latest email"},
-    {"name": "type_text", "description": "Type some words into the app the person is using.", "safety": "safe",
+    {"name": "type_text",
+     "description": "Type words the person dictates into the app they are using (anything to write that is "
+                    "not one of the phrases or commands, e.g. a search or a message).",
+     "safety": "safe",
      "args": {"text": "The exact words to type"}, "said_as": ["type", "write"],
      "say": "Typing.", "request": "Type “{text}”"},
     {"name": "close_app", "description": "Close (quit) the app the person is using.", "safety": "safe",
@@ -73,8 +76,11 @@ COMMANDS = [
 HIDDEN = {"open_website", "search_web"}
 REQUESTS = {"scroll_up": "Scroll up", "scroll_down": "Scroll down", "go_back": "Go back",
             "go_forward": "Go forward", "press_left": "Press the left arrow", "press_right": "Press the right arrow",
-            "press_return": "Press Return"}
-EXTRA_SAID_AS = {"scroll_up": ["scroll up"], "scroll_down": ["scroll down"]}
+            "press_return": "Press Enter"}
+EXTRA_SAID_AS = {"scroll_up": ["scroll up"], "scroll_down": ["scroll down"],
+                 "press_return": ["hit search", "press enter", "hit enter", "enter", "search"]}
+DESCRIPTIONS = {"press_return": "Press Return (Enter) in the app being typed into, e.g. to run a search. "
+                                "The person says: hit search, press enter, select."}
 
 
 def make() -> dict:
@@ -93,6 +99,9 @@ def make() -> dict:
     for command in profile["commands"]:
         command["request"] = REQUESTS.get(command["name"], command["name"].replace("_", " ").capitalize())
         command["said_as"] = command.get("said_as", []) + EXTRA_SAID_AS.get(command["name"], [])
+        command["description"] = DESCRIPTIONS.get(command["name"], command["description"])
+        if command["name"] == "press_return":
+            command["say"] = "Pressing Enter."
         torgo_commands.append(command)
     profile["commands"] = [c for c in COMMANDS if c["name"] not in HIDDEN] + torgo_commands
     profile["user"] = (f"Cowork demo: TORGO speaker {SPEAKER} (research recordings) "

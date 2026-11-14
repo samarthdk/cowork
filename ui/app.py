@@ -25,6 +25,7 @@ import config
 from choose.answers import Answer, from_signal, from_text, hint
 from engine.session import Session
 from ui import wording
+from ui.compound import split as split_compound
 
 QUESTION_WAIT_S = 60.0     # an unanswered question closes after this (nothing chosen; silence is not a "no")
 FEED_MAX = 30              # items kept in the learning feed
@@ -106,12 +107,34 @@ class _Voice:
             stop()
 
 
+NEEDS_TARGET = ("type_text", "press_return")   # these act on the app being typed into
+SOMETHING_ELSE_APP = "Something else"
+
+
+class _Targeted:
+    """Wraps the Mac actions: a typing action with no target app yet first asks
+    "Which app should I type into?" (the engine itself is unchanged)."""
+    def __init__(self, actions, app):
+        self._actions, self._app = actions, app
+
+    def __getattr__(self, name):
+        return getattr(self._actions, name)
+
+    def run(self, command: str, args: dict):
+        if command in NEEDS_TARGET and not self._app.ensure_target():
+            from actions.base import ActionResult
+            return ActionResult(False, problem="No app was chosen to type into.")
+        return self._actions.run(command, args)
+
+
 class App:
     def __init__(self, profile, llm, tts, asr=None, actions=None, profile_path=None,
                  backends=None, warm=False, question_wait_s=QUESTION_WAIT_S):
         self.asr, self.listener, self.camera = asr, None, None
         self.question_wait_s = question_wait_s
         self.voice = _Voice(tts, self)
+        if actions is not None and hasattr(actions, "target_name"):
+            actions = _Targeted(actions, self)
         self.session = Session(profile, llm, self.voice, actions=actions, profile_path=profile_path,
                                on_event=self._on_event, warm=warm)
         self._turns = 0
@@ -421,26 +444,67 @@ class App:
     # ---- dictation ----------------------------------------------------------
 
     def set_dictation(self, on: bool) -> None:
-        """On: a confirmed sentence is typed into the app you were using (and read back)."""
+        """On: a confirmed sentence is typed into the app the person is working in (and read back)."""
         self._set(dictation={"on": bool(on), "app": self._typing_app()})
 
     def _typing_app(self) -> str:
         actions = self.session.actions
         try:
+            if actions is not None and hasattr(actions, "target_name"):
+                return actions.target_name()
             return actions.front_app_name() if actions is not None and hasattr(actions, "front_app_name") else ""
         except Exception:
             return ""
 
+    def watch_target(self, every_s: float = 0.5) -> None:
+        """Keep the composer pill showing the app typing goes into (it follows the person)."""
+        def run():
+            while True:
+                app = self._typing_app()
+                if app != self.state["dictation"].get("app"):
+                    self._set(dictation=dict(self.state["dictation"], app=app))
+                time.sleep(every_s)
+        threading.Thread(target=run, daemon=True, name="target").start()
+
+    def ensure_target(self) -> bool:
+        """There is an app to type into, or the person chooses one now:
+        "Which app should I type into?" with the 3 most recent apps plus "Something else"."""
+        actions = self.session.actions
+        if actions is None or not hasattr(actions, "target_name") or actions.target_name():
+            return True
+        from engine.session import Question
+        recent = list(actions.recent_targets(3)) if hasattr(actions, "recent_targets") else []
+        answer = self._ask(Question("choice", "target", "Which app should I type into?",
+                                    options=recent + [SOMETHING_ELSE_APP]))
+        if answer is None or answer.kind != "pick":
+            return False
+        options = recent + [SOMETHING_ELSE_APP]
+        name = options[answer.value]
+        if name == SOMETHING_ELSE_APP:
+            apps = (self.session.context() or {}).get("app", [])
+            answer = self._ask(Question("detail", "target_other", "Which app?",
+                                        data={"name": "app", "command": "type_text", "values": apps}))
+            if answer is None or answer.kind != "text":
+                return False
+            typed = str(answer.value).strip().lower()
+            name = next((a for a in apps if a.lower() == typed), None) or next(
+                (a for a in apps if typed and typed in a.lower()), str(answer.value).strip())
+        ok = actions.set_target(name)
+        self._set(dictation=dict(self.state["dictation"], app=self._typing_app()))
+        if not ok:
+            self._notice(f"Couldn't open {name} to type into.")
+        return ok
+
     def _type_sentence(self, text: str) -> dict:
         """Type a confirmed sentence (outside the state lock: it takes a moment)."""
         actions = self.session.actions
-        app = self._typing_app() or "the app"
         typed = text.strip() + " "
         try:
-            outcome = actions.run("type_text", {"text": typed})
+            outcome = actions.run("type_text", {"text": typed})   # asks for a target first if there is none
         except Exception as error:
             from actions.base import ActionResult
             outcome = ActionResult(False, problem=f"{type(error).__name__}: {error}")
+        app = self._typing_app() or "the app"
         return {"type": "typed", "text": text, "app": app, "chars": len(typed),
                 "status": "done" if outcome.ok else "failed", "problem": outcome.problem}
 
@@ -495,7 +559,19 @@ class App:
             self.state["status"] = "thinking"
         if self.camera is not None:
             self.camera.want(False)   # warm the camera up now (about 2 s), in case a card follows
-        flow = self.session.hear(request["text"], source=request["source"], rehear=request["rehear"])
+        heard, then_type = request["text"], None
+        parts = split_compound(heard)
+        if parts:
+            first, rest, sure = parts
+            if not sure:   # the joining word was only a near match: check first
+                from engine.session import Question
+                answer = self._ask(Question("yes_no", "split", "Did you mean...?",
+                                            data={"first": first, "rest": rest}))
+                sure = answer is not None and answer.kind == "yes"
+            if sure:
+                heard, then_type = first, rest
+        flow = self.session.hear(heard, source=request["source"],
+                                 rehear=request["rehear"] if then_type is None else None)
         pending = None
         try:
             question = next(flow)
@@ -503,11 +579,30 @@ class App:
                 question = flow.send(self._ask(question))
         except StopIteration as finished:
             pending = finished.value
+        try:
+            if then_type is not None:
+                self._then_type(then_type)
         finally:
             self._finish_turn()
         if pending:   # a sentence said during the correction window: the next request
             self._requests.put(("hear", {"text": pending, "source": request["source"], "rehear": None,
                                          "asr_ms": None}))
+
+    def _then_type(self, text: str) -> None:
+        """The second half of "open Notes and type ...": typed once the command has been done."""
+        with self._lock:
+            turn = self.state["turn"]
+            done = [i for i in turn["items"] if i["type"] in ("step", "spoken", "typed")]
+            ok = bool(done) and done[-1]["status"] == "done"
+        if not ok:
+            with self._lock:
+                turn["items"].append({"type": "reply", "text": f"I didn't type \u201c{text}\u201d because the first part wasn't done."})
+            return
+        item = self._type_sentence(text)
+        with self._lock:
+            turn["items"].append(item)
+            turn["request"] = f"{turn['request'] or ''}, then type \u201c{text}\u201d".lstrip(", ")
+        self._publish({"type": "state", "event": None, "state": self.snapshot()})
 
     def _mark_voice(self, text: str, voice: str) -> None:
         """Note on the card which voice says this (TTSKit, prepared, or the Mac voice)."""
