@@ -116,3 +116,24 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
 - **After the person picks a different option, "Understood" shows what they picked**,
   with the Brain's first guess underneath, so judges aren't confused.
 - The page has test buttons for the six hand signals until the camera is connected.
+
+## Cowork screen (hackathon "Recreate")
+
+- **Own window instead of a Safari tab** (`ui/window.py`, one small package: pyobjc-framework-WebKit 13.0).
+  Typing, scrolling and closing act on "the app you were using", which must never be Cowork
+  itself; and Safari stays free for websites. It also lets screenshots be taken without a browser.
+- **"The app you were using"** = the front window that isn't Cowork or Terminal, read from the
+  window list a few times a second (works without Screen Recording permission).
+- **Closing an app presses Command+Q in it** (via Accessibility). Asking the app to quit from
+  outside was ignored by TextEdit. AppKit's "has it quit" goes stale without an event loop, so
+  the process itself is checked.
+- **Scrolling aims at the middle of that app's window**, so it works wherever the pointer is.
+- **Spoken steps ("Opening Mail.") are said while the action runs**, not before it, so the slow
+  first-time TTSKit voice never delays the action. Phrases for other people are still spoken in order.
+- **Camera only on during a request** (warmed at the start, about 2 s, off 6 s after the last
+  card), so the camera light means "watching for your answer". Frames are never saved.
+- **Sending email stays behind `EMAIL_REALLY_SEND`** (off) on top of the always-ask card.
+- **The Brain may now list up to 100 values per detail** (was 40), so every installed app fits.
+- **The demo profile** = TORGO M04's phrases, command words and enrollment examples (fold 0,
+  exactly as evaluated) + the 4 everyday phrases + the Cowork actions. Test clips are all held-out
+  M04 clips that reached the right answer in the evaluation.

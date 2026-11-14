@@ -27,3 +27,6 @@ cache/
 
 # Learning done with the fake model (python -m ui --fake)
 profiles/fake_profile.json
+profiles/contacts.json
+profiles/cowork_profile.json
+profiles/fake_cowork_profile.json

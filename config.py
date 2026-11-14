@@ -61,9 +61,27 @@ MODEL_MEMORY_BUDGET_GB = 3.5 # all models together must stay under this (shown o
 
 # Acting on the Mac (see actions/mac.py)
 EMAIL_REALLY_SEND = False   # False: a reply is prepared in a Mail window but NOT sent
-MAX_APPS = 40               # how many app names the Brain may choose from
+MAX_APPS = 100              # how many app names the Brain may choose from (every installed app)
 MAX_TARGETS = 25            # how many on-screen buttons/links the Brain may choose from
 ACTION_TIMEOUT_S = 8        # no automation call may hang longer than this
+CONTACTS_PATH = ROOT / "profiles" / "contacts.json"   # names -> email addresses, for "write an email to ..."
+# Websites the Brain may choose from ("open YouTube"). Anything else becomes a Google search.
+SITES = {
+    "Google": "https://www.google.com",
+    "YouTube": "https://www.youtube.com",
+    "Gmail": "https://mail.google.com",
+    "Wikipedia": "https://www.wikipedia.org",
+    "BBC News": "https://www.bbc.com/news",
+    "Weather": "https://weather.com",
+    "Google Maps": "https://maps.google.com",
+    "Amazon": "https://www.amazon.com",
+    "Netflix": "https://www.netflix.com",
+    "Spotify": "https://open.spotify.com",
+    "Facebook": "https://www.facebook.com",
+    "WhatsApp": "https://web.whatsapp.com",
+    "ALS Association": "https://www.als.org",
+    "Parkinson's Foundation": "https://www.parkinson.org",
+}
 
 # Speech synthesis (TTSKit; see tts/real.py)
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset (the 1.7b model does not fit in 8 GB)

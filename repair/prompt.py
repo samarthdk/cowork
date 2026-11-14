@@ -23,7 +23,7 @@ CONFIDENCE = {"type": "string", "enum": ["high", "low"]}
 # the request (user message), never in the instructions.
 DYNAMIC_DETAILS = ("target",)
 MAX_FREE_TEXT = 120   # characters, for details with no fixed list (e.g. a reply message)
-MAX_LISTED = 40       # at most this many real values are listed per detail
+MAX_LISTED = 100      # at most this many real values are listed per detail (every installed app)
 
 
 def usable_commands(profile: dict, context: dict | None = None) -> list[dict]:

@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cowork</title>
+<!-- Fully offline: no web fonts, no outside scripts. Served by ui/server.py on this Mac only. -->
+<style>
+:root {
+  --bg: #FAF9F5;          /* page */
+  --side: #F1EFE7;        /* sidebar */
+  --panel: #FFFFFF;
+  --panel-2: #F5F3EC;
+  --line: #DDD9CC;
+  --line-strong: #B9B3A2;
+  --text: #1C1B19;
+  --muted: #55524A;       /* 7:1 on --bg */
+  --accent: #A8462A;      /* warm clay, 5.9:1 on white */
+  --accent-soft: #F6E6DE;
+  --ok: #1E6B3A;
+  --ok-soft: #E3F1E6;
+  --bad: #A3261B;
+  --bad-soft: #F8E3E0;
+  --warn: #8A5A00;
+  --warn-soft: #FBF0D9;
+  --focus: #1A5FD6;
+  --button: #1C1B19;
+  --button-text: #FFFFFF;
+  --radius: 14px;
+  --serif: ui-serif, "New York", Georgia, "Times New Roman", serif;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--text); font: 19px/1.5 var(--sans); -webkit-font-smoothing: antialiased; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 4px solid var(--focus); outline-offset: 2px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+
+.app { display: grid; grid-template-columns: 260px minmax(0, 1fr) 340px; height: 100vh; }
+
+/* ---- sidebar ---- */
+.side { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 18px 14px; min-height: 0; }
+.brand { display: flex; align-items: center; gap: 10px; font: 600 24px/1 var(--serif); padding: 6px 8px 18px; letter-spacing: -0.01em; }
+.brand-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--text); display: grid; place-items: center; }
+.brand-mark svg { width: 20px; height: 20px; }
+.new-task { display: flex; align-items: center; gap: 10px; width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--panel); font-weight: 600; min-height: 52px; }
+.new-task:hover { background: #fff; border-color: var(--text); }
+.side h3 { font-size: 14px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 26px 8px 8px; }
+.recent { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; min-height: 0; }
+.recent li { padding: 10px 10px; border-radius: 10px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text); }
+.recent li.now { background: var(--panel); font-weight: 600; }
+.recent li .tick { color: var(--ok); margin-right: 6px; }
+.side-foot { font-size: 14px; color: var(--muted); padding: 12px 8px 0; border-top: 1px solid var(--line); line-height: 1.4; }
+
+/* ---- main ---- */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; overflow: hidden; }
+.strip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 24px; border-bottom: 1px solid var(--line); font-size: 15px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; padding: 5px 11px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); white-space: nowrap; }
+.chip .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.chip.ok { background: var(--ok-soft); border-color: #9CCBA9; } .chip.ok .dot { background: var(--ok); }
+.chip.warn { background: var(--warn-soft); border-color: #E3C27A; } .chip.warn .dot { background: var(--warn); }
+.chip .tag { font-size: 12px; font-weight: 700; text-transform: uppercase; color: var(--warn); }
+.strip .spacer { flex: 1; }
+.chip.timing { font-variant-numeric: tabular-nums; font-weight: 600; }
+
+.scroll { flex: 1; overflow-y: auto; min-height: 0; scroll-behavior: smooth; }
+.convo { max-width: 820px; margin: 0 auto; padding: 28px 28px 40px; }
+.empty { text-align: center; padding: 12vh 20px 0; }
+.empty h1 { font: 500 44px/1.15 var(--serif); margin: 0 0 14px; letter-spacing: -0.015em; }
+.empty p { color: var(--muted); font-size: 20px; margin: 0 auto; max-width: 560px; }
+.empty .ways { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 26px; }
+
+.turn { margin-bottom: 34px; }
+.user { display: flex; flex-direction: column; align-items: flex-end; margin-bottom: 18px; }
+.bubble { background: #EDEAE0; border-radius: 18px 18px 6px 18px; padding: 12px 18px; font-size: 22px; font-weight: 500; max-width: 85%; }
+.bubble.pending { color: var(--muted); font-style: italic; font-weight: 400; }
+.heard { font-size: 15px; color: var(--muted); margin-top: 6px; max-width: 85%; text-align: right; }
+.heard b { font-weight: 600; }
+
+.assistant { display: grid; grid-template-columns: 34px 1fr; gap: 12px; }
+.avatar { width: 34px; height: 34px; border-radius: 10px; background: var(--accent); display: grid; place-items: center; margin-top: 2px; }
+.avatar svg { width: 20px; height: 20px; }
+.items { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.note { display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--muted); }
+.note svg { width: 18px; height: 18px; flex: none; }
+.note.bolt { color: var(--accent); font-weight: 600; }
+.reply { font-size: 20px; }
+.reply.error { color: var(--bad); }
+.reply .label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+
+.step { border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius); padding: 12px 16px; display: grid; grid-template-columns: 30px 1fr auto; gap: 12px; align-items: center; }
+.step .ico { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; }
+.step .ico svg { width: 18px; height: 18px; }
+.step.running .ico { border: 3px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+.step.done .ico { background: var(--ok); }
+.step.failed .ico { background: var(--bad); }
+.step.undone .ico { background: var(--muted); }
+.step .title { font-weight: 600; font-size: 20px; }
+.step .detail { font-size: 15px; color: var(--muted); }
+.step.failed .detail { color: var(--bad); }
+.step .state { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.step.done .state { color: var(--ok); }
+.step.failed .state { color: var(--bad); }
+.spoken { border-left: 5px solid var(--accent); background: var(--panel); border-radius: 6px var(--radius) var(--radius) 6px; padding: 14px 18px; border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.spoken .label { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .05em; }
+.spoken .label svg { width: 18px; height: 18px; }
+.spoken .words { font: 500 26px/1.35 var(--serif); margin-top: 4px; }
+.spoken.undone .words { text-decoration: line-through; color: var(--muted); }
+.email { grid-column: 2 / 4; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; background: var(--panel-2); font-size: 16px; }
+.email div { overflow-wrap: anywhere; } .email b { color: var(--muted); font-weight: 600; display: inline-block; min-width: 72px; }
+.undo { grid-column: 1 / 4; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; background: var(--warn-soft); border-radius: 10px; padding: 8px 12px; font-size: 16px; }
+.undo button { border: 2px solid var(--text); background: var(--panel); border-radius: 10px; padding: 6px 14px; font-weight: 700; min-height: 44px; }
+.undo .bar { flex: 1; min-width: 80px; height: 6px; border-radius: 3px; background: rgba(0,0,0,.1); overflow: hidden; }
+.undo .bar i { display: block; height: 100%; background: var(--warn); transform-origin: left; }
+
+.resolved { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 16px; color: var(--muted); border: 1px dashed var(--line-strong); border-radius: 12px; padding: 8px 14px; }
+.resolved .q { color: var(--text); }
+.resolved .a { font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.resolved.allowed .a, .resolved.picked .a { background: var(--ok-soft); color: var(--ok); }
+.resolved.denied .a { background: var(--bad-soft); color: var(--bad); }
+.resolved.none .a { background: var(--panel-2); color: var(--muted); }
+
+/* ---- permission card ---- */
+.perm { border: 2px solid var(--text); background: var(--panel); border-radius: 18px; padding: 18px 20px 16px; box-shadow: 0 10px 30px rgba(28,27,25,.12); animation: rise .25s ease-out; }
+.perm.risky { border-color: var(--bad); }
+.perm-head { display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.perm.risky .perm-head { color: var(--bad); }
+.perm-head svg { width: 22px; height: 22px; }
+.perm-title { font: 600 24px/1.3 var(--sans); margin: 6px 0 2px; }
+.perm-body { font: 500 30px/1.3 var(--serif); margin: 4px 0 14px; overflow-wrap: anywhere; }
+.perm.guess .perm-body { font-style: italic; }
+.perm .tagline { display: inline-block; font-size: 14px; font-weight: 700; color: var(--warn); background: var(--warn-soft); padding: 2px 10px; border-radius: 999px; margin-bottom: 8px; }
+.perm .email { margin: 0 0 14px; }
+.buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.btn { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 76px; padding: 12px 18px; border-radius: 14px; border: 2px solid var(--text); background: var(--panel); font-size: 23px; font-weight: 700; text-align: left; position: relative; overflow: hidden; }
+.btn.allow { background: var(--button); color: var(--button-text); }
+.perm.risky .btn.allow { background: var(--bad); border-color: var(--bad); }
+.btn:hover { filter: brightness(1.06); }
+.btn .how { display: flex; align-items: center; gap: 6px; flex: none; }
+.key { font: 700 13px/1 var(--sans); padding: 5px 7px; border-radius: 6px; border: 1.5px solid currentColor; opacity: .85; }
+.gest { display: inline-flex; flex-direction: column; align-items: center; font-size: 22px; line-height: 1; }
+.gest small { font: 700 10px/1 var(--sans); margin-top: 2px; letter-spacing: .04em; }
+.gest .flip { display: inline-block; transform: scaleX(-1); }
+.btn .fill { position: absolute; left: 0; bottom: 0; height: 6px; background: var(--accent); width: calc(var(--p, 0) * 100%); transition: width .1s linear; }
+.btn.allow .fill { background: #F3B49F; }
+.btn.holding { outline: 4px solid var(--accent); outline-offset: 2px; }
+.grid4 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.opt { min-height: 96px; font-size: 21px; font-weight: 600; align-items: flex-start; flex-direction: column; justify-content: space-between; }
+.opt .num { font: 800 16px/1 var(--sans); background: var(--text); color: #fff; border-radius: 8px; padding: 5px 9px; }
+.opt .row { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.opt .txt { overflow-wrap: anywhere; }
+.opt.else { background: var(--panel-2); font-style: italic; }
+.none-row { display: flex; justify-content: center; margin-top: 10px; }
+.none-btn { border: 2px solid var(--line-strong); background: transparent; border-radius: 12px; padding: 10px 18px; font-size: 18px; font-weight: 600; min-height: 52px; display: flex; gap: 10px; align-items: center; }
+.values { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.values button { border: 2px solid var(--text); background: var(--panel); border-radius: 12px; padding: 10px 16px; font-size: 19px; font-weight: 600; min-height: 52px; }
+.detail-row { display: flex; gap: 10px; }
+.detail-row input { flex: 1; min-height: 56px; border: 2px solid var(--line-strong); border-radius: 12px; padding: 0 14px; font-size: 20px; background: #fff; }
+.detail-row button { min-height: 56px; border-radius: 12px; border: 2px solid var(--text); background: var(--button); color: #fff; font-weight: 700; padding: 0 20px; }
+.answer-hint { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font-size: 15px; color: var(--muted); }
+.answer-hint span { display: inline-flex; align-items: center; gap: 6px; }
+.answer-hint svg { width: 16px; height: 16px; }
+.closes { height: 4px; border-radius: 2px; background: var(--line); margin-top: 12px; overflow: hidden; }
+.closes i { display: block; height: 100%; background: var(--line-strong); }
+
+/* ---- composer ---- */
+.composer-wrap { padding: 12px 24px 16px; border-top: 1px solid var(--line); background: var(--bg); }
+.composer { max-width: 820px; margin: 0 auto; display: flex; gap: 10px; align-items: stretch; }
+.speak { display: flex; align-items: center; gap: 10px; padding: 0 22px; min-height: 64px; border-radius: 16px; border: 2px solid var(--accent); background: var(--accent); color: #fff; font-size: 21px; font-weight: 700; flex: none; position: relative; }
+.speak svg { width: 24px; height: 24px; }
+.speak[disabled] { background: var(--panel-2); color: var(--muted); border-color: var(--line-strong); cursor: not-allowed; }
+.speak.listening { animation: pulse 1.2s ease-in-out infinite; }
+.speak .lvl { position: absolute; left: 10px; right: 10px; bottom: 6px; height: 4px; border-radius: 2px; background: rgba(255,255,255,.35); overflow: hidden; }
+.speak .lvl i { display: block; height: 100%; background: #fff; width: 0; }
+.typebox { flex: 1; display: flex; border: 2px solid var(--line-strong); border-radius: 16px; background: var(--panel); overflow: hidden; min-width: 0; }
+.typebox:focus-within { border-color: var(--text); }
+.typebox input { flex: 1; border: 0; padding: 0 16px; font-size: 20px; background: transparent; min-width: 0; }
+.typebox input:focus { outline: none; }
+.typebox button { border: 0; background: transparent; padding: 0 16px; font-weight: 700; color: var(--accent); }
+.clip-btn { display: flex; align-items: center; gap: 8px; min-height: 64px; padding: 0 18px; border-radius: 16px; border: 2px solid var(--text); background: var(--panel); font-size: 18px; font-weight: 700; flex: none; }
+.clip-btn svg { width: 20px; height: 20px; }
+.credit { max-width: 820px; margin: 8px auto 0; font-size: 13px; color: var(--muted); line-height: 1.4; }
+.clips { position: absolute; bottom: 100px; right: 24px; width: 460px; max-height: 60vh; overflow-y: auto; background: var(--panel); border: 2px solid var(--text); border-radius: 16px; box-shadow: 0 16px 40px rgba(0,0,0,.18); padding: 10px; z-index: 20; }
+.clips h4 { margin: 6px 8px 8px; font-size: 15px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.clips button { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 10px; font-size: 18px; min-height: 52px; }
+.clips button:hover, .clips button:focus-visible { background: var(--panel-2); }
+.clips .play { width: 34px; height: 34px; border-radius: 50%; background: var(--accent); display: grid; place-items: center; }
+.clips .play svg { width: 14px; height: 14px; }
+.clips .secs { font-size: 14px; color: var(--muted); }
+.clips .credit { margin: 8px; }
+
+/* ---- right panel ---- */
+.panel { border-left: 1px solid var(--line); background: var(--bg); overflow-y: auto; padding: 18px 18px 24px; min-height: 0; }
+.panel section { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 14px; }
+.panel h2 { font: 600 18px/1.3 var(--sans); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.panel h2 svg { width: 20px; height: 20px; }
+.progress { list-style: none; margin: 0; padding: 0; }
+.progress li { display: grid; grid-template-columns: 24px 1fr; gap: 10px; padding: 7px 0; font-size: 16px; align-items: start; }
+.progress .pi { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line-strong); display: grid; place-items: center; margin-top: 1px; }
+.progress .pi svg { width: 13px; height: 13px; }
+.progress li.done .pi { background: var(--ok); border-color: var(--ok); }
+.progress li.failed .pi { background: var(--bad); border-color: var(--bad); }
+.progress li.running .pi { border-color: var(--accent); border-top-color: transparent; animation: spin .8s linear infinite; }
+.progress li.open .pi { border-color: var(--accent); background: var(--accent-soft); }
+.progress .muted { color: var(--muted); font-size: 15px; }
+.counts { display: flex; gap: 10px; margin-bottom: 10px; }
+.counts div { flex: 1; background: var(--panel-2); border-radius: 10px; padding: 8px 10px; }
+.counts b { display: block; font: 600 26px/1.1 var(--serif); }
+.counts span { display: block; font-size: 14px; line-height: 1.3; color: var(--muted); margin-top: 4px; }
+.feed { list-style: none; margin: 0; padding: 0; }
+.feed li { padding: 10px 0; border-top: 1px solid var(--line); font-size: 15px; line-height: 1.4; }
+.feed li:first-child { border-top: 0; }
+.feed .kind { display: inline-flex; align-items: center; gap: 5px; font: 800 12px/1 var(--sans); letter-spacing: .05em; text-transform: uppercase; padding: 4px 7px; border-radius: 6px; margin-bottom: 5px; }
+.feed .kind svg { width: 12px; height: 12px; }
+.feed .k-learned { background: var(--ok-soft); color: var(--ok); }
+.feed .k-fast { background: var(--accent-soft); color: var(--accent); }
+.feed .k-undo { background: var(--bad-soft); color: var(--bad); }
+.feed .k-other { background: var(--panel-2); color: var(--muted); }
+.feed .said { color: var(--muted); font-style: italic; }
+.feed .arrow { color: var(--muted); }
+.feed .meant { font-weight: 600; }
+.feed .ms { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.feed-empty { font-size: 15px; color: var(--muted); }
+
+/* ---- camera preview ---- */
+.cam { position: fixed; top: 16px; right: 18px; width: 304px; border-radius: 16px; overflow: hidden; background: #111; border: 3px solid var(--text); box-shadow: 0 12px 30px rgba(0,0,0,.25); z-index: 15; transform: translateX(calc(100% + 40px)); visibility: hidden; transition: transform .35s ease, visibility .35s; }
+.cam.show { transform: none; visibility: visible; }
+.cam img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #222; }
+.cam .off { aspect-ratio: 4 / 3; display: grid; place-items: center; text-align: center; color: #ddd; font-size: 15px; padding: 16px; }
+.cam .off svg { width: 34px; height: 34px; margin-bottom: 6px; opacity: .8; }
+.cam .cap { background: var(--text); color: #fff; font-size: 14px; font-weight: 600; padding: 7px 10px; display: flex; align-items: center; gap: 8px; }
+.cam .rec { width: 9px; height: 9px; border-radius: 50%; background: #3DDC84; flex: none; }
+.cam .ring { position: absolute; top: 10px; left: 10px; width: 54px; height: 54px; }
+.cam .ring circle { fill: none; stroke-width: 6; }
+
+.toast { position: fixed; left: 50%; bottom: 120px; transform: translateX(-50%); background: var(--text); color: #fff; padding: 12px 18px; border-radius: 12px; font-size: 17px; max-width: 640px; z-index: 30; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes rise { from { transform: translateY(10px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pulse { 50% { box-shadow: 0 0 0 8px var(--accent-soft); } }
+html.still *, html.still *::before { animation: none !important; transition: none !important; }   /* screenshots */
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+
+@media (max-width: 1180px) { .app { grid-template-columns: 220px minmax(0, 1fr) 290px; } }
+@media (max-width: 960px) {
+  .app { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100vh; }
+  .side, .panel { display: none; }
+  .scroll { overflow: visible; }
+  .composer { flex-wrap: wrap; }
+  .typebox { flex-basis: 100%; order: 3; min-height: 56px; }
+  .buttons, .grid4 { grid-template-columns: 1fr; }
+  .clips { width: auto; left: 16px; right: 16px; }
+  .convo { padding: 20px 16px 32px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side" aria-label="Tasks">
+    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h0"/></svg></span>Cowork</div>
+    <button class="new-task" id="newTask"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>New task</button>
+    <h3>Recent</h3>
+    <ul class="recent" id="recent"></ul>
+    <div class="side-foot">Runs entirely on this Mac.<br>Your voice never leaves it.</div>
+  </aside>
+
+  <main class="main">
+    <div class="strip" id="strip" aria-label="Status"></div>
+    <div class="scroll" id="scroll">
+      <div class="convo" id="convo" aria-live="polite"></div>
+    </div>
+    <div class="composer-wrap">
+      <div class="composer">
+        <button class="speak" id="speak" title="Listen now (Space when nothing is asked)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+          <span id="speakLabel">Speak</span><span class="lvl"><i id="lvl"></i></span>
+        </button>
+        <form class="typebox" id="typeForm" autocomplete="off">
+          <label class="sr" for="typed">Type what was said</label>
+          <input id="typed" placeholder="Or type what was said…">
+          <button type="submit">Send</button>
+        </form>
+        <button class="clip-btn" id="clipBtn" aria-haspopup="true" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>Play test clip
+        </button>
+      </div>
+      <div class="credit" id="credit"></div>
+    </div>
+    <div class="clips" id="clips" hidden></div>
+  </main>
+
+  <aside class="panel" aria-label="Progress and learning">
+    <section>
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>Progress</h2>
+      <ul class="progress" id="progress"></ul>
+    </section>
+    <section>
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 11v2"/></svg>What I've learned about your voice</h2>
+      <div class="counts" id="counts"></div>
+      <ul class="feed" id="feed"></ul>
+    </section>
+  </aside>
+</div>
+<div class="cam" id="cam" aria-hidden="true"></div>
+<div class="toast" id="toast" hidden role="status"></div>
+
+<script>
+"use strict";
+if (location.search.includes("still")) document.documentElement.classList.add("still");
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const post = (url, body) => fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body || {}) }).then((r) => r.json()).catch(() => ({}));
+
+const ICON = {
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
+  x: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  undo: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7L4 12l5 5"/><path d="M4 12h10a6 6 0 0 1 0 12"/></svg>',
+  bolt: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></svg>',
+  learn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5z"/><path d="M7 10.5V15c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5"/></svg>',
+  ear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 9a6 6 0 1 1 12 0c0 4-4 5-4 9a3 3 0 0 1-6 0"/></svg>',
+  speaker: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  shield: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></svg>',
+  mic: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/></svg>',
+  hand: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7 6 6 0 0 1-5-3l-2.5-4.5a1.5 1.5 0 0 1 2.5-1.5L8 15"/></svg>',
+  keys: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg>',
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 7l-7 5 7 5z"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>',
+  play: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg>',
+  mark: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h0"/></svg>',
+};
+// The hand signals each answer accepts (same meaning as choose/meaning.py).
+const G = {
+  rightHand: '<span class="gest" title="Raise your right hand">✋<small>RIGHT</small></span>',
+  leftHand: '<span class="gest" title="Raise your left hand"><span class="flip">✋</span><small>LEFT</small></span>',
+  up: '<span class="gest" title="Thumb up">👍<small>THUMB</small></span>',
+  down: '<span class="gest" title="Thumb down">👎<small>THUMB</small></span>',
+  LEFT_UP: '<span class="gest" title="Left thumb up">👍<small>LEFT</small></span>',
+  RIGHT_UP: '<span class="gest" title="Right thumb up">👍<small>RIGHT</small></span>',
+  LEFT_DOWN: '<span class="gest" title="Left thumb down">👎<small>LEFT</small></span>',
+  RIGHT_DOWN: '<span class="gest" title="Right thumb down">👎<small>RIGHT</small></span>',
+};
+const YES_SIGNALS = ["RIGHT", "RIGHT_UP", "LEFT_UP"], NO_SIGNALS = ["LEFT", "RIGHT_DOWN", "LEFT_DOWN"];
+const GRID = ["LEFT_UP", "RIGHT_UP", "LEFT_DOWN", "RIGHT_DOWN"];
+const NAMES = { "Speech in": "WhisperKit", "Brain": "Bonsai 2 4B", "Voice": "TTSKit" };
+
+let camUrl = null;
+let S = null, lastQid = null, lastTurnCount = -1, toastTimer = null;
+
+function stripHtml(s) {
+  const chips = [];
+  const off = s.metrics && s.metrics.offline;
+  if (!off) chips.push('<span class="chip"><span class="dot"></span>Checking network…</span>');
+  else if (off.offline) chips.push('<span class="chip ok"><span class="dot"></span><b>Offline</b> · nothing leaves this Mac</span>');
+  else chips.push('<span class="chip warn"><span class="dot"></span><b>Wi-Fi is on</b> · Cowork itself sends nothing</span>');
+  for (const [part, name] of Object.entries(NAMES)) {
+    const mode = (s.backends || {})[part];
+    const fake = mode === "fake";
+    chips.push(`<span class="chip${fake ? "" : " ok"}"><span class="dot"></span>${name}${fake ? ' <span class="tag">test</span>' : ""}</span>`);
+  }
+  if (s.camera && s.camera.connected) chips.push(`<span class="chip${s.camera.on ? " ok" : ""}"><span class="dot"></span>Camera ${s.camera.on ? "watching" : "ready"}</span>`);
+  if (s.mic && s.mic.on) chips.push(`<span class="chip ok"><span class="dot"></span>Microphone</span>`);
+  chips.push('<span class="spacer"></span>');
+  const t = lastTurn(s);
+  if (t && t.response_ms != null) {
+    const total = (t.response_ms + (t.asr_ms || 0)) / 1000;
+    chips.push(`<span class="chip timing" title="From the end of speaking to the first answer or question">Response ${total.toFixed(total < 10 ? 1 : 0)} s</span>`);
+  }
+  if (t && t.tokens_per_s) chips.push(`<span class="chip timing">${t.tokens_per_s.toFixed(0)} tokens/s</span>`);
+  return chips.join("");
+}
+
+function turnsOf(s) {
+  const turns = [...(s.history || [])];
+  if (s.turn && !s.turn.finished && !turns.some((t) => t.id === s.turn.id)) turns.push(s.turn);
+  return turns;
+}
+function lastTurn(s) { const t = turnsOf(s); return t[t.length - 1]; }
+
+function stepHtml(item, open) {
+  const icon = { done: ICON.check, failed: ICON.x, undone: ICON.undo, running: "" }[item.status] || "";
+  const state = { done: "Done", failed: "Didn't work", undone: "Undone", running: "Working…" }[item.status] || "";
+  const detail = item.status === "failed" ? (item.problem || item.detail) : item.detail;
+  let html = `<div class="step ${item.status}"><span class="ico">${icon}</span><div><div class="title">${esc(item.title)}</div>${detail ? `<div class="detail">${esc(detail)}</div>` : ""}</div><span class="state">${state}</span>`;
+  if (item.email) html += emailHtml(item.email);
+  if (item.undo_until && open) html += undoHtml(item.undo_until);
+  return html + "</div>";
+}
+function emailHtml(e) {
+  return `<div class="email"><div><b>To</b> ${esc(e.to)}</div><div><b>Subject</b> ${esc(e.subject)}</div><div><b>Message</b> ${esc(e.body)}</div></div>`;
+}
+function undoHtml(until) {
+  return `<div class="undo"><span>Not what you wanted?</span><button data-undo="1">Undo <span class="key">Esc</span></button>${G.leftHand}<span>or say “no”</span><span class="bar"><i data-until="${until}"></i></span></div>`;
+}
+function spokenHtml(item, open) {
+  const label = item.status === "running" ? "Saying out loud…" : item.status === "undone" ? "Stopped" : "Said out loud";
+  return `<div class="spoken ${item.status}"><div class="label">${ICON.speaker}${label}</div><div class="words">${esc(item.text)}</div>${item.undo_until && open ? `<div style="margin-top:10px">${undoHtml(item.undo_until)}</div>` : ""}</div>`;
+}
+function resolvedHtml(item) {
+  const c = item.card || {};
+  const q = c.body ? `${esc(c.title)} <b>${esc(c.body)}</b>` : esc(c.title);
+  return `<div class="resolved ${item.status}"><span class="q">${q}</span><span class="a">${esc(item.answer || "")}</span>${item.by ? `<span>${esc(item.by)}</span>` : ""}</div>`;
+}
+
+function permHtml(q) {
+  const c = q.card || {};
+  const hold = S.hold && S.hold.signal ? S.hold : null;
+  const holdFor = (signals) => (hold && signals.includes(hold.signal) ? ` holding" style="--p:${hold.progress}` : "");
+  let head, body = "";
+  if (c.risky) head = `${ICON.warn}Needs your permission`;
+  else if (c.guess) head = `${ICON.learn}A guess`;
+  else head = `${ICON.shield}Checking with you`;
+  let html = `<div class="perm${c.risky ? " risky" : ""}${c.guess ? " guess" : ""}" role="dialog" aria-label="${esc(c.title)}"><div class="perm-head">${head}</div>`;
+  html += `<div class="perm-title">${esc(c.title)}</div>`;
+  if (c.guess) html += '<span class="tagline">Not from your list — only ever spoken, never done on the Mac</span>';
+  if (c.body) html += `<div class="perm-body">${c.say_aloud ? "“" + esc(c.body) + "”" : esc(c.body)}</div>`;
+  if (c.email) html += emailHtml(c.email);
+  if (q.kind === "yes_no") {
+    html += `<div class="buttons">
+      <button class="btn deny${holdFor(NO_SIGNALS)}" data-answer="no"><span>${esc(c.deny)}</span><span class="how"><span class="key">Esc</span>${G.leftHand}${G.down}</span><span class="fill"></span></button>
+      <button class="btn allow${holdFor(YES_SIGNALS)}" data-answer="yes"><span>${esc(c.allow)}</span><span class="how"><span class="key">Enter</span>${G.rightHand}${G.up}</span><span class="fill"></span></button>
+    </div>`;
+    html += `<div class="answer-hint"><span>${ICON.mic}Say “yes” or “no”</span><span>${ICON.hand}Right hand or thumb up = ${esc(c.allow)} · Left hand or thumb down = ${esc(c.deny)}</span></div>`;
+  } else if (q.kind === "choice") {
+    const opts = c.options || [];
+    html += `<div class="${opts.length > 2 ? "grid4" : "grid2"}">` + opts.map((o, i) =>
+      `<button class="btn opt${o.kind === "else" ? " else" : ""}${holdFor([GRID[i]])}" data-pick="${i}"><span class="row"><span class="num">${i + 1}</span><span class="how">${G[GRID[i]]}</span></span><span class="txt">${esc(o.text)}</span><span class="fill"></span></button>`).join("") + "</div>";
+    html += `<div class="none-row"><button class="none-btn" data-answer="none">None of these <span class="key">Esc</span></button></div>`;
+    html += `<div class="answer-hint"><span>${ICON.mic}Say “one” to “four”</span><span>${ICON.hand}Left thumb = left column, right thumb = right column; up = top row, down = bottom</span><span>${ICON.keys}Keys 1–4</span></div>`;
+  } else if (q.kind === "detail") {
+    html += `<div class="values">${(c.options || []).map((o) => `<button data-text="${esc(o.text)}">${esc(o.text)}</button>`).join("")}</div>
+      <form class="detail-row" data-detail="1"><input id="detailInput" aria-label="${esc(c.title)}" placeholder="Type it"><button>OK</button></form>`;
+  }
+  if (q.closes_at && q.kind !== "detail") html += `<div class="closes"><i data-until="${q.closes_at}" data-total="${q.seconds || 60}"></i></div>`;
+  return html + "</div>";
+}
+
+function turnHtml(t, isLast) {
+  const pending = !t.request;
+  const words = pending ? (t.finished ? `“${t.heard}”` : "Understanding…") : t.request;
+  const source = t.source === "test clip" ? "TORGO test clip" : t.source === "microphone" ? "your voice" : t.source === "keyboard" ? "typed" : t.source;
+  let html = `<div class="turn"><div class="user"><div class="bubble${pending ? " pending" : ""}">${esc(words)}</div><div class="heard">heard: <b>“${esc(t.heard)}”</b> · ${esc(source)}</div></div>`;
+  html += `<div class="assistant"><div class="avatar" aria-hidden="true">${ICON.mark}</div><div class="items">`;
+  const open = isLast && !t.finished;
+  for (const item of t.items || []) {
+    if (item.type === "note") html += `<div class="note ${item.icon}">${ICON[item.icon] || ""}<span>${esc(item.text)}</span></div>`;
+    else if (item.type === "step") html += stepHtml(item, open);
+    else if (item.type === "spoken") html += spokenHtml(item, open);
+    else if (item.type === "reply") html += `<div class="reply${item.error ? " error" : ""}">${item.read_aloud ? `<div class="label">${ICON.speaker}Read aloud</div>` : ""}${esc(item.text)}</div>`;
+    else if (item.type === "permission") {
+      if (item.status === "open" && open && S.question && S.question.id === item.qid) html += permHtml(S.question);
+      else if (item.status !== "open") html += resolvedHtml(item);
+    }
+  }
+  if (open && !(t.items || []).length) html += `<div class="note">${ICON.ear}<span>${S.status === "listening again" ? "Listening to the recording again…" : "Working out what you meant…"}</span></div>`;
+  return html + "</div></div></div>";
+}
+
+function emptyHtml(s) {
+  const clips = (s.clips || []).length ? "or play a test clip" : "";
+  return `<div class="empty"><h1>What can I do for you?</h1><p>Say it in your own way. I'll check with you whenever I'm not sure, and you can answer by voice, hand, or keyboard.</p>
+    <div class="ways"><span class="chip">${ICON.mic} Press Speak ${clips}</span><span class="chip">“Open Mail”</span><span class="chip">“Search for the weather”</span><span class="chip">“Email Anna”</span></div></div>`;
+}
+
+function progressHtml(s) {
+  const t = lastTurn(s);
+  if (!t) return '<li><span class="pi"></span><span class="muted">Nothing yet. Steps appear here as I work.</span></li>';
+  const rows = [];
+  const thought = t.request || t.finished || (t.items || []).length;
+  rows.push({ cls: thought ? "done" : "running", text: t.request ? `Understood: ${t.request}` : thought ? `Heard “${t.heard}”` : "Understanding what you said" });
+  for (const item of t.items || []) {
+    if (item.type === "permission") rows.push({ cls: item.status === "open" ? "open" : item.status === "denied" || item.status === "none" ? "failed" : "done", text: (item.card || {}).title + (item.answer ? ` — ${item.answer}` : "") });
+    else if (item.type === "step") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: item.title });
+    else if (item.type === "spoken") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: "Say it out loud" });
+  }
+  return rows.map((r) => `<li class="${r.cls}"><span class="pi">${r.cls === "done" ? ICON.check : r.cls === "failed" ? ICON.x : ""}</span><span>${esc(r.text)}</span></li>`).join("");
+}
+
+function feedHtml(s) {
+  const items = (s.feed || []).slice(0, 14);
+  if (!items.length) return '<li class="feed-empty">Each time you confirm something, I learn how you say it. Next time it is instant.</li>';
+  return items.map((f) => {
+    const meant = f.request || f.meaning || f.phrase || "";
+    if (f.kind === "learned") return `<li><span class="kind k-learned">${ICON.learn}Learned</span><div><span class="said">“${esc(f.heard)}”</span> <span class="arrow">→</span> <span class="meant">${esc(meant)}</span></div></li>`;
+    if (f.kind === "fast_path") return `<li><span class="kind k-fast">${ICON.bolt}Fast path</span><div><span class="meant">${esc(meant)}</span> answered in <span class="ms">${f.latency_ms < 1 ? "<1" : Math.round(f.latency_ms)} ms</span>, no model</div><div class="said">like “${esc(f.example_heard)}”</div></li>`;
+    if (f.kind === "undone" || f.kind === "forgot" || f.kind === "cancelled") return `<li><span class="kind k-undo">${ICON.undo.replace('stroke="#fff"', 'stroke="currentColor"')}${f.kind === "cancelled" ? "Cancelled" : "Forgot"}</span><div>${f.heard ? `<span class="said">“${esc(f.heard)}”</span> <span class="arrow">≠</span> ` : ""}<span class="meant">${esc(meant)}</span></div></li>`;
+    if (f.kind === "new_phrase") return `<li><span class="kind k-learned">${ICON.learn}New phrase</span><div class="meant">${esc(f.phrase)}</div></li>`;
+    if (f.kind === "new_words") return `<li><span class="kind k-other">New words</span><div>${esc((f.words || []).join(", "))}</div></li>`;
+    if (f.kind === "sound_check") return `<li><span class="kind k-other">${ICON.ear}Listened again</span><div>${f.confirmed ? "Recording backs up" : "Not sure about"} <span class="meant">${esc(meant)}</span></div></li>`;
+    if (f.kind === "relisten") return `<li><span class="kind k-other">${ICON.ear}Found by sound</span><div class="meant">${esc(meant)}</div></li>`;
+    return "";
+  }).join("");
+}
+
+function camHtml(s) {
+  const c = s.camera || {};
+  const hold = s.hold && s.hold.signal ? s.hold : null;
+  const ring = hold ? `<svg class="ring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" stroke="rgba(255,255,255,.35)"/><circle cx="27" cy="27" r="22" stroke="#F3B49F" stroke-dasharray="${(138 * hold.progress).toFixed(1)} 138" transform="rotate(-90 27 27)" stroke-linecap="round"/></svg>` : "";
+  const picture = c.connected
+    ? `<img id="camImg" alt="">${ring}`
+    : `<div class="off"><div>${ICON.cam}<br>Camera not connected<br><small>start with --camera to answer by hand</small></div></div>`;
+  const cap = c.connected ? (c.problem ? esc(c.problem) : "Watching for your answer — nothing is recorded") : "Hand answers need the camera";
+  return `${picture}<div class="cap"><span class="rec"></span>${cap}</div>`;
+}
+
+let camKey = "";
+function render(s) {
+  S = s;
+  $("strip").innerHTML = stripHtml(s);
+  const turns = turnsOf(s);
+  $("convo").innerHTML = turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s);
+  $("recent").innerHTML = turns.slice().reverse().map((t, i) => `<li class="${i === 0 ? "now" : ""}">${t.finished && t.request ? '<span class="tick">✓</span>' : ""}${esc(t.request || "“" + t.heard + "”")}</li>`).join("") || '<li style="color:var(--muted)">No tasks yet</li>';
+  $("progress").innerHTML = progressHtml(s);
+  const counts = s.counts || {};
+  $("counts").innerHTML = `<div><b>${counts.examples ?? 0}</b><span>ways you say things</span></div><div><b>${counts.phrases ?? 0}</b><span>your phrases</span></div>`;
+  $("feed").innerHTML = feedHtml(s);
+  $("credit").textContent = s.credit || "";
+  const mic = s.mic || {};
+  $("speak").disabled = !mic.on;
+  $("speak").title = mic.on ? "Listen now" : "The microphone is off (start Cowork with --mic)";
+  $("speak").classList.toggle("listening", !!mic.listening);
+  $("speakLabel").textContent = s.playing ? "Playing clip…" : mic.listening ? "Listening…" : s.status === "hearing" ? "Hearing…" : "Speak";
+  // Camera preview: slides in while a card can be answered by hand.
+  const q = s.question;
+  const showCam = !!(q && (q.kind === "yes_no" || q.kind === "choice"));
+  $("cam").classList.toggle("show", showCam);
+  const key = JSON.stringify([s.camera, s.hold]);
+  if (key !== camKey) { camKey = key; $("cam").innerHTML = camHtml(s); if (camUrl && $("camImg")) $("camImg").src = camUrl; }
+  // New card or new turn: bring it into view.
+  const qid = q ? q.id : null;
+  if (qid !== lastQid || turns.length !== lastTurnCount) {
+    lastQid = qid; lastTurnCount = turns.length;
+    const sc = $("scroll"); sc.scrollTop = sc.scrollHeight;
+    if (q && q.kind === "detail") setTimeout(() => $("detailInput") && $("detailInput").focus(), 30);
+  }
+  if (s.notice && Date.now() / 1000 - s.notice.time < 6) showToast(s.notice.text);
+}
+
+function showToast(text) {
+  const t = $("toast");
+  if (t.textContent === text && !t.hidden) return;
+  t.textContent = text; t.hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => (t.hidden = true), 5000);
+}
+
+// Countdown bars (correction window, question timeout).
+setInterval(() => {
+  const now = Date.now() / 1000;
+  document.querySelectorAll("[data-until]").forEach((el) => {
+    const until = +el.dataset.until, total = +(el.dataset.total || 3);
+    el.style.transform = `scaleX(${Math.max(0, Math.min(1, (until - now) / total))})`;
+  });
+}, 100);
+
+// Camera frames, only while the preview is showing.
+let camBusy = false;
+setInterval(async () => {
+  if (camBusy || !S || !S.camera || !S.camera.connected || !$("cam").classList.contains("show")) return;
+  const img = $("camImg");
+  if (!img) return;
+  camBusy = true;
+  try {
+    const r = await fetch("/api/camera.jpg?t=" + Date.now());
+    if (r.status === 200) {
+      const url = URL.createObjectURL(await r.blob());
+      img.src = url; if (camUrl) URL.revokeObjectURL(camUrl); camUrl = url;
+    }
+  } catch (e) {}
+  camBusy = false;
+}, 100);
+
+// ---- inputs ---------------------------------------------------------------
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) { if (!e.target.closest("#clips") && !e.target.closest("#clipBtn")) hideClips(); return; }
+  if (b.dataset.answer) post("/api/answer", { kind: b.dataset.answer });
+  else if (b.dataset.pick !== undefined) post("/api/answer", { kind: "pick", value: +b.dataset.pick });
+  else if (b.dataset.text !== undefined) post("/api/answer", { kind: "text", value: b.dataset.text });
+  else if (b.dataset.undo) post("/api/answer", { kind: "no" });
+  else if (b.dataset.clip) { hideClips(); post("/api/clip", { id: b.dataset.clip }).then((r) => r && r.problem && showToast(r.problem)); }
+});
+document.addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (e.target.dataset.detail) { const v = $("detailInput").value.trim(); if (v) post("/api/answer", { kind: "text", value: v }); return; }
+  const v = $("typed").value.trim();
+  if (!v) return;
+  $("typed").value = "";
+  post("/api/say", { text: v });
+});
+$("speak").addEventListener("click", () => post("/api/listen"));
+$("newTask").addEventListener("click", () => post("/api/new"));
+$("clipBtn").addEventListener("click", () => ($("clips").hidden ? showClips() : hideClips()));
+function showClips() {
+  const clips = (S && S.clips) || [];
+  $("clips").innerHTML = `<h4>Real recordings of dysarthric speech</h4>` + (clips.length ? clips.map((c) =>
+    `<button data-clip="${esc(c.id)}"><span class="play">${ICON.play}</span><span>“${esc(c.said)}”</span><span class="secs">${c.seconds ? c.seconds.toFixed(1) + " s" : ""}</span></button>`).join("") : '<p class="feed-empty" style="padding:0 8px">No clips found on this Mac.</p>') + `<div class="credit">${esc((S && S.credit) || "")}</div>`;
+  $("clips").hidden = false; $("clipBtn").setAttribute("aria-expanded", "true");
+  const first = $("clips").querySelector("button"); if (first) first.focus();
+}
+function hideClips() { $("clips").hidden = true; $("clipBtn").setAttribute("aria-expanded", "false"); }
+
+document.addEventListener("keydown", (e) => {
+  if (!S) return;
+  const q = S.question, typing = document.activeElement && document.activeElement.tagName === "INPUT";
+  if (e.key === "Escape" && !$("clips").hidden) { hideClips(); return; }
+  if (!q) {
+    if (e.key === " " && !typing && document.activeElement === document.body) { e.preventDefault(); post("/api/listen"); }
+    return;
+  }
+  if (q.kind === "window") { if (e.key === "Escape") { e.preventDefault(); post("/api/answer", { kind: "no" }); } return; }
+  if (q.kind === "detail") return;   // the text box handles Enter
+  if (typing && $("typed").value) return;
+  if (q.kind === "yes_no") {
+    if (e.key === "Enter") { e.preventDefault(); post("/api/answer", { kind: "yes" }); }
+    else if (e.key === "Escape") { e.preventDefault(); post("/api/answer", { kind: "no" }); }
+  } else if (q.kind === "choice") {
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= (q.options || []).length) { e.preventDefault(); post("/api/answer", { kind: "pick", value: n - 1 }); }
+    else if (e.key === "Escape") { e.preventDefault(); post("/api/answer", { kind: "none" }); }
+  }
+});
+
+// ---- live updates -----------------------------------------------------------
+function connect() {
+  const source = new EventSource("/api/stream");
+  source.onmessage = (m) => {
+    const msg = JSON.parse(m.data);
+    if (msg.type === "level") {
+      const pct = Math.max(0, Math.min(100, (msg.level + 60) * 1.8));
+      $("lvl").style.width = pct + "%";
+      return;
+    }
+    if (msg.state) render(msg.state);
+  };
+  source.onerror = () => { source.close(); setTimeout(connect, 1000); };
+}
+fetch("/api/state").then((r) => r.json()).then(render).catch(() => {});
+connect();
+</script>
+</body>
+</html>

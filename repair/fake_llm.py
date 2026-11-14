@@ -19,6 +19,16 @@ COMMAND_HINTS = {
     "read_latest_email": "read latest new email mail message",
     "reply_email": "reply answer respond email write back",
     "scroll_down": "scroll down page lower",
+    "scroll_up": "scroll up page higher",
+    "open_website": "website site go",
+    "search_web": "search google look find",
+    "compose_email": "write email mail message",
+    "send_email": "send it",
+    "type_text": "type write",
+    "close_app": "close quit shut",
+}
+ARG_AFTER = {   # the fake takes the words after one of these as that detail
+    "query": ("search", "google", "for"), "text": ("type",), "body": ("saying", "say"),
 }
 
 
@@ -45,6 +55,11 @@ def _guess_args(heard_text: str, arg_names: list[str]) -> dict:
     for i, w in enumerate(lowered):
         if "app" in args and _similar(w, "open") >= 0.75 and i + 1 < len(words):
             args["app"] = words[i + 1].strip(".,!?").capitalize()
+        for name, starts in ARG_AFTER.items():
+            if name in args and not args[name] and w in starts and i + 1 < len(words):
+                args[name] = " ".join(x for x in words[i + 1:] if x.lower() not in ("for", "saying"))
+        if "subject" in args and not args["subject"]:
+            args["subject"] = "Hello"
         if "text" in args and _similar(w, "reply") >= 0.7 and i + 1 < len(words):
             rest = [x for x in words[i + 1:] if x.lower() not in {"to", "email", "with", "saying"}]
             args["text"] = " ".join(rest)
@@ -73,7 +88,9 @@ class FakeLLM:
         meaning = dict(re.findall(r"^- (P\d+): (.+)$", messages[0]["content"], re.MULTILINE))
 
         def score(choice):
-            return _score(heard, meaning.get(choice, choice))
+            # A command also "sounds like" its real detail values ("open mail" -> open_app, Mail).
+            values = " ".join(v for vs in schema_details(schema, choice).values() if vs for v in vs)
+            return _score(heard, meaning.get(choice, choice) + (" " + values if values else ""))
 
         ranked = sorted(choices, key=score, reverse=True)
         best, second = score(ranked[0]), score(ranked[1]) if len(ranked) > 1 else 0.0

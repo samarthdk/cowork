@@ -24,22 +24,55 @@ import time
 import config
 from choose.answers import Answer, from_signal, from_text, hint
 from engine.session import Session
+from ui import wording
 
 QUESTION_WAIT_S = 60.0     # an unanswered question closes after this (nothing chosen; silence is not a "no")
 FEED_MAX = 30              # items kept in the learning feed
 METRICS_EVERY_S = 5.0      # memory/offline checks (gentle on the fanless Air)
 LEVEL_EVERY_S = 0.15       # microphone level updates for the screen
 
+HISTORY_MAX = 20           # finished requests kept on screen
+VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
+
 FEED_KINDS = {"learned", "fast_path", "undone", "cancelled", "forgot", "new_phrase", "new_words",
               "sound_check", "relisten"}
 
 
 class _Voice:
-    """Wraps the voice so the microphone is muted while the Mac speaks."""
+    """Wraps the voice so the microphone is muted while the Mac speaks.
+
+    A command's spoken step ("Opening Mail.") is queued and spoken while the
+    action runs, so a slow voice never holds the action up. Everything else
+    (phrases said for other people, an email read aloud) is spoken in order,
+    waiting for the queue first, exactly as before."""
     def __init__(self, tts, app):
         self.tts, self.app = tts, app
+        self.next_in_background = False
+        self._queue: queue.Queue = queue.Queue()
+        self._idle = threading.Event()
+        self._idle.set()
+        threading.Thread(target=self._work, daemon=True, name="voice").start()
 
     def speak(self, text):
+        if self.next_in_background:
+            self.next_in_background = False
+            self._idle.clear()
+            self._queue.put(text)
+            return
+        self._idle.wait(VOICE_WAIT_S)
+        self._say(text)
+
+    def _work(self):
+        while True:
+            text = self._queue.get()
+            try:
+                self._say(text)
+            except Exception as error:
+                self.app._notice(f"Couldn't speak: {error}")
+            if self._queue.empty():
+                self._idle.set()
+
+    def _say(self, text):
         self.app._set(status="speaking", speaking=text)
         if self.app.listener:
             self.app.listener.mute()
@@ -50,7 +83,15 @@ class _Voice:
                 self.app.listener.unmute()
             self.app._set(speaking=None)
 
+    def wait(self, timeout=VOICE_WAIT_S) -> bool:
+        return self._idle.wait(timeout)
+
     def stop(self):
+        while not self._queue.empty():
+            try:
+                self._queue.get_nowait()
+            except queue.Empty:
+                break
         stop = getattr(self.tts, "stop", None)
         if stop:
             stop()
@@ -59,10 +100,13 @@ class _Voice:
 class App:
     def __init__(self, profile, llm, tts, asr=None, actions=None, profile_path=None,
                  backends=None, warm=False, question_wait_s=QUESTION_WAIT_S):
-        self.asr, self.listener = asr, None
+        self.asr, self.listener, self.camera = asr, None, None
         self.question_wait_s = question_wait_s
-        self.session = Session(profile, llm, _Voice(tts, self), actions=actions, profile_path=profile_path,
+        self.voice = _Voice(tts, self)
+        self.session = Session(profile, llm, self.voice, actions=actions, profile_path=profile_path,
                                on_event=self._on_event, warm=warm)
+        self._turns = 0
+        self._clips = {}
         self._lock = threading.RLock()
         self._subscribers = []
         self._requests: queue.Queue = queue.Queue()   # (kind, payload)
@@ -74,9 +118,12 @@ class App:
             "status": "ready",          # ready, thinking, asking, speaking, listening, hearing
             "backends": backends or {},
             "mic": {"on": False, "listening": False, "problem": "", "level": None, "noise": None},
-            "camera": {"on": False, "note": "Camera not connected yet."},
+            "camera": {"connected": False, "on": False, "problem": "", "note": "Camera not connected."},
             "hold": None,               # hand hold-to-confirm progress: {"signal", "progress" 0..1}
             "turn": None,               # the request being handled (see _on_event)
+            "history": [],              # finished requests, oldest first (the conversation)
+            "clips": [],                # TORGO test clips (see ui/clips.py)
+            "credit": "",               # where the test clips come from
             "question": None,
             "speaking": None,
             "feed": [],
@@ -225,11 +272,13 @@ class App:
     def mic_timeout(self) -> None:
         self._set(mic=dict(self.state["mic"], listening=False))
 
-    def heard_audio(self, path: str, segment=None) -> None:
-        """A finished request from the microphone (called on the microphone's thread)."""
+    def heard_audio(self, path: str, segment=None, known=None, source: str = "microphone") -> None:
+        """A finished request from the microphone (called on the microphone's thread).
+        `known`: a transcript already made for this recording (test clips with the
+        fake speech recognizer); then it is not transcribed again or re-heard."""
         self._set(status="hearing", mic=dict(self.state["mic"], listening=False))
         try:
-            transcript = self.asr.transcribe(path)
+            transcript = known if known is not None else self.asr.transcribe(path)
         except Exception as error:
             self._notice(f"Speech recognition failed: {error}")
             self._set(status="ready" if self._question is None else "asking")
@@ -252,8 +301,54 @@ class App:
         def rehear(hint_text):   # listen to the same recording again, with a hint
             return asr.transcribe(path, prompt=hint_text)
 
-        self._requests.put(("hear", {"text": text, "source": "microphone", "rehear": rehear,
+        self._requests.put(("hear", {"text": text, "source": source,
+                                     "rehear": rehear if known is None else None,
                                      "asr_ms": round(transcript.latency_ms)}))
+
+    # ---- test clips (TORGO recordings, as if spoken) -------------------------
+
+    def set_clips(self, clips: list[dict], credit: str) -> None:
+        self._clips = {c["id"]: c for c in clips}
+        self._set(clips=[{k: c[k] for k in ("id", "said", "seconds")} for c in clips], credit=credit)
+
+    def play_clip(self, clip_id: str, play_sound: bool = True) -> str:
+        """Play a recording out loud and feed it in as if the person said it.
+        Returns "" or why not."""
+        clip = self._clips.get(clip_id)
+        if clip is None:
+            return "No such clip."
+        if self.busy or self._question is not None:
+            return "Wait until the current request is finished."
+
+        def run():
+            self._set(status="playing clip", playing=clip_id)
+            if self.listener:
+                self.listener.mute()   # the microphone must not hear the clip as a second request
+            try:
+                if play_sound:
+                    import subprocess
+                    subprocess.run(["afplay", clip["path"]], timeout=30, check=False)
+            finally:
+                if self.listener:
+                    self.listener.unmute()
+                self._set(playing=None)
+            known = None
+            if config.ASR == "fake":   # use what WhisperKit really heard in the evaluation
+                from asr.base import Transcript
+                known = Transcript(clip["heard"], clip["heard"], -0.3, 0.0, clip.get("seconds") or 0.0, 0.0, "recorded")
+            self.heard_audio(clip["path"], known=known, source="test clip")
+
+        threading.Thread(target=run, daemon=True, name="clip").start()
+        return ""
+
+    # ---- camera -----------------------------------------------------------
+
+    def attach_camera(self, camera) -> None:
+        self.camera = camera
+        self._set(camera=dict(self.state["camera"], connected=True, note=""))
+
+    def camera_state(self, changes: dict) -> None:
+        self._set(camera=dict(self.state["camera"], **changes))
 
     # ---- the conversation thread ------------------------------------------
 
@@ -274,12 +369,17 @@ class App:
 
     def _run_turn(self, request: dict) -> None:
         with self._lock:
-            self.state["turn"] = {"heard": request["text"], "source": request["source"],
+            self._turns += 1
+            self.state["turn"] = {"id": self._turns, "heard": request["text"], "source": request["source"],
                                   "asr_ms": request["asr_ms"], "meaning": None, "confidence": None,
-                                  "how": None, "reasons": [], "steps": [], "result": None}
+                                  "how": None, "reasons": [], "steps": [], "result": None,
+                                  "request": None, "intent_args": {}, "items": [],
+                                  "started": time.time(), "response_ms": None, "finished": False}
             if request["asr_ms"] is not None:
                 self.state["turn"]["steps"].append({"name": "Speech recognition", "ms": request["asr_ms"]})
             self.state["status"] = "thinking"
+        if self.camera is not None:
+            self.camera.want(False)   # warm the camera up now (about 2 s), in case a card follows
         flow = self.session.hear(request["text"], source=request["source"], rehear=request["rehear"])
         pending = None
         try:
@@ -288,9 +388,37 @@ class App:
                 question = flow.send(self._ask(question))
         except StopIteration as finished:
             pending = finished.value
+        finally:
+            self._finish_turn()
         if pending:   # a sentence said during the correction window: the next request
             self._requests.put(("hear", {"text": pending, "source": request["source"], "rehear": None,
                                          "asr_ms": None}))
+
+    def _finish_turn(self) -> None:
+        """The request is over: it joins the conversation history."""
+        with self._lock:
+            turn = self.state["turn"]
+            if turn is None or turn.get("finished"):
+                return
+            turn["finished"] = True
+            for item in turn["items"]:
+                if item["type"] == "step" and item["status"] == "running":
+                    item["status"] = "done"
+            if not any(i["type"] in ("step", "spoken", "reply") for i in turn["items"]):
+                turn["items"].append({"type": "reply", "text": "Okay — I didn't do anything."})
+            self.state["history"].append(copy.deepcopy(turn))
+            del self.state["history"][:-HISTORY_MAX]
+
+    def new_task(self) -> None:
+        """Clear the conversation on screen (nothing learned is forgotten)."""
+        if self.busy:
+            return
+        self._set(history=[], turn=None)
+
+    def _card(self, shown: dict) -> dict:
+        with self._lock:
+            turn = self.state["turn"]
+        return wording.permission(shown, self.session.profile, turn)
 
     def _ask(self, question):
         """Show a question and wait for an answer from any input."""
@@ -302,7 +430,24 @@ class App:
         shown = {"id": qid, "kind": question.kind, "stage": question.stage, "text": question.text,
                  "options": list(question.options), "seconds": question.seconds, "data": question.data,
                  "hint": hint(question), "closes_at": time.time() + wait}
+        if question.kind != "window":
+            shown["card"] = self._card(shown)
+        with self._lock:
+            turn = self.state["turn"]
+            if turn is not None:
+                if turn["response_ms"] is None:
+                    turn["response_ms"] = round((time.time() - turn["started"]) * 1000)
+                if question.kind == "window":
+                    steps = [i for i in turn["items"] if i["type"] in ("step", "spoken")]
+                    if steps:
+                        steps[-1]["undo_until"] = shown["closes_at"]
+                else:
+                    turn["items"].append({"type": "permission", "qid": qid, "kind": question.kind,
+                                          "stage": question.stage, "card": shown["card"], "status": "open",
+                                          "answer": None})
         self._question = question
+        if self.camera is not None and question.kind in ("yes_no", "choice"):
+            self.camera.want(True)
         self._set(event={"kind": "question", "stage": question.stage}, status="asking", question=shown)
         if self.listener and self.listener.running and question.kind in ("yes_no", "choice", "window"):
             self.listener.trigger(wait_s=wait)   # a spoken "yes"/"no"/"two" can answer
@@ -323,21 +468,129 @@ class App:
         self._question = None
         if self.listener:
             self.listener.cancel()
+        if self.camera is not None:
+            self.camera.want(False)
+        self._resolve(qid, question, shown, answer)
         self._set(event={"kind": "answered", "answer": answer.__dict__ if answer else None},
                   status="thinking", question=None, hold=None,
                   mic=dict(self.state["mic"], listening=False))
         return answer
+
+    def _resolve(self, qid: int, question, shown: dict, answer) -> None:
+        """Mark the question's card in the conversation with what was answered."""
+        with self._lock:
+            turn = self.state["turn"]
+            if turn is None:
+                return
+            if question.kind == "window":
+                for item in turn["items"]:
+                    item.pop("undo_until", None)
+                return
+            item = next((i for i in turn["items"] if i.get("qid") == qid), None)
+            if item is None:
+                return
+            card = shown.get("card") or {}
+            source = {"hand": "by hand signal", "speech": "by voice", "keyboard": "by keyboard",
+                      "screen": "", "head": "by head movement"}.get(answer.source if answer else "", "")
+            if answer is None or answer.kind == "none":
+                item["status"], item["answer"] = "none", "No answer — nothing was done"
+            elif answer.kind == "yes":
+                item["status"], item["answer"] = "allowed", card.get("allow", "Yes")
+            elif answer.kind == "no":
+                item["status"], item["answer"] = "denied", card.get("deny", "No")
+            elif answer.kind == "pick":
+                options = card.get("options") or []
+                text = options[answer.value]["text"] if 0 <= answer.value < len(options) else str(answer.value)
+                item["status"], item["answer"] = "picked", text
+            elif answer.kind == "text":
+                item["status"], item["answer"] = "picked", str(answer.value)
+            item["by"] = source
 
     def stop(self) -> None:
         self._requests.put(("stop", None))
 
     # ---- what the conversation reports -------------------------------------
 
+    def _conversation(self, turn: dict, event: dict) -> None:
+        """Turn engine events into the Cowork conversation: the request, notes,
+        step cards and replies (permission cards are added in _ask)."""
+        kind, items, profile = event["kind"], turn["items"], self.session.profile
+        if kind == "fast_path":
+            intent = event["intent"]
+            turn["request"] = wording.request_text(intent["choice"], intent["args"], profile)
+            turn["intent_args"] = intent["args"]
+            items.append({"type": "note", "icon": "bolt",
+                          "text": f"Recognised instantly from what I've learned ({event['latency_ms']:.0f} ms, no model)"})
+        elif kind == "brain":
+            intent = event["intent"]
+            turn["intent_args"] = intent.get("args") or {}
+            if intent["confidence"] == "high" and intent.get("choice"):
+                turn["request"] = wording.request_text(intent["choice"], intent["args"], profile)
+        elif kind == "sound_check" and event.get("confirmed"):
+            items.append({"type": "note", "icon": "ear", "text": "Listened again: the recording backs this up"})
+        elif kind == "act":
+            self.voice.next_in_background = True   # say the step while it happens
+            turn["request"] = wording.request_text(event["command"], event.get("args") or {}, profile)
+            if turn["response_ms"] is None:
+                turn["response_ms"] = round((time.time() - turn["started"]) * 1000)
+            step = {"type": "step", "title": wording.step_title(event.get("say", "")), "status": "running",
+                    "command": event["command"], "detail": ""}
+            if event["command"] == "compose_email":
+                step["email"] = wording.email_preview(event.get("args") or {})
+            items.append(step)
+        elif kind == "acted":
+            step = next((i for i in reversed(items) if i["type"] == "step"), None)
+            if step:
+                step["status"] = "done" if event["ok"] else "failed"
+                step["detail"] = event.get("detail") or ""
+                step["problem"] = event.get("problem") or ""
+        elif kind == "speak" and event.get("kind_of") == "phrase":
+            turn["request"] = turn["request"] or event["text"]
+            if turn["response_ms"] is None:
+                turn["response_ms"] = round((time.time() - turn["started"]) * 1000)
+            items.append({"type": "spoken", "text": event["text"], "status": "running"})
+        elif kind == "speak" and event.get("kind_of") == "result":
+            items.append({"type": "reply", "text": event["text"], "read_aloud": True})
+        elif kind == "spoke":
+            spoken = next((i for i in reversed(items) if i["type"] == "spoken" and i["status"] == "running"), None)
+            if spoken:
+                spoken["status"] = "done"
+        elif kind == "learned":
+            meant = wording.request_text(*self._final(turn, event), profile)
+            items.append({"type": "note", "icon": "learn", "learned_from": event["heard"],
+                          "text": f"Learned: “{event['heard']}” means “{meant}”"})
+        elif kind == "cancelled":
+            for item in reversed(items):
+                if item["type"] in ("step", "spoken"):
+                    item["status"] = "undone"
+                    break
+            turn["request"] = None
+        elif kind == "new_phrase":
+            items.append({"type": "note", "icon": "learn", "text": f"Added to your phrases: “{event['phrase']}”"})
+        elif kind in ("problem", "guess_failed"):
+            items.append({"type": "reply", "error": True,
+                          "text": event.get("text") or event.get("problem") or "Something went wrong."})
+        elif kind == "no_more_guesses":
+            items.append({"type": "reply", "text": "I'm out of guesses. Please try saying it again."})
+
+    def _final(self, turn: dict, event: dict) -> tuple:
+        """(choice, args) of what was just confirmed, for its wording."""
+        result = turn.get("result") or {}
+        meant = event.get("meaning", "")
+        if result.get("command") and meant.startswith(result["command"]):
+            return result["command"], result.get("args") or {}
+        for command in self.session.profile["commands"]:
+            if meant == command["name"] or meant.startswith(command["name"] + " ("):
+                return command["name"], turn.get("intent_args") or {}
+        return meant, {}
+
     def _on_event(self, event: dict) -> None:
         kind = event["kind"]
         with self._lock:
             turn = self.state["turn"]
             steps = turn["steps"] if turn else []
+            if turn is not None and not turn.get("finished"):
+                self._conversation(turn, event)
             if kind == "fast_path" and turn:
                 turn.update(meaning=event["meaning"], confidence="high", how="fast_path",
                             similarity=round(event["similarity"]), example=event["example_heard"],
@@ -377,7 +630,8 @@ class App:
             elif kind == "cancelled" and turn:
                 turn.update(result=None, final=None)
             if kind in FEED_KINDS and not (kind in ("sound_check", "relisten") and not event.get("meaning")):
-                self.state["feed"].insert(0, {**event, "time": time.time()})
+                self.state["feed"].insert(0, {**event, "time": time.time(),
+                                              "request": wording.from_meaning(event.get("meaning"), self.session.profile)})
                 del self.state["feed"][FEED_MAX:]
             if kind == "profile_changed":
                 self.state["counts"] = self._counts()

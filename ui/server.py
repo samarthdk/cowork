@@ -1,7 +1,11 @@
 """The local web server: one HTML page plus a few small endpoints.
 It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
 
-    GET  /              the page (ui/static/index.html)
+    GET  /              the Cowork page (ui/static/cowork.html)
+    GET  /classic       the earlier Second Voice page (ui/static/index.html)
+    GET  /api/camera.jpg the newest camera preview frame (only while a question is open)
+    POST /api/clip      {"id": "M04_2_0015"}    play a TORGO test clip as if it were said
+    POST /api/new       clear the conversation on screen (nothing learned is forgotten)
     GET  /api/state     everything the page shows, once
     GET  /api/stream    live updates (Server-Sent Events: the page keeps this open)
     POST /api/say       {"text": "..."}             something the person said (typed)
@@ -16,11 +20,12 @@ import json
 from pathlib import Path
 
 from fastapi import Body, FastAPI
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 
 from ui.app import App
 
-PAGE = Path(__file__).parent / "static" / "index.html"
+PAGE = Path(__file__).parent / "static" / "cowork.html"
+CLASSIC = Path(__file__).parent / "static" / "index.html"
 KEEP_ALIVE_S = 15
 
 
@@ -30,6 +35,27 @@ def create_server(core: App) -> FastAPI:
     @server.get("/")
     def page():
         return FileResponse(PAGE, headers={"Cache-Control": "no-store"})
+
+    @server.get("/classic")
+    def classic():
+        return FileResponse(CLASSIC, headers={"Cache-Control": "no-store"})
+
+    @server.get("/api/camera.jpg")
+    def camera_frame():
+        frame = core.camera.jpeg() if core.camera is not None else None
+        if frame is None:
+            return Response(status_code=204, headers={"Cache-Control": "no-store"})
+        return Response(frame, media_type="image/jpeg", headers={"Cache-Control": "no-store"})
+
+    @server.post("/api/clip")
+    def clip(body: dict = Body(...)):
+        problem = core.play_clip(str(body.get("id", "")))
+        return {"ok": not problem, "problem": problem}
+
+    @server.post("/api/new")
+    def new_task():
+        core.new_task()
+        return {"ok": True}
 
     @server.get("/api/state")
     def state():

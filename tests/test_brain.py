@@ -63,8 +63,8 @@ check("no apps available: open_app cannot be chosen", "open_app" in schema_choic
 check("  ...and is not offered in the prompt", "open_app" in build_messages(BASE, "x", no_apps)[0]["content"], False)
 prompt = build_messages(BASE, "x", APPS)[0]["content"]
 check("the prompt lists the real apps", 'Needs "app": one of Safari, Mail, Notes, Music.' in prompt, True)
-many = {"app": [f"App{i}" for i in range(100)]}
-check("long lists are capped", len(build_schema(BASE, many)["anyOf"][1]["properties"]["app"]["enum"]), 40)
+many = {"app": [f"App{i}" for i in range(150)]}
+check("long lists are capped (every installed app fits)", len(build_schema(BASE, many)["anyOf"][1]["properties"]["app"]["enum"]), 100)
 
 print("-- Reading the model's answer --")
 i = validate({"choice": "P2", "confidence": "high"}, BASE, APPS)

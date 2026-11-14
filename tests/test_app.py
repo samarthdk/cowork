@@ -225,7 +225,7 @@ def call(path, body=None):
         return reply.read().decode()
 
 
-page = call("/")
+page = call("/classic")   # the earlier page; "/" is now Cowork (tests/test_cowork.py)
 check("the page is served", "<title>Second Voice</title>" in page, True)
 check("  ...and loads nothing from the internet", ("http://" in page.replace("http://localhost", ""), "https://" in page),
       (False, False))
