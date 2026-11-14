@@ -8,6 +8,26 @@ status strip. It runs in its own Mac window, not in a browser.
 Screenshots (made with the fakes): `docs/screenshots/`.
 Remake them any time with `.venv/bin/python scripts/screenshots.py` (no browser is opened).
 
+## The dictation demo (for the video)
+
+Before: LM Studio running with Bonsai (server on); Wi-Fi off; Microsoft Word open with a blank
+document (click into it once, so Cowork knows where to type). Prepared voice: run
+`.venv/bin/python scripts/prepare_voice.py` once (instant if already done).
+
+    cd ~/Desktop/second-voice && .venv/bin/python -m ui --real --dictation --fresh
+
+(`--fresh` forgets what was learned in rehearsals, so clip 2 asks "Did you mean" again.)
+Then "Play test clip" and play, in order:
+
+1. "The humidity is overwhelming there": WhisperKit hears "But humanity is overwhelming."; typed at once.
+2. "We gathered shells on the beach": heard "We can get a joke on the beach."; card "Did you mean...?";
+   answer Yes (Enter, "yes", right hand or thumb up); typed into Word and learned.
+3. The same recording again: recognised instantly from what was learned; typed at once.
+
+Checked on 2026-11-14 with the real WhisperKit + Bonsai (clip 2's card appears after about 2 s), and
+typing into Word: 0.46 s per sentence, Undo removes it (Backspace). Every sentence in this demo
+is a prepared TTSKit sentence.
+
 ## Run it
 
     .venv/bin/python -m ui --fake          # try everything with fakes (no models, nothing done on the Mac)
@@ -48,10 +68,11 @@ Live-tested on 2026-11-14 with the real Bonsai model (LM Studio):
 | Action | Checked how |
 |---|---|
 | Open any installed app (86 on this Mac) | real; clear names work, badly garbled app names often pick the wrong app |
-| Type text into the app you were using | **real, on TextEdit** |
+| Type text into the app you were using | **real, on TextEdit and Microsoft Word** |
+| Dictation: confirmed sentences typed into Word, Undo deletes them | **real, on Microsoft Word** |
 | Scroll up / down that app | **real, on TextEdit** (scroll position read back) |
 | Close (quit) that app | **real, on Calculator**, and undo reopened it |
-| Open a known website / search Google | **real, in Safari** (`BROWSER` in config.py; your default is Chrome) |
+| Open a known website / search Google | **real, in Safari**; **hidden from the demo** (needs the internet) |
 | Write an email (to / subject / message), not sent | **real, in Mail**, to your own address; undo closed the draft |
 | Send it (risky: always asks) | refused unless the email is to "Me" (`SEND_ONLY_TO`) **and** `EMAIL_REALLY_SEND = True` |
 | Read the latest email aloud | works, but Mail has **no account set up**, so it says the inbox is empty |
@@ -76,3 +97,10 @@ Your address is only in `profiles/contacts.json` (as "Me"), which stays on this 
 - Why not TTSKit for everything: it can't stay loaded between sentences with the tools on this
   Mac (whisperkit-cli has no speech server; a helper would need a newer Xcode, several GB), and
   every fresh start costs about 2 s before the first sound (4-5 s for the whole sentence).
+
+## Not done: sound-alike app names
+
+"open male" -> Mail when the Brain is unsure was left out. Doing it well means sending the
+app list with each request (so it can be narrowed to apps that sound like what was heard), which
+changes how the Brain's instructions are cached and would make every request about 3-6 s slower
+unless the engine's prompt is changed. The engine was kept exactly as it is.

@@ -2,6 +2,7 @@
 
     .venv/bin/python -m ui --fake           everything fake: no LM Studio, WhisperKit, microphone or camera needed
     .venv/bin/python -m ui                  the real parts chosen in config.py, with the camera
+    .venv/bin/python -m ui --real --dictation   the dictation demo: everything real, typing into Word
     .venv/bin/python -m ui --mic            also listen on the microphone ("Speak")
     .venv/bin/python -m ui --fresh          start learning from scratch (the old profile is backed up)
 
@@ -64,6 +65,8 @@ def wait_for_server(url: str, seconds: float = 10.0) -> bool:
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description="Cowork")
     parser.add_argument("--fake", action="store_true", help="use the fake ASR, LLM, voice and Mac actions")
+    parser.add_argument("--real", action="store_true",
+                        help="use every real part (WhisperKit, Bonsai, TTSKit, Mac actions), whatever config.py says")
     parser.add_argument("--mic", action="store_true", help="listen on the microphone")
     parser.add_argument("--fresh", action="store_true", help="start learning from scratch")
     parser.add_argument("--camera", action="store_true", help="use the camera even with --fake")
@@ -76,8 +79,12 @@ def main(argv=None) -> None:
     parser.add_argument("--no-window", "--no-browser", dest="no_window", action="store_true")
     options = parser.parse_args(argv)
 
+    if options.fake and options.real:
+        sys.exit("Choose --fake or --real, not both.")
     if options.fake:
         config.ASR = config.LLM = config.TTS = config.ACTIONS = "fake"
+    if options.real:
+        config.ASR = config.LLM = config.TTS = config.ACTIONS = "real"
     base, working, fake_working = PROFILES[options.profile]
     profile_path = fake_working if options.fake else working
 
