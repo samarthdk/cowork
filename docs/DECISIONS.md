@@ -228,3 +228,13 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
   the first four; typed or clicked requests are never taken as a filter.
 - New endpoint: POST /api/ui {"quick": true|false} (the page says whether Quick Actions is open).
   Existing endpoints unchanged.
+
+## Closing apps by name; neutral glass (2026-11-14)
+
+- **"Close Word"**: new command quit_app {app} (Command+Q in that app, so it still asks about unsaved
+  work); "close the app" (no name) still closes the app being used. Live-tested with the real Bonsai:
+  open/close Calculator and Word by voice. Never closed: Finder, Terminal, Cowork, and LM Studio (it runs
+  the Brain; a test once sent "close the app" to it, so it is now protected and never typed into).
+- **Neutral glass tint** rgba(12,12,14,0.76) instead of the warm brown, which coloured everything brown.
+  Same contrast rule (all text 4.5:1 or more over white, busy and default wallpapers).
+- **Live tests clean up after themselves** and never open Notes.

@@ -7,20 +7,21 @@
 <!-- Fully offline: no web fonts, no outside scripts. Served by ui/server.py on this Mac only. -->
 <style>
 /* Glass: the window is see-through and macOS blurs the desktop behind it (ui/window.py).
-   Every piece of text sits on a panel tinted rgba(40,28,22,0.82): measured over a white, a busy and the
-   default wallpaper (blurred), all text colours below stay at 4.5:1 or more (white 9.3, light gray 6.0,
+   Every piece of text sits on a panel with a NEUTRAL dark tint rgba(12,12,14,0.76), so the wallpaper's own
+   colour shows through (a warm brown tint coloured everything brown). Measured over a white, a busy and
+   the default wallpaper (blurred), all text colours stay at 4.5:1 or more (white 9.4, light gray 6.5,
    clay 4.6, green 5.8). Plain mode (Settings) turns the blur off.
    Type scale: display 40 serif | title 22 semibold | body 17 | label 14 medium | caption 12.
    One card style: 12px radius, 20px padding, 1px light border at 15%. No emoji. */
 :root {
-  --tint: rgba(40, 28, 22, 0.82);
-  --tint-strong: rgba(32, 22, 17, 0.92);
-  --base: rgba(24, 17, 13, 0.30);       /* gutters between panels: no text sits here */
+  --tint: rgba(12, 12, 14, 0.76);
+  --tint-strong: rgba(14, 14, 16, 0.90);
+  --base: rgba(10, 10, 12, 0.22);       /* gutters between panels: no text sits here */
   --line: rgba(255, 255, 255, 0.15);
   --line-strong: rgba(255, 255, 255, 0.32);
   --hover: rgba(255, 255, 255, 0.07);
   --text: #FFFFFF;
-  --muted: #D6CEC6;
+  --muted: #D6D6DA;
   --accent: #F2A385;
   --ok: #8FDDA5;
   --bad: #FFA294;
@@ -37,7 +38,7 @@
   --caption: 400 12px/1.4 var(--sans);
   --target: 48px;
 }
-html.plain { --base: #17110E; }
+html.plain { --base: #141416; }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; background: transparent; }
 body { color: var(--text); font: var(--body); -webkit-font-smoothing: antialiased; background: var(--base); }
@@ -279,7 +280,7 @@ button.chip { min-height: var(--target); }
 /* ---- modal (Quick Actions, lists, Settings, Help) ---- */
 .backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.35); display: grid; place-items: start center; padding-top: 12vh; z-index: 40; }
 .backdrop[hidden] { display: none; }
-.modal { width: min(640px, calc(100vw - 32px)); max-height: 70vh; display: flex; flex-direction: column; background: rgba(30, 21, 16, 0.98);
+.modal { width: min(640px, calc(100vw - 32px)); max-height: 70vh; display: flex; flex-direction: column; background: rgba(20, 20, 22, 0.98);
          box-shadow: 0 20px 50px rgba(0,0,0,.45); padding: 0; overflow: hidden; }
 .modal-head { display: flex; align-items: center; gap: 10px; padding: 12px 12px 12px 20px; border-bottom: 1px solid var(--line); }
 .modal-head > svg { width: 20px; height: 20px; color: var(--muted); }

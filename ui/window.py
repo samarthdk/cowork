@@ -66,7 +66,7 @@ def set_glass(window, effect, glass: bool) -> None:
     effect.setHidden_(not glass)
     window.setOpaque_(not glass)
     window.setBackgroundColor_(NSColor.clearColor() if glass else NSColor.colorWithSRGBRed_green_blue_alpha_(
-        0.11, 0.082, 0.07, 1.0))
+        0.078, 0.078, 0.086, 1.0))
 
 
 def _menus(app) -> None:

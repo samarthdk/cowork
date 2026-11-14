@@ -19,7 +19,8 @@ What is in it:
       read_latest_email
       type_text      {text}              typed into the app you were using
       scroll_up / scroll_down, go_back / go_forward, press_left / press_right / press_return
-      close_app                          quits the app you were using
+      quit_app       {app}               quits that app (close Word)
+      close_app                          quits the app you were using (close the app)
 
 "request" is how the screen writes the person's request ("Open Mail").
 "said_as" is how people tend to say it (used to check the Brain's confidence).
@@ -68,8 +69,13 @@ COMMANDS = [
      "safety": "safe",
      "args": {"text": "The exact words to type"}, "said_as": ["type", "write"],
      "say": "Typing.", "request": "Type “{text}”"},
-    {"name": "close_app", "description": "Close (quit) the app the person is using.", "safety": "safe",
-     "args": {}, "said_as": ["close", "quit", "close app"],
+    {"name": "quit_app", "description": "Close (quit) an app by its name, e.g. close Word, quit Chrome.",
+     "safety": "safe",
+     "args": {"app": "Name of the app to close"}, "said_as": ["close", "quit"],
+     "say": "Closing {app}.", "request": "Close {app}"},
+    {"name": "close_app", "description": "Close (quit) the app the person is using right now, when they do not "
+                                         "name an app (close the app, close this).", "safety": "safe",
+     "args": {}, "said_as": ["close the app", "close this", "close it"],
      "say": "Closing the app.", "request": "Close the app"},
 ]
 # Kept in the code but not offered: websites and Google search can't load with Wi-Fi off (offline demo).

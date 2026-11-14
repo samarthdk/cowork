@@ -44,13 +44,14 @@ CLICKABLE_ROLES = {"AXButton", "AXLink", "AXMenuButton", "AXCheckBox", "AXRadioB
 KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12, "delete": 51, "l": 37, "n": 45, "t": 17}
 COMMAND_KEY = 0x100000  # kCGEventFlagMaskCommand
 SCROLL_LINES = 12
-NOT_A_TARGET = ("Terminal", "iTerm2", "Finder", "loginwindow", "Python")   # never typed into (Python = Cowork)
+NOT_A_TARGET = ("Terminal", "iTerm2", "Finder", "loginwindow", "Python",   # never typed into (Python = Cowork)
+                "LM Studio")   # runs the Brain: never typed into or closed
 # Where the cursor goes when an app is opened by voice (the natural place to start typing):
 BROWSERS = ("Google Chrome", "Safari", "Firefox", "Arc", "Microsoft Edge", "Brave Browser")
 NEW_ITEM_APPS = ("Mail", "Notes")                     # Command+N: a new message / a new note
 DOCUMENT_APPS = ("Microsoft Word", "TextEdit", "Pages")   # Command+N only if no document is open yet
 LAUNCH_WAIT_S = 12.0
-NEVER_CLOSE = ("Finder", "Terminal", "loginwindow", "Dock", "Python")
+NEVER_CLOSE = ("Finder", "Terminal", "loginwindow", "Dock", "Python", "LM Studio")   # LM Studio runs the Brain
 NOT_A_WINDOW_OWNER = ("Window Server", "Dock", "Control Center", "SystemUIServer", "Notification Center",
                       "Spotlight", "WindowManager", "Wallpaper", "TextInputMenuAgent", "screencaptureui")
 TYPE_CHUNK = 16   # characters per typing event
@@ -588,19 +589,41 @@ class MacActions:
         return ""
 
     def _do_close_app(self, args: dict) -> ActionResult:
-        """Quit the app the person was using, exactly as if they pressed Command+Q
-        (so the app itself asks about unsaved work). Measured: asking the app to
-        quit from outside (NSRunningApplication.terminate) was ignored by TextEdit."""
-        from AppKit import NSRunningApplication
-        name, pid = self.front.name, self.front.pid
-        if not pid:
+        """Quit the app the person was using (no name given)."""
+        if not self.front.pid:
             return ActionResult(False, problem="There is no app to close.")
-        if name in NEVER_CLOSE:
+        return self._quit(self.front.pid, self.front.name)
+
+    def _do_quit_app(self, args: dict) -> ActionResult:
+        """Quit an app by name ("close Word")."""
+        name = args.get("app", "")
+        pid = self._running_pid(name)
+        if pid is None:
+            return ActionResult(False, problem=f"{name} isn't open.")
+        return self._quit(pid, name)
+
+    def _running_pid(self, name: str) -> int | None:
+        for window in front_windows():
+            if window["app"] == name:
+                return window["pid"]
+        from AppKit import NSWorkspace
+        for app in NSWorkspace.sharedWorkspace().runningApplications():
+            if app.localizedName() == name and pid_alive(app.processIdentifier()):
+                return app.processIdentifier()
+        return None
+
+    def _quit(self, pid: int, name: str) -> ActionResult:
+        """Quit an app exactly as if the person pressed Command+Q in it (so the app itself
+        asks about unsaved work). Measured: asking the app to quit from outside
+        (NSRunningApplication.terminate) was ignored by TextEdit."""
+        from AppKit import NSRunningApplication
+        if name in NEVER_CLOSE or pid == self.front.own_pid:
             return ActionResult(False, problem=f"I don't close {name}.")
         app = NSRunningApplication.runningApplicationWithProcessIdentifier_(pid)
         if app is None or not pid_alive(pid):
             return ActionResult(False, problem=f"{name} is already closed.")
         bundle = app.bundleIdentifier()
+        self.front._remember(pid, name)   # Command+Q must go to this app
         pressed = self._key("q", command_key=True)
         if not pressed.ok:
             return pressed
@@ -613,8 +636,8 @@ class MacActions:
                 subprocess.run(["open", "-b", bundle], capture_output=True, timeout=config.ACTION_TIMEOUT_S)
 
         if pid_alive(pid):   # e.g. it is asking whether to save
-            return ActionResult(True, detail=f"Asked {name} to close (it may be asking about unsaved work)",
-                                undo=None)
+            return ActionResult(True, detail=f"Asked {name} to close (it may be asking about unsaved work)")
+        self.front.update()
         return ActionResult(True, detail=f"Closed {name}", undo=undo)
 
     def _do_read_latest_email(self, args: dict) -> ActionResult:

@@ -73,8 +73,16 @@ check("  ...sending is risky, writing is not",
       {"send_email": "risky", "compose_email": "safe"})
 check("  ...flaky actions are left out (click, reply_email)", "click" in names or "reply_email" in names, False)
 
+check("apps can be closed by name ('close Word') as well as 'close the app'",
+      {c["name"]: list(c["args"]) for c in BASE["commands"] if c["name"] in ("quit_app", "close_app")},
+      {"quit_app": ["app"], "close_app": []})
+from actions.mac import NEVER_CLOSE, NOT_A_TARGET  # noqa: E402
+check("  ...never Finder, Terminal, Cowork or LM Studio (it runs the Brain)",
+      all(a in NEVER_CLOSE and a in NOT_A_TARGET for a in ("Finder", "Terminal", "Python", "LM Studio")), True)
+
 # ---- wording ----------------------------------------------------------------
 check("request wording: command", wording.request_text("open_app", {"app": "Mail"}, BASE), "Open Mail")
+check("request wording: close an app", wording.request_text("quit_app", {"app": "Microsoft Word"}, BASE), "Close Microsoft Word")
 check("request wording: missing detail", wording.request_text("open_app", {}, BASE), "Open an app")
 check("request wording: phrase", wording.request_text(BASE["phrases"][0], {}, BASE), BASE["phrases"][0])
 check("from the engine's description", wording.from_meaning("type_text (text: cats, dogs)", BASE), "Type \u201ccats, dogs\u201d")

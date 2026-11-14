@@ -6,7 +6,7 @@ from repair.profile import find_command
 
 GENERIC = {   # a command chosen before its details are known
     "open_app": "Open an app", "open_website": "Open a website", "search_web": "Search Google",
-    "compose_email": "Write an email", "type_text": "Type something",
+    "compose_email": "Write an email", "type_text": "Type something", "quit_app": "Close an app",
 }
 
 

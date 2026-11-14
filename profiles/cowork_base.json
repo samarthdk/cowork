@@ -86,14 +86,28 @@
       "request": "Type “{text}”"
     },
     {
+      "name": "quit_app",
+      "description": "Close (quit) an app by its name, e.g. close Word, quit Chrome.",
+      "safety": "safe",
+      "args": {
+        "app": "Name of the app to close"
+      },
+      "said_as": [
+        "close",
+        "quit"
+      ],
+      "say": "Closing {app}.",
+      "request": "Close {app}"
+    },
+    {
       "name": "close_app",
-      "description": "Close (quit) the app the person is using.",
+      "description": "Close (quit) the app the person is using right now, when they do not name an app (close the app, close this).",
       "safety": "safe",
       "args": {},
       "said_as": [
-        "close",
-        "quit",
-        "close app"
+        "close the app",
+        "close this",
+        "close it"
       ],
       "say": "Closing the app.",
       "request": "Close the app"
@@ -190,7 +204,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     },
     {
       "heard": "Well...",
@@ -198,7 +212,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     },
     {
       "heard": "You wish... to meet another horrible grandfiler.",
@@ -206,7 +220,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     },
     {
       "heard": "Up.",
@@ -214,7 +228,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     },
     {
       "heard": "Don't...",
@@ -222,7 +236,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     },
     {
       "heard": "back",
@@ -230,7 +244,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     },
     {
       "heard": "That",
@@ -238,7 +252,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     },
     {
       "heard": "Right?",
@@ -246,7 +260,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 16:25:31"
+      "time": "2026-11-14 18:34:11"
     }
   ],
   "answer_words": {
