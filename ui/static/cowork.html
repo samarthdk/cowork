@@ -195,6 +195,12 @@ button.chip { min-height: var(--target); }
 .composer-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .composer-row .grow { flex: 1; }
 .mic-why { margin-top: 6px; }
+.live { display: flex; align-items: center; gap: 12px; margin-top: 10px; min-height: 28px; }
+.live[hidden] { display: none; }
+.meter { width: 140px; height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; flex: none; }
+.meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .08s linear; }
+.partial { color: var(--text); font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cbtn.mic[aria-pressed="true"] { background: var(--text); border-color: var(--text); }
 .mic-why[hidden] { display: none; }
 .cbtn { display: inline-flex; align-items: center; gap: 8px; min-height: var(--target); padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font: var(--label); font-weight: 600; }
 .cbtn svg { width: 18px; height: 18px; flex: none; }
@@ -314,6 +320,10 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M8 5v14l11-7z"/></svg>Test clips
           </button>
           <button type="submit" class="cbtn send">Send</button>
+        </div>
+        <div class="live" id="live" hidden>
+          <span class="meter" aria-hidden="true"><i id="meterFill"></i></span>
+          <span class="partial" id="partial" aria-live="polite">Listening… speak now</span>
         </div>
         <div class="caption mic-why" id="micWhy" role="status" hidden></div>
       </form>
@@ -585,7 +595,11 @@ function render(s) {
   $("micWhy").hidden = !why;
   $("micWhy").textContent = why ? `Speak is off: ${why}` : "";
   $("speak").classList.toggle("listening", !!mic.listening);
-  $("speakLabel").textContent = s.playing ? "Playing clip…" : mic.listening ? "Listening…" : s.status === "hearing" ? "Hearing…" : "Speak";
+  $("speakLabel").textContent = s.playing ? "Playing clip…" : mic.listening ? "Stop listening" : s.status === "hearing" ? "Hearing…" : "Speak";
+  $("speak").setAttribute("aria-pressed", mic.listening ? "true" : "false");
+  const live = !!(mic.on && (mic.listening || s.status === "hearing"));
+  $("live").hidden = !live;
+  $("partial").textContent = s.status === "hearing" ? `Working out: ${mic.partial || "…"}` : mic.partial ? `Heard so far: ${mic.partial}` : "Listening… speak now";
   // Camera preview: slides in while a card can be answered by hand.
   const q = s.question;
   const showCam = !!(q && (q.kind === "yes_no" || q.kind === "choice"));
@@ -664,7 +678,7 @@ document.addEventListener("submit", (e) => {
   $("typed").value = "";
   post("/api/say", { text: v });
 });
-$("speak").addEventListener("click", () => post("/api/listen"));
+$("speak").addEventListener("click", () => post("/api/listen", { toggle: true }));
 $("newTask").addEventListener("click", () => post("/api/new"));
 document.addEventListener("click", (e) => { if (e.target.closest("#localBtn")) { detailsOpen = !detailsOpen; if (S) $("strip").innerHTML = stripHtml(S); } });
 $("dictBtn").addEventListener("click", () => post("/api/dictation", { on: !(S && S.dictation && S.dictation.on) }));
@@ -686,7 +700,7 @@ document.addEventListener("keydown", (e) => {
   const q = S.question, typing = document.activeElement && document.activeElement.tagName === "INPUT";
   if (e.key === "Escape" && !$("clips").hidden) { hideClips(); return; }
   if (!q) {
-    if (e.key === " " && !typing && document.activeElement === document.body) { e.preventDefault(); post("/api/listen"); }
+    if (e.key === " " && !typing && document.activeElement === document.body) { e.preventDefault(); post("/api/listen", { toggle: true }); }
     return;
   }
   if (q.kind === "window") { if (e.key === "Escape") { e.preventDefault(); post("/api/answer", { kind: "no" }); } return; }
@@ -710,6 +724,8 @@ function connect() {
     if (msg.type === "level") {
       const pct = Math.max(0, Math.min(100, (msg.level + 60) * 1.8));
       $("lvl").style.width = pct + "%";
+      $("meterFill").style.width = pct + "%";
+      $("meterFill").style.background = msg.speaking ? "var(--accent)" : "var(--ok)";
       return;
     }
     if (msg.state) render(msg.state);

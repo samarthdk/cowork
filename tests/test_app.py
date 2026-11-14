@@ -198,9 +198,14 @@ check("  ...shown as confirmed by sound", core.state["turn"]["how"], "sound")
 core.asr = Ear("yes")
 core.heard_audio("/tmp/none.wav")
 check("a spoken 'yes' answers the open question (keep)", idle(core), True)
-core.asr = Ear("")
+class Deaf:
+    def transcribe(self, path, prompt=""):
+        return Transcript("", avg_logprob=-0.9)
+
+
+core.asr = Deaf()   # hears nothing, even with a hint
 core.heard_audio("/tmp/none.wav")
-check("nothing heard: a notice, no request", ("Didn't catch" in core.state["notice"]["text"], core.state["status"]),
+check("nothing heard: a notice, no request", ("Couldn't make out" in core.state["notice"]["text"], core.state["status"]),
       (True, "ready"))
 check("'listen now' without a microphone explains how to switch it on", core.listen_now(), False)
 

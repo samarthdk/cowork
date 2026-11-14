@@ -109,7 +109,9 @@ def create_server(core: App) -> FastAPI:
         return {"ok": core.signal(str(body.get("signal", "")), source=str(body.get("source", "hand")))}
 
     @server.post("/api/listen")
-    def listen():
+    def listen(body: dict = Body(default={})):
+        if body.get("toggle"):
+            return {"ok": True, "listening": core.listen_toggle()}
         return {"ok": core.listen_now()}
 
     @server.post("/api/undo")

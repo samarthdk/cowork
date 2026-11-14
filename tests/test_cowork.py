@@ -179,6 +179,59 @@ main_text = (config.ROOT / "ui" / "__main__.py").read_text()
 check("--real turns the microphone on unless --no-mic",
       "use_mic = not options.no_mic and (options.mic or options.real)" in main_text, True)
 
+# ---- microphone: unclear speech gets one hinted retry; Speak toggles ------------
+from asr.base import Transcript  # noqa: E402
+
+
+class HintASR:
+    """First try: nothing ("[Inaudible]"). With a hint: `text` at confidence `logprob`."""
+    def __init__(self, text, logprob):
+        self.text, self.logprob, self.prompts = text, logprob, []
+
+    def transcribe(self, path, prompt=""):
+        self.prompts.append(prompt)
+        if not prompt:
+            return Transcript("", "[ Inaudible ]", -0.52)
+        return Transcript(self.text, self.text, self.logprob)
+
+
+import copy as _copy  # noqa: E402
+for text, logprob, kept in (("Open Mail.", -0.02, True), ("Watch water.", -0.62, False)):
+    asr = HintASR(text, logprob)
+    core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), asr=asr, actions=FakeActions())
+    core.heard_audio("x.wav", segment=types.SimpleNamespace(speech_s=1.0))
+    got = wait_for(lambda: core.state["turn"] is not None, 1.0)
+    check(f"'[Inaudible]' then hinted {text!r} at {logprob}: {'kept' if kept else 'rejected'}",
+          (got and core.state["turn"]["heard"] == text) if kept else
+          (not got and "Couldn't make out" in core.state["notice"]["text"]), True)
+    check("  ...the hint is the person's own phrases", bool(asr.prompts[-1]) and BASE["phrases"][0][:20] in asr.prompts[-1], True)
+    if kept:
+        check("  ...and the screen says it listened again",
+              any("hint" in i.get("text", "") for i in core.state["turn"]["items"]), True)
+asr = HintASR("", 0.0)
+core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), asr=asr, actions=FakeActions())
+core.heard_audio("x.wav", segment=types.SimpleNamespace(speech_s=0.1))
+check("a click (0.1 s of sound) gets no hinted retry", asr.prompts, [""])
+
+
+class FakeListener:
+    running, listening = True, False
+
+    def trigger(self, wait_s=None):
+        self.listening = True
+
+    def cancel(self):
+        self.listening = False
+
+    def mute(self): pass
+
+    def unmute(self): pass
+
+
+core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions())
+core.attach_listener(FakeListener())
+check("Speak starts listening, a second press stops it", (core.listen_toggle(), core.listen_toggle()), (True, False))
+
 # ---- conversation: unsure -> permission card -> step card --------------------
 core, tts, actions = make()
 core.say("plea op en male")

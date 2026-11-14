@@ -141,7 +141,8 @@ def main(argv=None) -> None:
                      else "Started without the microphone (add --mic).")
     if use_mic:
         from asr.mic import Listener
-        listener = Listener(core.heard_audio, on_level=core.mic_level, on_timeout=core.mic_timeout)
+        listener = Listener(core.heard_audio, on_level=core.mic_level, on_timeout=core.mic_timeout,
+                            on_partial=core.partial_audio)
         if not listener.start():
             print(listener.problem)
         core.attach_listener(listener)

@@ -42,6 +42,7 @@ MIN_SPEECH_RMS = 0.0015     # ...and at least this loud (about -56 dBFS: very qu
 NOISE_WINDOW_S = 5.0        # the room level is the quietest moments of the last few seconds
 NOISE_PERCENTILE = 15       # ...measured all the time, even during speech (speech has gaps)
 WARM_UP_FRAMES = 25         # no request can start before the room has been measured (0.5 s)
+PARTIAL_EVERY_S = 1.0       # while someone speaks, hand on the audio so far this often (for partial words)
 
 
 @dataclass
@@ -136,10 +137,11 @@ class Listener:
     """
 
     def __init__(self, on_request, on_level=None, on_timeout=None, on_speech_start=None,
-                 mode: str = "trigger", wait_s: float = 8.0, device=None):
+                 mode: str = "trigger", wait_s: float = 8.0, device=None, on_partial=None):
         self.on_request, self.on_level = on_request, on_level or (lambda db, noise_db, speaking: None)
         self.on_timeout = on_timeout or (lambda: None)
         self.on_speech_start = on_speech_start or (lambda: None)
+        self.on_partial = on_partial or (lambda samples: None)   # audio so far, while speaking
         self.mode, self.wait_s, self.device = mode, wait_s, device
         self.endpointer = Endpointer()
         self.frames: queue.Queue = queue.Queue()
@@ -211,7 +213,7 @@ class Listener:
         self.frames.put(indata[:, 0].copy())
 
     def _work(self) -> None:
-        last_level = 0.0
+        last_level = last_partial = 0.0
         while self.running:
             try:
                 frame = self.frames.get(timeout=0.2)
@@ -235,6 +237,13 @@ class Listener:
             segment = self.endpointer.feed(frame)
             if self.endpointer.in_speech and not started:
                 self.on_speech_start()
+                last_partial = now
+            if self.endpointer.in_speech and now - last_partial >= PARTIAL_EVERY_S:
+                last_partial = now
+                try:
+                    self.on_partial(np.concatenate(self.endpointer.frames))
+                except Exception:
+                    pass   # partial words are only a display; never stop listening over them
             if segment is not None:
                 if self.mode == "trigger":
                     self.armed_until = 0.0

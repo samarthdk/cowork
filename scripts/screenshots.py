@@ -142,6 +142,12 @@ def main() -> None:
     pump(0.5)
     snapshot(web, out / "01_start_dictation_on.png")
 
+    core._set(mic=dict(core.state["mic"], listening=True, partial="We can get a joke on the"))
+    core._publish({"type": "level", "level": -24, "noise": -60, "speaking": True, "listening": True})
+    pump(0.5)
+    snapshot(web, out / "01b_listening_partial_words.png")
+    core._set(mic=dict(core.state["mic"], listening=False, partial=""))
+
     web.evaluateJavaScript_completionHandler_("document.getElementById('clipBtn').click()", None)
     pump(0.6)
     snapshot(web, out / "02_clip_list.png")

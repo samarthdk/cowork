@@ -31,6 +31,9 @@ FEED_MAX = 30              # items kept in the learning feed
 METRICS_EVERY_S = 5.0      # memory/offline checks (gentle on the fanless Air)
 LEVEL_EVERY_S = 0.15       # microphone level updates for the screen
 
+HINT_MIN_SPEECH_S = 0.3   # a request with at least this much speech gets a second, hinted try
+HINT_MIN_LOGPROB = -0.5   # ...whose answer is kept only if WhisperKit was this sure. Measured on 16 TORGO
+                          # clips + 2 real requests: invented answers scored -0.62 or lower, real ones -0.37 or higher
 HISTORY_MAX = 20           # finished requests kept on screen
 VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
 
@@ -124,7 +127,8 @@ class App:
             "status": "ready",          # ready, thinking, asking, speaking, listening, hearing
             "backends": backends or {},
             "mic": {"on": False, "listening": False, "problem": "", "level": None, "noise": None,
-                    "off_reason": ""},   # why the microphone is off, in a few words (shown under Speak)
+                    "off_reason": "",    # why the microphone is off, in a few words (shown under Speak)
+                    "partial": ""},      # words heard so far while the person is still speaking
             "camera": {"connected": False, "on": False, "problem": "", "note": "Camera not connected."},
             "hold": None,               # hand hold-to-confirm progress: {"signal", "progress" 0..1}
             "turn": None,               # the request being handled (see _on_event)
@@ -262,6 +266,56 @@ class App:
         """The microphone was not started; say why under the Speak button."""
         self._set(mic=dict(self.state["mic"], on=False, off_reason=reason))
 
+    def listen_toggle(self) -> bool:
+        """The Speak button: start listening, or stop if it is already listening.
+        Returns True when it is now listening."""
+        if self.listener and self.listener.running and self.listener.listening:
+            self.listener.cancel()
+            self._set(mic=dict(self.state["mic"], listening=False, partial=""))
+            return False
+        return self.listen_now()
+
+    def partial_audio(self, samples) -> None:
+        """Audio so far while the person is speaking (from the microphone thread):
+        show the words heard so far. Only a display; one transcription at a time."""
+        if self.asr is None or getattr(self, "_partial_busy", False):
+            return
+        self._partial_busy = True
+
+        def run():
+            import tempfile
+            from pathlib import Path
+            from asr.audio import write_wav
+            try:
+                path = Path(tempfile.gettempdir()) / "secondvoice_partial.wav"
+                write_wav(path, samples)
+                text = self.asr.transcribe(str(path)).text
+                if self.listener and self.listener.listening:
+                    self._set(mic=dict(self.state["mic"], partial=text or "…"))
+            except Exception:
+                pass
+            finally:
+                self._partial_busy = False
+
+        threading.Thread(target=run, daemon=True, name="partial").start()
+
+    def asr_hint(self) -> str:
+        """The person's own phrases and commands, as a hint for the recognizer when
+        it could not make out the words (see heard_audio)."""
+        from ui.wording import GENERIC
+        profile = self.session.profile
+        words = list(profile["phrases"])
+        for command in profile["commands"]:
+            words.append(GENERIC.get(command["name"]) or command.get("request", "").split("{")[0].strip()
+                         or command["name"].replace("_", " "))
+        try:
+            apps = (self.session.context() or {}).get("app", [])[:12]
+        except Exception:
+            apps = []
+        words += [f"Open {app}" for app in apps]
+        hint = ". ".join(w.rstrip(".") for w in words if w) + "."
+        return hint[:900]
+
     def listen_now(self) -> bool:
         if not self.listener or not self.listener.running:
             self._notice("The microphone is off. Start the app with --mic to use it.")
@@ -282,22 +336,32 @@ class App:
                        "speaking": speaking, "listening": listening})
 
     def mic_timeout(self) -> None:
-        self._set(mic=dict(self.state["mic"], listening=False))
+        self._set(mic=dict(self.state["mic"], listening=False, partial=""))
 
     def heard_audio(self, path: str, segment=None, known=None, source: str = "microphone") -> None:
         """A finished request from the microphone (called on the microphone's thread).
         `known`: a transcript already made for this recording (test clips with the
         fake speech recognizer); then it is not transcribed again or re-heard."""
         self._set(status="hearing", mic=dict(self.state["mic"], listening=False))
+        hinted = False
         try:
             transcript = known if known is not None else self.asr.transcribe(path)
+            speech_s = getattr(segment, "speech_s", 1.0) if segment is not None else 1.0
+            if known is None and not transcript.text and speech_s >= HINT_MIN_SPEECH_S:
+                # Measured on this Mac: quiet or unclear requests came back as "[Inaudible]";
+                # with the person's own phrases as a hint the same recordings were understood.
+                # The Brain still checks the result as usual ("Did you mean?" when unsure).
+                again = self.asr.transcribe(path, prompt=self.asr_hint())
+                if again.text and again.avg_logprob >= HINT_MIN_LOGPROB:
+                    transcript, hinted = again, True
         except Exception as error:
             self._notice(f"Speech recognition failed: {error}")
             self._set(status="ready" if self._question is None else "asking")
             return
+        self._set(mic=dict(self.state["mic"], partial=""))
         text = transcript.text
         if not text:
-            self._notice("Didn't catch anything. Try again." + (f" ({transcript.problem})" if transcript.problem else ""))
+            self._notice("Couldn't make out the words. Try again, a little closer to the Mac." + (f" ({transcript.problem})" if transcript.problem else ""))
             self._set(status="ready" if self._question is None else "asking")
             return
         if self._question is not None:
@@ -315,7 +379,7 @@ class App:
 
         self._requests.put(("hear", {"text": text, "source": source,
                                      "rehear": rehear if known is None else None,
-                                     "asr_ms": round(transcript.latency_ms)}))
+                                     "asr_ms": round(transcript.latency_ms), "hinted": hinted}))
 
     # ---- test clips (TORGO recordings, as if spoken) -------------------------
 
@@ -423,6 +487,9 @@ class App:
                                   "how": None, "reasons": [], "steps": [], "result": None,
                                   "request": None, "intent_args": {}, "items": [],
                                   "started": time.time(), "response_ms": None, "finished": False}
+            if request.get("hinted"):
+                self.state["turn"]["items"].append({"type": "note", "icon": "ear",
+                                                    "text": "Unclear the first time; heard again with your phrases as a hint"})
             if request["asr_ms"] is not None:
                 self.state["turn"]["steps"].append({"name": "Speech recognition", "ms": request["asr_ms"]})
             self.state["status"] = "thinking"

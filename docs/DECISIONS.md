@@ -169,3 +169,17 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
   "op en sa fa ree") often get the wrong app; a shorter app list (20) did not help, so all apps stay.
 - **Websites open in Safari** (`BROWSER`), not the default browser (Chrome).
 - **Sending is limited to "Me"** (`SEND_ONLY_TO`) on top of `EMAIL_REALLY_SEND = False` and the card.
+
+## Microphone fix (2026-11-14)
+
+- **Cause found**: the microphone, recording and WhisperKit all worked (two real requests were captured
+  and sent), but WhisperKit answered "[Inaudible]" for the quiet, unclear speech and the app dropped it
+  silently. A test clip played from the speakers was captured cleanly, so the recording path is fine.
+- **Fix**: when the first answer is empty and there was real speech (0.3 s or more), WhisperKit is asked
+  once more with the person's own phrases and commands as a hint. The answer is kept only if WhisperKit
+  was sure (average log-probability -0.5 or better): on 12 TORGO clips it first heard as nothing, the
+  hint made up words ("Watch water.", "Press Return.") at -0.62 or lower, while real hearings scored
+  -0.37 or higher (the two real requests: "Open Mail." -0.02, "Open Microsoft Word." -0.03). The Brain
+  still checks the result as usual. Otherwise: "Couldn't make out the words. Try again, a little closer."
+- **Live view while listening**: a sound-level bar and the words heard so far (WhisperKit on the audio
+  so far, once a second, one at a time). Speak now toggles: press again to stop listening.
