@@ -1,5 +1,9 @@
 # Cowork (the hackathon "Recreate" version of the screen)
 
+Look: dark warm glass panels over the blurred desktop (Settings > Glass / Plain), grouped sidebar
+(Tasks, Your voice, Apps; Settings and Help at the bottom), folded rows on the right (Camera, Progress,
+Learned), one white primary button, Quick Actions on Command+K (or say "quick actions").
+
 A Cowork-style screen on top of the unchanged Second Voice engine: your request as
 a message (with what was really heard underneath), step cards that tick when done,
 permission cards for "Did you mean...?" and risky actions, a learning panel, and a

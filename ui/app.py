@@ -159,6 +159,8 @@ class App:
             "clips": [],                # TORGO test clips (see ui/clips.py)
             "credit": "",               # where the test clips come from
             "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
+            "catalog": {"phrases": [], "commands": [], "apps": []},   # everything Quick Actions can do
+            "ui": {"seq": 0, "action": None, "value": None, "quick": False},   # screen-only commands
             "question": None,
             "speaking": None,
             "feed": [],
@@ -166,6 +168,7 @@ class App:
             "notice": None,             # the last problem, in plain words
             "counts": self._counts(),
         }
+        self.refresh_catalog()
         self._worker = threading.Thread(target=self._work, daemon=True, name="conversation")
         self._worker.start()
 
@@ -202,6 +205,48 @@ class App:
     def _notice(self, text: str) -> None:
         self._set(event={"kind": "notice", "text": text}, notice={"text": text, "time": time.time()})
 
+    def refresh_catalog(self) -> None:
+        """Every phrase, command and app, for Quick Actions (Command+K) and the sidebar lists."""
+        from ui.wording import GENERIC
+        profile = self.session.profile
+        commands = [{"name": c["name"], "request": GENERIC.get(c["name"]) or c.get("request", "").split("{")[0].strip()
+                     or c["name"].replace("_", " ").capitalize()} for c in profile["commands"]
+                    if c["name"] != "open_app"]
+        try:
+            apps = list((self.session.context() or {}).get("app", []))
+        except Exception:
+            apps = []
+        with self._lock:
+            self.state["catalog"] = {"phrases": list(profile["phrases"]), "commands": commands, "apps": apps}
+
+    def ui_command(self, text: str, spoken: bool = True) -> bool:
+        """Spoken or typed screen commands ("show learned", "quick actions"), handled by the screen only.
+        While Quick Actions is open, anything said filters its list. Returns True if handled."""
+        from rapidfuzz import fuzz
+        said = " ".join((text or "").lower().replace(".", " ").replace("!", " ").split())
+        commands = {"show learned": ("open", "learned"), "show progress": ("open", "progress"),
+                    "show camera": ("open", "camera"), "quick actions": ("quick", True),
+                    "close quick actions": ("quick", False)}
+        best = max(commands, key=lambda c: fuzz.ratio(said, c))
+        if fuzz.ratio(said, best) >= 85:
+            action, value = commands[best]
+        elif spoken and self.state["ui"].get("quick") and said:   # only speech filters (typed/clicked requests never do)
+            action, value = "filter", text.strip()
+        else:
+            return False
+        self._ui(action, value)
+        return True
+
+    def _ui(self, action: str, value=None) -> None:
+        ui = dict(self.state["ui"], seq=self.state["ui"]["seq"] + 1, action=action, value=value)
+        if action == "quick":
+            ui["quick"] = bool(value)
+        self._set(ui=ui)
+
+    def set_ui(self, quick: bool) -> None:
+        """The page says whether Quick Actions is open (speech and thumbs then go to it)."""
+        self._set(ui=dict(self.state["ui"], quick=bool(quick)))
+
     def _counts(self) -> dict:
         profile = self.session.profile
         return {"phrases": len(profile["phrases"]), "examples": len(profile.get("examples", []))}
@@ -227,6 +272,8 @@ class App:
                 return "ignored"
             self._give(answer)
             return "answer"
+        if self.ui_command(text, spoken=source == "speech"):
+            return "ui"
         lowered = text.lower()
         if lowered in ("undo", "undo last"):
             self.undo()
@@ -255,6 +302,12 @@ class App:
         """A hand (or head) signal: RIGHT, LEFT, RIGHT_UP, ... Its meaning depends
         on the question. With no question open, a raised hand means 'listen now'."""
         question = self._question
+        if question is None and self.state["ui"].get("quick"):
+            square = {"LEFT_UP": 0, "RIGHT_UP": 1, "LEFT_DOWN": 2, "RIGHT_DOWN": 3}.get(name)
+            if square is None:
+                return False
+            self._ui("pick", square)
+            return True
         if question is None:
             if name in ("RIGHT", "LEFT") and self.listener and not self.busy:
                 self.listen_now()
@@ -394,6 +447,9 @@ class App:
             else:
                 self._give(answer)
             self._set(status="asking")
+            return
+        if self.ui_command(text):
+            self._set(status="ready")
             return
         asr = self.asr
 
@@ -874,6 +930,7 @@ class App:
                 del self.state["feed"][FEED_MAX:]
             if kind == "profile_changed":
                 self.state["counts"] = self._counts()
+                self.state["catalog"]["phrases"] = list(self.session.profile["phrases"])
             if kind in ("problem", "guess_failed") or (kind == "acted" and not event["ok"]):
                 text = event.get("text") or event.get("problem") or "Something went wrong."
                 self.state["notice"] = {"text": text, "time": time.time()}

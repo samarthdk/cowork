@@ -274,6 +274,20 @@ check("unsure split: 'Did you mean' first", asking(core, "yes_no") and core.stat
       "\u201copen chrome\u201d, then type \u201cweather in boston\u201d")
 core.answer("no")
 
+# ---- screen-only commands and Quick Actions ------------------------------------------
+core = App(_copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions())
+check("the catalog lists phrases, commands and apps", (len(core.state["catalog"]["phrases"]), "Mail" in core.state["catalog"]["apps"],
+      any(c["request"] == "Press Enter" for c in core.state["catalog"]["commands"])), (len(BASE["phrases"]), True, True))
+check("'show learned' opens the Learned row (screen only, no request)",
+      (core.say("show learned"), core.state["ui"]["action"], core.state["ui"]["value"]), ("ui", "open", "learned"))
+check("'quick actions' opens Quick Actions", (core.say("quick actions"), core.state["ui"]["quick"]), ("ui", True))
+core.heard_audio("x.wav", known=Transcript("open notes", "open notes", -0.1))
+check("  ...while open, speech filters it", (core.state["ui"]["action"], core.state["ui"]["value"]), ("filter", "open notes"))
+check("  ...a thumb picks one of the first four", (core.signal("RIGHT_UP"), core.state["ui"]["action"], core.state["ui"]["value"]),
+      (True, "pick", 1))
+check("  ...a typed request is never swallowed as a filter", core.say("I need to use the bathroom"), "request")
+core.set_ui(False)
+
 # ---- conversation: unsure -> permission card -> step card --------------------
 core, tts, actions = make()
 core.say("plea op en male")

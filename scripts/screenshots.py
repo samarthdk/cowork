@@ -1,5 +1,10 @@
 """Screenshots of the Cowork screen, with the fakes, for checking and for slides.
 
+Glass: the real window is see-through and macOS blurs the desktop behind it; that blur
+cannot be captured without the Screen Recording permission. So these pictures place the
+(see-through) page over a blurred, slightly darkened copy of the desktop wallpaper: an
+approximation of what the real window looks like.
+
     .venv/bin/python scripts/screenshots.py [output folder]
 
 No browser is opened: the page is drawn by WebKit inside this script (off
@@ -73,6 +78,25 @@ def wait(condition, seconds=8.0) -> bool:
     return False
 
 
+def backdrop_image(width: int, height: int):
+    """The desktop wallpaper, blurred and darkened roughly like the window's dark glass."""
+    import subprocess
+    from AppKit import NSScreen, NSWorkspace
+    from PIL import Image, ImageEnhance, ImageFilter
+    url = NSWorkspace.sharedWorkspace().desktopImageURLForScreen_(NSScreen.mainScreen())
+    tmp = Path(tempfile.mkdtemp()) / "wallpaper.png"
+    subprocess.run(["sips", "-s", "format", "png", url.path(), "--out", str(tmp)], capture_output=True)
+    try:
+        wall = Image.open(tmp).convert("RGB")
+    except Exception:
+        wall = Image.new("RGB", (width, height), (90, 70, 60))
+    wall = wall.resize((width, height)).filter(ImageFilter.GaussianBlur(30))
+    return ImageEnhance.Brightness(wall).enhance(0.75)
+
+
+BACKDROP = None
+
+
 def snapshot(web, path: Path) -> None:
     done = {}
 
@@ -86,6 +110,12 @@ def snapshot(web, path: Path) -> None:
     image = done["image"]
     rep = NSBitmapImageRep.imageRepWithData_(image.TIFFRepresentation())
     rep.representationUsingType_properties_(4, {}).writeToFile_atomically_(str(path), True)   # 4 = PNG
+    from PIL import Image
+    page = Image.open(path).convert("RGBA")
+    global BACKDROP
+    if BACKDROP is None or BACKDROP.size != page.size:
+        BACKDROP = backdrop_image(*page.size).convert("RGBA")
+    Image.alpha_composite(BACKDROP, page).convert("RGB").save(path)
     print("saved", path)
 
 
@@ -118,6 +148,7 @@ def main() -> None:
         NSMakeRect(-4000, -4000, WIDTH, HEIGHT), 0, NSBackingStoreBuffered, False)
     web = WKWebView.alloc().initWithFrame_configuration_(NSMakeRect(0, 0, WIDTH, HEIGHT),
                                                          WKWebViewConfiguration.alloc().init())
+    web.setValue_forKey_(False, "drawsBackground")   # see-through, like the real window
     window.setContentView_(web)
     window.orderBack_(None)
     web.loadRequest_(NSURLRequest.requestWithURL_(NSURL.URLWithString_(f"http://localhost:{PORT}/?still")))
@@ -152,6 +183,16 @@ def main() -> None:
     pump(0.6)
     snapshot(web, out / "02_clip_list.png")
     web.evaluateJavaScript_completionHandler_("document.getElementById('clipBtn').click()", None)
+    web.evaluateJavaScript_completionHandler_("openModal('quick')", None)
+    pump(0.5)
+    snapshot(web, out / "02b_quick_actions.png")
+    web.evaluateJavaScript_completionHandler_("qaFilter='open'; renderModal()", None)
+    pump(0.4)
+    snapshot(web, out / "02c_quick_actions_filtered.png")
+    web.evaluateJavaScript_completionHandler_("closeModal(); openModal('settings')", None)
+    pump(0.4)
+    snapshot(web, out / "02d_settings_glass_plain.png")
+    web.evaluateJavaScript_completionHandler_("closeModal()", None)
 
     def play(clip):
         n = len(core.state["history"])

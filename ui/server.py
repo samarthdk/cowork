@@ -6,6 +6,7 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
     GET  /api/camera.jpg the newest camera preview frame (only while a question is open)
     POST /api/clip      {"id": "M04_2_0015"}    play a TORGO test clip as if it were said
     POST /api/new       clear the conversation on screen (nothing learned is forgotten)
+    POST /api/ui        {"quick": true}  Quick Actions is open (speech filters it, thumbs pick from it)
     POST /api/dictation {"on": true}            type confirmed sentences into the app you were using
     GET  /api/state     everything the page shows, once
     GET  /api/stream    live updates (Server-Sent Events: the page keeps this open)
@@ -57,6 +58,11 @@ def create_server(core: App) -> FastAPI:
     def dictation(body: dict = Body(...)):
         core.set_dictation(bool(body.get("on")))
         return {"ok": True, "dictation": core.state["dictation"]}
+
+    @server.post("/api/ui")
+    def ui(body: dict = Body(...)):
+        core.set_ui(bool(body.get("quick")))
+        return {"ok": True}
 
     @server.post("/api/new")
     def new_task():

@@ -206,3 +206,25 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
 - **Free dictation needs "type ..."**: plain words that are not a phrase ("weather in boston") are
   matched against the person's phrases (the model never guesses freely); "type weather in boston" is
   understood with high confidence.
+
+## Glass look (2026-11-14)
+
+- **Native blur**: the window is see-through and macOS blurs the desktop behind it (NSVisualEffectView,
+  "behind window", in ui/window.py; the page background is transparent). Our window is our own WebKit
+  window, not pywebview. Settings > Glass / Plain turns the blur off (the page tells the window through a
+  small message handler). The title bar stays a normal, draggable macOS title bar.
+- **Panel tint measured, not guessed**: at the suggested rgba(40,28,22,0.55), white text over a white
+  wallpaper is only 3.8:1. At 0.82 every text colour passes on a white, a busy and the default wallpaper
+  (blurred): white 9.3, light gray 6.0, clay 4.6, green 5.8. Measured on the real page (every text
+  element, all see-through layers stacked over a white wallpaper): the lowest is 5.4:1.
+  No text sits on the bare window: sidebar, main column and every right-column row are panels.
+- **Smooth**: 54-60 frames per second in the real window with glass on while WhisperKit, Bonsai, the voice
+  and the camera all worked (COWORK_PERF=1 prints the rate). The blur is drawn by macOS, not the page.
+- **Screenshots** can't capture the real blur without the Screen Recording permission (a capture of our
+  own window shows it as flat gray), so scripts/screenshots.py lays the see-through page over a blurred,
+  darkened copy of the wallpaper: an approximation.
+- **Screen-only voice commands** ("show learned", "show progress", "show camera", "quick actions") are
+  handled by the app, not the Brain. While Quick Actions is open, speech filters it and thumbs pick one of
+  the first four; typed or clicked requests are never taken as a filter.
+- New endpoint: POST /api/ui {"quick": true|false} (the page says whether Quick Actions is open).
+  Existing endpoints unchanged.
