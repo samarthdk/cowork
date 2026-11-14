@@ -8,7 +8,7 @@ What needs which macOS permission (System Settings > Privacy & Security):
     read / reply to email            Automation > Terminal > Mail (macOS asks the first time)
     write / send an email            Automation > Terminal > Mail
     type text, close an app          Accessibility (typing); closing needs nothing
-    open a website / Google search   nothing (opens in the default browser)
+    open a website / Google search   nothing (opens in config.BROWSER, Safari)
 
 Typing, scrolling, keys and closing act on "the app you were using": the
 front app that is not Second Voice itself (FrontApp below). So answering a
@@ -194,6 +194,12 @@ def site_url(name: str) -> str | None:
     return None
 
 
+def open_in_browser(url: str):
+    """Open an address in config.BROWSER (Safari), whatever the default browser is."""
+    return subprocess.run(["open", "-a", config.BROWSER, url], capture_output=True, text=True,
+                          timeout=config.ACTION_TIMEOUT_S)
+
+
 def search_url(query: str) -> str:
     return "https://www.google.com/search?q=" + urllib.parse.quote_plus(query.strip())
 
@@ -369,17 +375,16 @@ class MacActions:
         url = site_url(site)
         if url is None:
             return ActionResult(False, problem=f"'{site}' is not one of the websites I know.")
-        done = subprocess.run(["open", url], capture_output=True, text=True, timeout=config.ACTION_TIMEOUT_S)
+        done = open_in_browser(url)
         if done.returncode != 0:
             return ActionResult(False, problem=done.stderr.strip() or f"Could not open {site}.")
-        return ActionResult(True, detail=f"Opened {site} in the browser")
+        return ActionResult(True, detail=f"Opened {site} in {config.BROWSER}")
 
     def _do_search_web(self, args: dict) -> ActionResult:
         query = args.get("query", "").strip()
         if not query:
             return ActionResult(False, problem="There is nothing to search for.")
-        done = subprocess.run(["open", search_url(query)], capture_output=True, text=True,
-                              timeout=config.ACTION_TIMEOUT_S)
+        done = open_in_browser(search_url(query))
         if done.returncode != 0:
             return ActionResult(False, problem=done.stderr.strip() or "Could not open the browser.")
         return ActionResult(True, detail=f"Searched Google for: {query}")
@@ -401,6 +406,7 @@ class MacActions:
         if not ok:
             return ActionResult(False, problem=output)
         self._last_email = subject
+        self._last_email_to = to
         shown = args.get("to", "") if to == args.get("to", "") else f"{args.get('to')} ({to})"
 
         def undo():   # close the draft without saving it
@@ -413,6 +419,10 @@ class MacActions:
     def _do_send_email(self, args: dict) -> ActionResult:
         if self._last_email is None:
             return ActionResult(False, problem="There is no email to send. Ask me to write one first.")
+        allowed = self.contacts.get(config.SEND_ONLY_TO, "")
+        if not allowed or getattr(self, "_last_email_to", "").lower() != allowed.lower():
+            return ActionResult(False, problem=f"For safety, emails are only sent to '{config.SEND_ONLY_TO}' "
+                                               "(SEND_ONLY_TO in config.py). The email is still open in Mail.")
         if not config.EMAIL_REALLY_SEND:
             return ActionResult(False, problem="Sending is switched off (EMAIL_REALLY_SEND in config.py). "
                                                "The email is still open in Mail.")

@@ -10,6 +10,13 @@ person's phrases are a known list, so:
     and saved, so the second time it is instant too;
   - if TTSKit fails for any reason, macOS `say` speaks instead.
 
+Update (Cowork): TTSKit cannot stay loaded between sentences with the tools on
+this Mac (whisperkit-cli has no speech server; building a helper needs a newer
+Xcode). A new run spends about 2 s starting up before any sound. So a sentence
+with no prepared audio is now spoken by the Mac voice, kept loaded
+(tts/mac_voice.py, first sound in about 25 ms), and TTSKit's version is made in
+the background for next time. `last_voice` says which one spoke.
+
 `stop()` cuts off whatever is playing (used when the person cancels).
 """
 
@@ -31,6 +38,8 @@ class RealTTS:
         self._worker: threading.Thread | None = None
         self._queue: list[str] = []
         self.on_ready = on_ready or (lambda text, took_ms: None)
+        self.last_voice = ""                    # "TTSKit" or "Mac voice (<name>)": who spoke last
+        self._mac = None
         config.TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
     # ---- cache ---------------------------------------------------------------
@@ -52,6 +61,8 @@ class RealTTS:
             command += ["--models-path", str(config.TTSKIT_MODELS_PATH)]
         if config.TTSKIT_TOKENIZER_PATH.exists():
             command += ["--tokenizer", str(config.TTSKIT_TOKENIZER_PATH)]
+        if config.TTSKIT_FAST:   # measured: real-time factor 2.0 -> 1.14 (first use compiles once, about 50 s)
+            command += ["--speech-decoder-mode", "throughputOptimized", "--multi-code-decoder-mode", "fused"]
         if play:
             command.append("--play")
         with self._lock:
@@ -86,25 +97,46 @@ class RealTTS:
 
     # ---- speaking --------------------------------------------------------------
 
+    def which_voice(self, text: str) -> str:
+        """Who would speak this sentence right now: "TTSKit" (prepared) or the Mac voice."""
+        if self.is_cached(text.strip()):
+            return "TTSKit"
+        if config.TTS_NEW_SENTENCES == "mac":
+            return f"Mac voice ({self.mac_voice().name})"
+        return "TTSKit" if config.TTS_NEW_SENTENCES == "ttskit" else "Mac voice (say)"
+
+    def mac_voice(self):
+        if self._mac is None:
+            from tts.mac_voice import MacVoice
+            self._mac = MacVoice()
+            self._mac.warm()
+        return self._mac
+
     def speak(self, text: str) -> None:
         text = text.strip()
         if not text:
             return
         start = time.perf_counter()
         backend = "cache"
+        self.last_voice = self.which_voice(text)
         try:
             if self.is_cached(text):
                 self._play(self.cached_path(text))
+            elif config.TTS_NEW_SENTENCES == "mac":
+                backend = "mac-voice"
+                self.mac_voice().speak(text)
+                self.prepare([text])     # next time it will be the TTSKit voice, instantly
             elif config.TTS_NEW_SENTENCES == "ttskit" and shutil.which("whisperkit-cli"):
                 backend = "ttskit-live"
                 self._synthesize(text, play=True)
             else:
                 backend = "say"
                 self._say(text)
-                self.prepare([text])     # next time it will be the TTSKit voice, instantly
+                self.prepare([text])
         except Exception as error:       # missing tool, crash, timeout...
             log_call("tts", f"{backend}-failed", (time.perf_counter() - start) * 1000, problem=str(error)[:200])
             backend = "say"
+            self.last_voice = "Mac voice (say)"
             self._say(text)
         log_call("tts", backend, (time.perf_counter() - start) * 1000, chars=len(text))
 
@@ -118,5 +150,7 @@ class RealTTS:
 
     def stop(self) -> None:
         """Cut off whatever is being spoken right now."""
+        if self._mac is not None:
+            self._mac.stop()
         if self._player and self._player.poll() is None:
             self._player.terminate()

@@ -5,70 +5,15 @@
     "I need to use the bathroom.",
     "Please call my daughter.",
     "I'm in pain, I need help.",
-    "A long flowing beard clings to his chin.",
-    "All the big baseball players get traded.",
-    "Aluminum silverware can often be flimsy.",
-    "Are your grades higher or lower than nancy's.",
-    "Both figures would go higher in later years.",
-    "Both injuries were to the same leg.",
-    "Bright sunshine shimmers on the ocean.",
-    "But he always answers banana oil.",
-    "Don't ask me to carry an oily rag like that.",
-    "Everything went real smooth the sheriff said.",
-    "Except in the winter when the ooze or snow or ice prevents.",
-    "Giving those who observe him a pronounced feeling of the utmost respect.",
     "Grandfather likes to be modern in his language.",
-    "He dresses himself in an ancient black frock coat.",
-    "He slowly takes a short walk in the open air each day.",
-    "He will allow a rare lie.",
-    "I can.",
-    "I can read.",
-    "I expect we'll bounce back this week.",
     "I feel I can play this weekend.",
     "I just try to do my best.",
-    "I looked up and noticed two old men.",
-    "I scrubbed the floors thoroughly.",
-    "I tried to tell people in the community.",
-    "I was conscious all the time.",
-    "If you destroy confidence in banks you do something to the economy he said.",
-    "It also provides for funds to clear slums and help colleges build dormitories.",
     "It was a good win for us.",
-    "Jane may earn more money by working hard.",
-    "Just one side got wet.",
-    "Mother sews yellow gingham aprons.",
     "My sister made the flowered curtains.",
-    "Nothing has been done yet to take advantage of the enabling legislation.",
-    "Nothing is as offensive as innocence.",
-    "One validated acts of school districts.",
-    "She had your dark suit in greasy wash water all year.",
-    "She is thinner than I am.",
-    "She wore warm fleecy woolen overalls.",
-    "Tear up that paper.",
     "The humidity is overwhelming there.",
-    "The islands are sparsely populated.",
-    "The quick brown fox jumps over the lazy dog.",
-    "The train approached the depot slowly.",
-    "Their house is grey and white.",
-    "There is a treehouse up above.",
-    "They carried me off on the stretcher.",
-    "This is not a program of socialized medicine.",
-    "This was easy for us.",
-    "Twice each day he plays skillfully and with zest upon our small organ.",
-    "Two other cases also were under advisement.",
-    "Usually min min.",
-    "Usually minus several buttons.",
     "We gathered shells on the beach.",
-    "We have often urged him to walk more and smoke less.",
     "Well he is nearly ninetythree years old.",
-    "When he speaks his voice is just a bit cracked and quivers a trifle.",
-    "When when.",
-    "Where were you while we were away.",
-    "Why yell or worry over silly items.",
-    "Will robin wear a yellow lily.",
-    "Yet he still thinks as swiftly as ever.",
-    "You wished to know all about my grandfather.",
-    "You'd be better off taking a cold shower.",
-    "You're used to being on the field."
+    "You wished to know all about my grandfather."
   ],
   "vocabulary": [],
   "commands": [
@@ -264,140 +209,12 @@
   ],
   "examples": [
     {
-      "heard": "and I found a very good thing to do.",
-      "meant": "A long flowing beard clings to his chin.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "But, but, I will answer, but banana oil.",
-      "meant": "But he always answers banana oil.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "Do it at me to do cake and oil. Like that.",
-      "meant": "Don't ask me to carry an oily rag like that.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "It touched me in the winter when the old ones know what I do for them.",
-      "meant": "Except in the winter when the ooze or snow or ice prevents.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "Give me. Don't look at those. If I put up on that.",
-      "meant": "Giving those who observe him a pronounced feeling of the utmost respect.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
       "heard": "My grandmother likes to be my race in his language.",
       "meant": "Grandfather likes to be modern in his language.",
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "He dreaded me and I did block. Fog, cold,",
-      "meant": "He dresses himself in an ancient black frock coat.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "He slowly did a good work in the open air.",
-      "meant": "He slowly takes a short walk in the open air each day.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "He was a very, very light. A very, very light.",
-      "meant": "He will allow a rare lie.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "I can't do it.",
-      "meant": "I can read.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "I... what... what... what... all the time.",
-      "meant": "I was conscious all the time.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "Nothing, nothing, nothing, anything.",
-      "meant": "Nothing is as offensive as innocence.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "She and your deaf student, why are all here?",
-      "meant": "She had your dark suit in greasy wash water all year.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "The quick bump can open that lady's door.",
-      "meant": "The quick brown fox jumps over the lazy dog.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "Twenty days he went to school with me and he went to that apartment. Our students were organs.",
-      "meant": "Twice each day he plays skillfully and with zest upon our small organ.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "You mean... me... me... set the whole body...",
-      "meant": "Usually minus several buttons.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "We have added earth into water more and more light.",
-      "meant": "We have often urged him to walk more and smoke less.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     },
     {
       "heard": "Well...",
@@ -405,23 +222,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "One went to see his boy, his kid, a big girl, and he went on straight drive-off.",
-      "meant": "When he speaks his voice is just a bit cracked and quivers a trifle.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
-    },
-    {
-      "heard": "Yet he should tell things and sweetly ever",
-      "meant": "Yet he still thinks as swiftly as ever.",
-      "args": {},
-      "new_phrase": false,
-      "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     },
     {
       "heard": "You wish... to meet another horrible grandfiler.",
@@ -429,7 +230,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     },
     {
       "heard": "Up.",
@@ -437,7 +238,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     },
     {
       "heard": "Don't...",
@@ -445,7 +246,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     },
     {
       "heard": "back",
@@ -453,7 +254,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     },
     {
       "heard": "That",
@@ -461,7 +262,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     },
     {
       "heard": "Right?",
@@ -469,7 +270,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 14:15:38"
+      "time": "2026-11-14 14:53:07"
     }
   ],
   "answer_words": {

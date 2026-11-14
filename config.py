@@ -62,10 +62,12 @@ MODEL_MEMORY_BUDGET_GB = 3.5 # all models together must stay under this (shown o
 
 # Acting on the Mac (see actions/mac.py)
 EMAIL_REALLY_SEND = False   # False: a reply is prepared in a Mail window but NOT sent
+SEND_ONLY_TO = "Me"         # even when sending is on, only to this contact's address (profiles/contacts.json)
 MAX_APPS = 100              # how many app names the Brain may choose from (every installed app)
 MAX_TARGETS = 25            # how many on-screen buttons/links the Brain may choose from
 ACTION_TIMEOUT_S = 8        # no automation call may hang longer than this
 CONTACTS_PATH = ROOT / "profiles" / "contacts.json"   # names -> email addresses, for "write an email to ..."
+BROWSER = "Safari"          # websites and searches open here (not the default browser; Chrome uses more memory)
 # Websites the Brain may choose from ("open YouTube"). Anything else becomes a Google search.
 SITES = {
     "Google": "https://www.google.com",
@@ -87,7 +89,11 @@ SITES = {
 # Speech synthesis (TTSKit; see tts/real.py)
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset (the 1.7b model does not fit in 8 GB)
 TTS_VOICE = "aiden"         # aiden, ryan, serena, vivian, ...
-TTS_NEW_SENTENCES = "ttskit"  # a sentence with no audio ready yet: "ttskit" (same voice, about 7 s) or "say" (instant, Mac voice)
+TTS_NEW_SENTENCES = "mac"   # a sentence with no TTSKit audio ready yet: "mac" (the Mac voice, kept loaded:
+                            # first sound in about 25 ms; TTSKit's version is then made for next time),
+                            # "ttskit" (same voice but about 4-7 s) or "say" (the say command, about 1 s)
+MAC_VOICE = ""              # "" = best US English male voice installed (now "Reed"); or a name, e.g. "Evan"
+TTSKIT_FAST = True          # TTSKit's faster settings (throughput mode, fused decoder): about 1.8x faster
 TTS_TIMEOUT_S = 120
 TTS_CACHE_DIR = ROOT / "cache" / "tts"   # ready-made audio for known phrases
 TTSKIT_MODELS_PATH = HF_MODELS / "argmaxinc" / "ttskit-coreml"

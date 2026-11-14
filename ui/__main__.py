@@ -33,7 +33,6 @@ PROFILES = {   # name: (base, working copy, working copy with --fake)
                config.ROOT / "profiles" / "fake_cowork_profile.json"),
     "personal": (config.BASE_PROFILE_PATH, config.PROFILE_PATH, config.ROOT / "profiles" / "fake_profile.json"),
 }
-STEP_APPS = 12   # spoken steps made in advance for this many apps ("Opening Mail.")
 
 
 def lm_studio_ready() -> str:
@@ -109,17 +108,15 @@ def main(argv=None) -> None:
     core.set_clips(load_clips(), CREDIT)
     core.start_metrics()
 
-    if hasattr(tts, "prepare"):   # make the voice's sentences ready in the background (real voice only)
-        from engine.speech import sentences_to_prepare
+    if hasattr(tts, "prepare"):   # make the TTSKit voice ready in the background (real voice only)
+        from tts.plan import sentences
         try:
-            apps = actions.context().get("app", [])[:STEP_APPS]
+            apps = actions.context().get("app", [])
         except Exception:
             apps = []
-        steps = [f"Opening {app}." for app in apps] + [f"Opening {site}." for site in config.SITES]
-        sentences = sentences_to_prepare(profile)
-        commands = [s for s in sentences if s not in profile["phrases"]]
-        ordered = commands + steps[:STEP_APPS] + profile["phrases"] + steps[STEP_APPS:]
-        threading.Thread(target=tts.prepare, args=(ordered,), daemon=True).start()
+        threading.Thread(target=tts.prepare, args=(sentences(profile, apps),), daemon=True).start()
+    if hasattr(tts, "mac_voice") and config.TTS_NEW_SENTENCES == "mac":
+        threading.Thread(target=tts.mac_voice, daemon=True).start()   # load the Mac voice now (0.4 s)
     if config.LLM == "real":
         core.session.warm_up()    # LM Studio reads the instructions now, so the first request is fast
 

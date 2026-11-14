@@ -144,3 +144,28 @@ Each entry: what was chosen, and why. Measured numbers are from this MacBook Air
   with the same macOS call (`devicesWithMediaType:`, checked in its binary), and the name is checked
   again right after opening in case a camera was plugged in or out in between.
   The web page never opens a camera itself: its preview only shows pictures from the Python side.
+
+## Voice speed (2026-11-14)
+
+- **Measured where TTSKit's time goes** ("Opening Mail.", 5.5 s in total): about 0.4 s starting
+  the program, 0.75 s loading the model, 1.35 s loading the tokenizer, 2.1 s making 1.1 s of speech.
+- **Faster TTSKit settings** (`TTSKIT_FAST`: throughput mode + fused decoder): speech is made at
+  about real time (1.14x) instead of 2x. The first use compiles once (about 50 s).
+- **TTSKit can't stay loaded** with the tools here (no speech server in whisperkit-cli; building a
+  helper needs a newer Xcode than the installed Swift 5.10 / macOS 14.4 SDK). A fresh run still
+  needs about 2.5 s to the first sound, so (as agreed) **prepared sentences use TTSKit and
+  everything else uses the Mac voice**, kept loaded in the app (AVSpeechSynthesizer, `tts/mac_voice.py`):
+  first audio in about 25 ms. The `say` command was rejected: about 1 s start-up every time.
+- **Mac voice = "Reed"** (best male US English voice installed; TTSKit's voice is male too).
+  A better one installed later (e.g. "Evan (Enhanced)") is picked automatically, or set `MAC_VOICE`.
+
+## Live tests (2026-11-14)
+
+- **Demo profile trimmed** to the 4 everyday phrases + the 9 TORGO sentences the test clips say +
+  all commands. With all 64 TORGO sentences, the Brain picked TORGO sentences for "plea op en male"
+  and "aim thur stee...", and the prompt took 11 s to read instead of 6 s.
+- **Real Bonsai results**: clear commands, websites, search, email, typing, scrolling, closing,
+  "send it", "read my mail": right, about 1 s each. Badly garbled *app names* ("open male",
+  "op en sa fa ree") often get the wrong app; a shorter app list (20) did not help, so all apps stay.
+- **Websites open in Safari** (`BROWSER`), not the default browser (Chrome).
+- **Sending is limited to "Me"** (`SEND_ONLY_TO`) on top of `EMAIL_REALLY_SEND = False` and the card.

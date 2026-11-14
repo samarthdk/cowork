@@ -100,6 +100,7 @@ button { cursor: pointer; }
 .step .title { font-weight: 600; font-size: 20px; }
 .step .detail { font-size: 15px; color: var(--muted); }
 .step.failed .detail { color: var(--bad); }
+.voice { display: inline-block; font: 600 12px/1 var(--sans); color: var(--muted); border: 1px solid var(--line-strong); border-radius: 999px; padding: 3px 8px; margin-left: 8px; vertical-align: middle; text-transform: none; letter-spacing: 0; }
 .step .state { font-size: 14px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .step.done .state { color: var(--ok); }
 .step.failed .state { color: var(--bad); }
@@ -382,11 +383,14 @@ function turnsOf(s) {
 }
 function lastTurn(s) { const t = turnsOf(s); return t[t.length - 1]; }
 
+function voiceTag(item) {
+  return item.voice ? `<span class="voice" title="Which voice spoke this">voice: ${esc(item.voice)}</span>` : "";
+}
 function stepHtml(item, open) {
   const icon = { done: ICON.check, failed: ICON.x, undone: ICON.undo, running: "" }[item.status] || "";
   const state = { done: "Done", failed: "Didn't work", undone: "Undone", running: "Working…" }[item.status] || "";
   const detail = item.status === "failed" ? (item.problem || item.detail) : item.detail;
-  let html = `<div class="step ${item.status}"><span class="ico">${icon}</span><div><div class="title">${esc(item.title)}</div>${detail ? `<div class="detail">${esc(detail)}</div>` : ""}</div><span class="state">${state}</span>`;
+  let html = `<div class="step ${item.status}"><span class="ico">${icon}</span><div><div class="title">${esc(item.title)}${voiceTag(item)}</div>${detail ? `<div class="detail">${esc(detail)}</div>` : ""}</div><span class="state">${state}</span>`;
   if (item.email) html += emailHtml(item.email);
   if (item.undo_until && open) html += undoHtml(item.undo_until);
   return html + "</div>";
@@ -399,7 +403,7 @@ function undoHtml(until) {
 }
 function spokenHtml(item, open) {
   const label = item.status === "running" ? "Saying out loud…" : item.status === "undone" ? "Stopped" : "Said out loud";
-  return `<div class="spoken ${item.status}"><div class="label">${ICON.speaker}${label}</div><div class="words">${esc(item.text)}</div>${item.undo_until && open ? `<div style="margin-top:10px">${undoHtml(item.undo_until)}</div>` : ""}</div>`;
+  return `<div class="spoken ${item.status}"><div class="label">${ICON.speaker}${label}${voiceTag(item)}</div><div class="words">${esc(item.text)}</div>${item.undo_until && open ? `<div style="margin-top:10px">${undoHtml(item.undo_until)}</div>` : ""}</div>`;
 }
 function resolvedHtml(item) {
   const c = item.card || {};
@@ -451,7 +455,7 @@ function turnHtml(t, isLast) {
     if (item.type === "note") html += `<div class="note ${item.icon}">${ICON[item.icon] || ""}<span>${esc(item.text)}</span></div>`;
     else if (item.type === "step") html += stepHtml(item, open);
     else if (item.type === "spoken") html += spokenHtml(item, open);
-    else if (item.type === "reply") html += `<div class="reply${item.error ? " error" : ""}">${item.read_aloud ? `<div class="label">${ICON.speaker}Read aloud</div>` : ""}${esc(item.text)}</div>`;
+    else if (item.type === "reply") html += `<div class="reply${item.error ? " error" : ""}">${item.read_aloud ? `<div class="label">${ICON.speaker}Read aloud${voiceTag(item)}</div>` : ""}${esc(item.text)}</div>`;
     else if (item.type === "permission") {
       if (item.status === "open" && open && S.question && S.question.id === item.qid) html += permHtml(S.question);
       else if (item.status !== "open") html += resolvedHtml(item);

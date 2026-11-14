@@ -142,6 +142,30 @@ core.camera_state({"on": False, "problem": "The built-in camera was not found."}
 check("  ...the screen shows the message", (core.state["camera"]["problem"], core.state["notice"]["text"]),
       ("The built-in camera was not found.", "The built-in camera was not found."))
 
+# ---- which voice: TTSKit when prepared, otherwise the Mac voice ---------------
+import tempfile  # noqa: E402
+from tts.real import RealTTS  # noqa: E402
+saved_cache, saved_mode = config.TTS_CACHE_DIR, config.TTS_NEW_SENTENCES
+config.TTS_CACHE_DIR = Path(tempfile.mkdtemp())
+config.TTS_NEW_SENTENCES = "mac"
+voice = RealTTS()
+voice._mac = types.SimpleNamespace(name="Reed", stop=lambda: None)
+voice.cached_path("Opening Mail.").write_bytes(b"x" * 2000)   # pretend TTSKit prepared it
+check("prepared sentence: TTSKit", voice.which_voice("Opening Mail."), "TTSKit")
+check("unexpected sentence: the Mac voice", voice.which_voice("Searching for cats."), "Mac voice (Reed)")
+config.TTS_CACHE_DIR, config.TTS_NEW_SENTENCES = saved_cache, saved_mode
+
+# ---- sending only ever to "Me" -----------------------------------------------
+from actions.mac import MacActions  # noqa: E402
+mac = MacActions()
+mac.contacts = {"Me": "me@example.org", "Anna": "anna@example.com"}
+mac._last_email, mac._last_email_to = "Hi", "anna@example.com"
+check("sending to anyone but 'Me' is refused", "only sent to 'Me'" in mac.run("send_email", {}).problem, True)
+mac._last_email_to = "me@example.org"
+check("  ...to 'Me' it still needs EMAIL_REALLY_SEND", "switched off" in mac.run("send_email", {}).problem,
+      not config.EMAIL_REALLY_SEND)
+mac.front.stop()
+
 # ---- conversation: unsure -> permission card -> step card --------------------
 core, tts, actions = make()
 core.say("plea op en male")

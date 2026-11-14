@@ -3,8 +3,8 @@
     .venv/bin/python scripts/make_cowork_profile.py
 
 What is in it:
-  - the phrases and command words of TORGO speaker M04 (so the "Play test clip"
-    recordings can be understood), with the learned examples from M04's
+  - the sentences said in the "Play test clip" recordings, and the command words,
+    of TORGO speaker M04, with the learned examples from M04's
     enrollment recordings (fold 0, exactly as in the M04 evaluation), and
     M04's own way of saying yes and no;
   - the everyday phrases from profiles/sample_profile.json;
@@ -76,9 +76,17 @@ EXTRA_SAID_AS = {"scroll_up": ["scroll up"], "scroll_down": ["scroll down"]}
 
 
 def make() -> dict:
-    profile = enrolled_profile(build(SPEAKER), fold=0)
+    from ui.clips import CLIP_IDS
+    setup = build(SPEAKER)
+    profile = enrolled_profile(setup, fold=0)
     everyday = json.loads(config.BASE_PROFILE_PATH.read_text())["phrases"]
-    profile["phrases"] = everyday + [p for p in profile["phrases"] if p not in everyday]
+    # Only the TORGO sentences the test clips say (measured: with all 64 TORGO sentences the
+    # Brain was buried in them and missed "Open Mail"; the person's real list would be short too).
+    clip_sentences = {setup["truth"][c] for c in CLIP_IDS if c in setup["truth"]}
+    torgo = [p for p in profile["phrases"] if p in clip_sentences and p not in everyday]
+    profile["phrases"] = everyday + torgo
+    profile["examples"] = [e for e in profile["examples"]
+                           if e["meant"] in profile["phrases"] or any(c["name"] == e["meant"] for c in profile["commands"])]
     torgo_commands = []
     for command in profile["commands"]:
         command["request"] = REQUESTS.get(command["name"], command["name"].replace("_", " ").capitalize())

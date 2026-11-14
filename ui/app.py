@@ -73,6 +73,12 @@ class _Voice:
                 self._idle.set()
 
     def _say(self, text):
+        which = getattr(self.tts, "which_voice", None)
+        if which is not None:
+            try:
+                self.app._mark_voice(text, which(text))
+            except Exception:
+                pass
         self.app._set(status="speaking", speaking=text)
         if self.app.listener:
             self.app.listener.mute()
@@ -396,6 +402,19 @@ class App:
         if pending:   # a sentence said during the correction window: the next request
             self._requests.put(("hear", {"text": pending, "source": request["source"], "rehear": None,
                                          "asr_ms": None}))
+
+    def _mark_voice(self, text: str, voice: str) -> None:
+        """Note on the card which voice says this (TTSKit, prepared, or the Mac voice)."""
+        with self._lock:
+            turn = self.state["turn"]
+            if turn is None:
+                return
+            for item in reversed(turn["items"]):
+                if ((item["type"] == "spoken" and item["text"] == text)
+                        or (item["type"] == "step" and item["title"] == wording.step_title(text))
+                        or (item["type"] == "reply" and item["text"] == text)):
+                    item["voice"] = voice
+                    break
 
     def _finish_turn(self) -> None:
         """The request is over: it joins the conversation history."""
