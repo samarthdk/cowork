@@ -194,6 +194,8 @@ button.chip { min-height: var(--target); }
 .composer input::placeholder { color: var(--muted); opacity: 1; }
 .composer-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .composer-row .grow { flex: 1; }
+.mic-why { margin-top: 6px; }
+.mic-why[hidden] { display: none; }
 .cbtn { display: inline-flex; align-items: center; gap: 8px; min-height: var(--target); padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font: var(--label); font-weight: 600; }
 .cbtn svg { width: 18px; height: 18px; flex: none; }
 .cbtn.mic { position: relative; color: #fff; background: var(--accent); border-color: var(--accent); }
@@ -313,6 +315,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
           </button>
           <button type="submit" class="cbtn send">Send</button>
         </div>
+        <div class="caption mic-why" id="micWhy" role="status" hidden></div>
       </form>
     </div>
   </main>
@@ -575,7 +578,12 @@ function render(s) {
   $("dictBtn").title = dict.on ? `Confirmed sentences are typed into ${dict.app || "the app you were using"}, then read back` : "Off: sentences are said out loud";
   const mic = s.mic || {};
   $("speak").disabled = !mic.on;
-  $("speak").title = mic.on ? "Listen now" : "The microphone is off (start Cowork with --mic)";
+  const why = mic.on ? "" : mic.problem
+    ? "Microphone couldn't open. Allow Terminal in System Settings › Privacy & Security › Microphone."
+    : (mic.off_reason || "Microphone is off.");
+  $("speak").title = mic.on ? "Listen now" : (mic.problem || why);
+  $("micWhy").hidden = !why;
+  $("micWhy").textContent = why ? `Speak is off: ${why}` : "";
   $("speak").classList.toggle("listening", !!mic.listening);
   $("speakLabel").textContent = s.playing ? "Playing clip…" : mic.listening ? "Listening…" : s.status === "hearing" ? "Hearing…" : "Speak";
   // Camera preview: slides in while a card can be answered by hand.

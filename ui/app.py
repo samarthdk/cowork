@@ -123,7 +123,8 @@ class App:
         self.state = {
             "status": "ready",          # ready, thinking, asking, speaking, listening, hearing
             "backends": backends or {},
-            "mic": {"on": False, "listening": False, "problem": "", "level": None, "noise": None},
+            "mic": {"on": False, "listening": False, "problem": "", "level": None, "noise": None,
+                    "off_reason": ""},   # why the microphone is off, in a few words (shown under Speak)
             "camera": {"connected": False, "on": False, "problem": "", "note": "Camera not connected."},
             "hold": None,               # hand hold-to-confirm progress: {"signal", "progress" 0..1}
             "turn": None,               # the request being handled (see _on_event)
@@ -256,6 +257,10 @@ class App:
         mic = dict(self.state["mic"], on=listener is not None and listener.running,
                    problem=getattr(listener, "problem", ""))
         self._set(mic=mic)
+
+    def mic_off(self, reason: str) -> None:
+        """The microphone was not started; say why under the Speak button."""
+        self._set(mic=dict(self.state["mic"], on=False, off_reason=reason))
 
     def listen_now(self) -> bool:
         if not self.listener or not self.listener.running:

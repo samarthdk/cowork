@@ -3,10 +3,11 @@
     .venv/bin/python -m ui --fake           everything fake: no LM Studio, WhisperKit, microphone or camera needed
     .venv/bin/python -m ui                  the real parts chosen in config.py, with the camera
     .venv/bin/python -m ui --real --dictation   the dictation demo: everything real, typing into Word
-    .venv/bin/python -m ui --mic            also listen on the microphone ("Speak")
+    .venv/bin/python -m ui --mic            also listen on the microphone (on by default with --real)
     .venv/bin/python -m ui --fresh          start learning from scratch (the old profile is backed up)
 
 Other switches:
+    --no-mic           don't use the microphone (also with --real)
     --dictation        start with dictation on (confirmed sentences are typed into Word / the app you were using)
     --no-camera        don't use the camera (hand answers off)
     --camera           use the camera even with --fake
@@ -67,7 +68,8 @@ def main(argv=None) -> None:
     parser.add_argument("--fake", action="store_true", help="use the fake ASR, LLM, voice and Mac actions")
     parser.add_argument("--real", action="store_true",
                         help="use every real part (WhisperKit, Bonsai, TTSKit, Mac actions), whatever config.py says")
-    parser.add_argument("--mic", action="store_true", help="listen on the microphone")
+    parser.add_argument("--mic", action="store_true", help="listen on the microphone (on by default with --real)")
+    parser.add_argument("--no-mic", action="store_true", help="don't use the microphone, even with --real")
     parser.add_argument("--fresh", action="store_true", help="start learning from scratch")
     parser.add_argument("--camera", action="store_true", help="use the camera even with --fake")
     parser.add_argument("--no-camera", action="store_true", help="don't use the camera")
@@ -132,7 +134,12 @@ def main(argv=None) -> None:
     if config.LLM == "real":
         core.session.warm_up()    # LM Studio reads the instructions now, so the first request is fast
 
-    if options.mic:
+    use_mic = not options.no_mic and (options.mic or options.real)
+    if not use_mic:
+        core.mic_off("Started with --no-mic." if options.no_mic
+                     else "Test mode (--fake): type, or use Test clips." if options.fake
+                     else "Started without the microphone (add --mic).")
+    if use_mic:
         from asr.mic import Listener
         listener = Listener(core.heard_audio, on_level=core.mic_level, on_timeout=core.mic_timeout)
         if not listener.start():
@@ -156,7 +163,7 @@ def main(argv=None) -> None:
     import uvicorn
     url = f"http://localhost:{options.port}"
     print(f"Cowork is running at {url}   (speech in: {config.ASR}, brain: {config.LLM}, voice: {config.TTS}, "
-          f"Mac actions: {config.ACTIONS}, microphone: {'on' if options.mic else 'off'}, "
+          f"Mac actions: {config.ACTIONS}, microphone: {'on' if core.listener and core.listener.running else 'off'}, "
           f"camera: {'on' if core.camera else 'off'}, profile: {profile_path.name})")
     server = uvicorn.Server(uvicorn.Config(create_server(core), host="127.0.0.1", port=options.port,
                                            log_level="warning"))

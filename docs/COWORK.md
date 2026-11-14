@@ -16,7 +16,9 @@ document (click into it once, so Cowork knows where to type). Prepared voice: ru
 
     cd ~/Desktop/second-voice && .venv/bin/python -m ui --real --dictation --fresh
 
-(`--fresh` forgets what was learned in rehearsals, so clip 2 asks "Did you mean" again.)
+(`--fresh` forgets what was learned in rehearsals, so clip 2 asks "Did you mean" again.
+`--real` also turns the microphone on; add `--no-mic` to leave it off. When the microphone is off,
+a short line under the Speak button says why.)
 Then "Play test clip" and play, in order:
 
 1. "The humidity is overwhelming there": WhisperKit hears "But humanity is overwhelming."; typed at once.
@@ -31,7 +33,7 @@ is a prepared TTSKit sentence.
 ## Run it
 
     .venv/bin/python -m ui --fake          # try everything with fakes (no models, nothing done on the Mac)
-    .venv/bin/python -m ui --mic           # the real thing: LM Studio running with Bonsai, camera + microphone
+    .venv/bin/python -m ui --real          # the real thing: LM Studio running with Bonsai, camera + microphone
 
 Close the window or press Ctrl+C in Terminal to stop. `--fresh` starts learning over,
 `--no-camera` turns hand answers off, `--profile personal` uses your own 4-phrase profile.

@@ -168,6 +168,17 @@ check("  ...to 'Me' it still needs EMAIL_REALLY_SEND", "switched off" in mac.run
       not config.EMAIL_REALLY_SEND)
 mac.front.stop()
 
+# ---- microphone off: the screen says why ---------------------------------------
+core, tts, actions = make()
+core.mic_off("Started with --no-mic.")
+check("mic off: the reason is kept for the screen", (core.state["mic"]["on"], core.state["mic"]["off_reason"]),
+      (False, "Started with --no-mic."))
+page_text = (config.ROOT / "ui" / "static" / "cowork.html").read_text()
+check("  ...and shown under the Speak button", 'id="micWhy"' in page_text and "Speak is off: " in page_text, True)
+main_text = (config.ROOT / "ui" / "__main__.py").read_text()
+check("--real turns the microphone on unless --no-mic",
+      "use_mic = not options.no_mic and (options.mic or options.real)" in main_text, True)
+
 # ---- conversation: unsure -> permission card -> step card --------------------
 core, tts, actions = make()
 core.say("plea op en male")

@@ -105,6 +105,7 @@ def main() -> None:
     core.set_clips(load_clips(), CREDIT)
     core.state["metrics"]["offline"] = {"offline": True}   # as on the demo Mac with Wi-Fi off
     core.attach_camera(TestPicture())
+    core.state["mic"]["on"] = True   # as in the demo (--real turns the microphone on)
     core.state["camera"]["on"] = True
 
     import uvicorn
@@ -213,6 +214,13 @@ def main() -> None:
     pump(0.6)
     snapshot(web, out / "10_camera_not_found.png")
     core.answer("no")
+    wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "choice")
+    core.answer("none")
+    wait(ready)
+    core.new_task()
+    core._set(mic=dict(core.state["mic"], on=False, problem="Could not open the microphone (no input device)."))
+    pump(0.6)
+    snapshot(web, out / "11_mic_unavailable.png")
     server.should_exit = True
     shutil.rmtree(work, ignore_errors=True)
 
