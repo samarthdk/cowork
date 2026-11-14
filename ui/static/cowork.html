@@ -156,9 +156,13 @@ button.chip { min-height: var(--target); }
 .perm.risky .btn.allow { background: var(--bad); border-color: var(--bad); }
 .btn .how { display: flex; align-items: center; gap: 6px; flex: none; }
 .key { font: var(--label); padding: 2px 7px; border-radius: 6px; border: 1px solid currentColor; }
-.gest { display: inline-flex; flex-direction: column; align-items: center; font-size: 22px; line-height: 1; }
-.gest small { font: var(--caption); margin-top: 2px; }
-.gest .flip { display: inline-block; transform: scaleX(-1); }
+.gest { display: inline-flex; flex-direction: column; align-items: center; line-height: 1; }
+.gest .gi { display: inline-flex; width: 24px; height: 24px; }
+.gest .gi svg { width: 24px; height: 24px; }
+.gest small { font: var(--caption); margin-top: 3px; }
+.opt .hint { display: inline-flex; align-items: center; gap: 8px; font: var(--label); color: var(--muted); }
+.opt .hint svg { width: 20px; height: 20px; }
+.btn.allow .key, .btn.allow .gest { color: #fff; }
 .btn .fill { position: absolute; left: 0; bottom: 0; height: 6px; background: var(--accent); width: calc(var(--p, 0) * 100%); transition: width .1s linear; }
 .btn.allow .fill { background: #F1B9A5; }
 .btn.holding { outline: 3px solid var(--accent); outline-offset: 2px; }
@@ -175,18 +179,19 @@ button.chip { min-height: var(--target); }
 .detail-row { display: flex; gap: 10px; }
 .detail-row input { flex: 1; min-height: var(--target); border: 1px solid var(--line-strong); border-radius: 12px; padding: 0 14px; background: #fff; }
 .detail-row button { min-height: var(--target); border-radius: 12px; border: 1px solid var(--text); background: var(--text); color: #fff; font-weight: 600; padding: 0 20px; }
-.answer-hint { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 12px; font: var(--label); color: var(--muted); }
+.answer-hint { margin-top: 12px; font: var(--label); color: var(--muted); }
 .answer-hint span { display: inline-flex; align-items: center; gap: 6px; }
 .answer-hint svg { width: 16px; height: 16px; }
 .closes { height: 4px; border-radius: 2px; background: var(--line); margin-top: 14px; overflow: hidden; }
 .closes i { display: block; height: 100%; background: var(--line-strong); }
 
 /* ---- composer: one rounded box ---- */
-.composer-wrap { padding: 12px 24px 18px; }
+.composer-wrap { padding: 12px 24px 18px; position: relative; }
 .composer { max-width: 780px; margin: 0 auto; padding: 12px 12px 12px 18px; border-radius: 16px; }
 .composer:focus-within { border-color: var(--line-strong); }
 .composer input { width: 100%; border: 0; background: transparent; min-height: var(--target); padding: 0; }
 .composer input:focus { outline: none; }
+.composer input::placeholder { color: var(--muted); opacity: 1; }
 .composer-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
 .composer-row .grow { flex: 1; }
 .cbtn { display: inline-flex; align-items: center; gap: 8px; min-height: var(--target); padding: 0 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font: var(--label); font-weight: 600; }
@@ -201,7 +206,7 @@ button.chip { min-height: var(--target); }
 .cbtn.pill .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--line-strong); }
 .cbtn.pill[aria-pressed="true"] .dot { background: var(--ok); }
 .cbtn.send { background: var(--text); color: #fff; border-color: var(--text); }
-.clips { position: absolute; bottom: 100px; right: 24px; width: 460px; max-height: 60vh; overflow-y: auto; padding: 12px; z-index: 20; }
+.clips { position: absolute; bottom: calc(100% + 4px); right: max(24px, calc((100% - 780px) / 2)); width: 460px; max-height: 60vh; overflow-y: auto; padding: 12px; z-index: 20; box-shadow: 0 6px 20px rgba(31,30,27,.10); }
 .clips h4 { margin: 6px 8px 8px; font: var(--label); color: var(--muted); }
 .clips button { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 10px; padding: 8px 10px; min-height: var(--target); }
 .clips button:focus-visible, .clips button:hover { background: var(--panel-2); }
@@ -245,10 +250,11 @@ button.chip { min-height: var(--target); }
 .feed-empty { color: var(--muted); }
 
 /* ---- camera preview ---- */
-.cam { position: fixed; top: 16px; right: 18px; width: 304px; overflow: hidden; padding: 0; z-index: 15; transform: translateX(calc(100% + 40px)); visibility: hidden; transition: transform .3s ease, visibility .3s; }
-.cam.show { transform: none; visibility: visible; }
+.cam { padding: 0; overflow: hidden; flex: none; animation: rise .2s ease-out; }
+.cam[hidden] { display: none; }
 .cam img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #2B2A27; }
-.cam .off { min-height: 180px; display: grid; place-items: center; text-align: center; color: var(--muted); padding: 20px; }
+.cam .off { min-height: 160px; display: grid; place-items: center; text-align: center; color: var(--text); padding: 20px; }
+.cam .pic { position: relative; }
 .cam .off svg { width: 30px; height: 30px; margin-bottom: 6px; }
 .cam .cap { font: var(--label); padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-top: 1px solid var(--line); }
 .cam .rec { width: 9px; height: 9px; border-radius: 50%; background: var(--ok); flex: none; }
@@ -291,6 +297,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
       <div class="convo" id="convo" aria-live="polite"></div>
     </div>
     <div class="composer-wrap">
+      <div class="clips card" id="clips" hidden></div>
       <form class="composer card" id="typeForm" autocomplete="off">
         <label class="sr" for="typed">Type what was said</label>
         <input id="typed" placeholder="Type what was said, or press the mic…">
@@ -308,10 +315,10 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
         </div>
       </form>
     </div>
-    <div class="clips card" id="clips" hidden></div>
   </main>
 
-  <aside class="panel" aria-label="Progress and learning">
+  <aside class="panel" aria-label="Camera, progress and learning">
+    <section class="cam card" id="cam" aria-label="Camera" hidden></section>
     <section class="card">
       <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg>Progress</h2>
       <ul class="progress" id="progress"></ul>
@@ -323,7 +330,6 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
     </section>
   </aside>
 </div>
-<div class="cam card" id="cam" aria-hidden="true"></div>
 <div class="toast" id="toast" hidden role="status"></div>
 
 <script>
@@ -350,17 +356,18 @@ const ICON = {
   play: '<svg viewBox="0 0 24 24" fill="#fff"><path d="M7 4v16l13-8z"/></svg>',
   mark: '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h0"/></svg>',
 };
-// The hand signals each answer accepts (same meaning as choose/meaning.py).
-const G = {
-  rightHand: '<span class="gest" title="Raise your right hand">✋<small>RIGHT</small></span>',
-  leftHand: '<span class="gest" title="Raise your left hand"><span class="flip">✋</span><small>LEFT</small></span>',
-  up: '<span class="gest" title="Thumb up">👍<small>THUMB</small></span>',
-  down: '<span class="gest" title="Thumb down">👎<small>THUMB</small></span>',
-  LEFT_UP: '<span class="gest" title="Left thumb up">👍<small>LEFT</small></span>',
-  RIGHT_UP: '<span class="gest" title="Right thumb up">👍<small>RIGHT</small></span>',
-  LEFT_DOWN: '<span class="gest" title="Left thumb down">👎<small>LEFT</small></span>',
-  RIGHT_DOWN: '<span class="gest" title="Right thumb down">👎<small>RIGHT</small></span>',
-};
+// The hand signals each answer accepts (same meaning as choose/meaning.py), as line icons.
+const SVG_HAND = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V12M11 11V4a1.5 1.5 0 0 1 3 0v8M14 11V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7 6 6 0 0 1-5-3l-2.5-4.5a1.5 1.5 0 0 1 2.5-1.5L8 15"/></svg>';
+const SVG_THUMB = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v10H4a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1h3zM7 11l4-8a2.5 2.5 0 0 1 3 2.5V9h5a2 2 0 0 1 2 2.3l-1.2 7.4A2.5 2.5 0 0 1 17.3 21H7"/></svg>';
+function gest(kind, side) {   // kind: "hand", "up", "down"; side: "left", "right" or "" (either hand)
+  const icon = kind === "hand" ? SVG_HAND : SVG_THUMB;
+  const turn = (side === "left" ? "scaleX(-1)" : "") + (kind === "down" ? " scaleY(-1)" : "");
+  const name = { hand: "hand up", up: "thumb up", down: "thumb down" }[kind];
+  const who = side === "left" ? "Left" : side === "right" ? "Right" : "Thumb";
+  return `<span class="gest" title="${side ? who : "Either"} ${name}"><span class="gi" style="transform:${turn || "none"}">${icon}</span><small>${who}</small></span>`;
+}
+const GRID_HINT = ["Left thumb up", "Right thumb up", "Left thumb down", "Right thumb down"];
+const GRID_GEST = [["up", "left"], ["up", "right"], ["down", "left"], ["down", "right"]];
 const YES_SIGNALS = ["RIGHT", "RIGHT_UP", "LEFT_UP"], NO_SIGNALS = ["LEFT", "RIGHT_DOWN", "LEFT_DOWN"];
 const GRID = ["LEFT_UP", "RIGHT_UP", "LEFT_DOWN", "RIGHT_DOWN"];
 const NAMES = { "Speech in": "WhisperKit", "Brain": "Bonsai 2 4B", "Voice": "TTSKit" };
@@ -414,7 +421,7 @@ function emailHtml(e) {
   return `<div class="email"><div><b>To</b> ${esc(e.to)}</div><div><b>Subject</b> ${esc(e.subject)}</div><div><b>Message</b> ${esc(e.body)}</div></div>`;
 }
 function undoHtml(until) {
-  return `<div class="undo"><span>Not what you wanted?</span><button data-undo="1">Undo <span class="key">Esc</span></button>${G.leftHand}<span>or say “no”</span><span class="bar"><i data-until="${until}"></i></span></div>`;
+  return `<div class="undo"><span>Not what you wanted?</span><button data-undo="1">Undo <span class="key">Esc</span></button>${gest("hand", "left")}<span>or say “no”</span><span class="bar"><i data-until="${until}"></i></span></div>`;
 }
 function spokenHtml(item, open) {
   const label = item.status === "running" ? "Saying out loud…" : item.status === "undone" ? "Stopped" : "Said out loud";
@@ -430,6 +437,15 @@ function resolvedHtml(item) {
   return `<div class="resolved ${item.status}"><span class="q">${q}</span><span class="a">${esc(item.answer || "")}</span>${item.by ? `<span class="by">${esc(item.by)}</span>` : ""}</div>`;
 }
 
+function yesText(c) {
+  // The Yes button says what will happen.
+  if (c.allow && c.allow !== "Yes" && c.allow !== "Allow" && !c.guess) return c.allow;
+  const dict = (S && S.dictation) || {};
+  const app = (dict.app || "").replace(/^Microsoft /, "") || "the app";
+  if (c.say_aloud) return dict.on ? `Yes, type it into ${app}` : "Yes, say it";
+  if (c.body) return `Yes, ${c.body.charAt(0).toLowerCase()}${c.body.slice(1)}`;
+  return c.allow || "Yes";
+}
 function permHtml(q) {
   const c = q.card || {};
   const hold = S.hold && S.hold.signal ? S.hold : null;
@@ -445,16 +461,16 @@ function permHtml(q) {
   if (c.email) html += emailHtml(c.email);
   if (q.kind === "yes_no") {
     html += `<div class="buttons">
-      <button class="btn deny${holdFor(NO_SIGNALS)}" data-answer="no"><span>${esc(c.deny)}</span><span class="how"><span class="key">Esc</span>${G.leftHand}${G.down}</span><span class="fill"></span></button>
-      <button class="btn allow${holdFor(YES_SIGNALS)}" data-answer="yes"><span>${esc(c.allow)}</span><span class="how"><span class="key">Enter</span>${G.rightHand}${G.up}</span><span class="fill"></span></button>
+      <button class="btn deny${holdFor(NO_SIGNALS)}" data-answer="no"><span>${esc(c.deny)}</span><span class="how"><span class="key">Esc</span>${gest("hand", "left")}${gest("down", "")}</span><span class="fill"></span></button>
+      <button class="btn allow${holdFor(YES_SIGNALS)}" data-answer="yes"><span>${esc(yesText(c))}</span><span class="how"><span class="key">Enter</span>${gest("hand", "right")}${gest("up", "")}</span><span class="fill"></span></button>
     </div>`;
-    html += `<div class="answer-hint"><span>${ICON.mic}Say “yes” or “no”</span><span>${ICON.hand}Right hand or thumb up = ${esc(c.allow)} · Left hand or thumb down = ${esc(c.deny)}</span></div>`;
+    html += `<div class="answer-hint">Say yes or no, show your thumb, or press Enter/Esc.</div>`;
   } else if (q.kind === "choice") {
     const opts = c.options || [];
     html += `<div class="${opts.length > 2 ? "grid4" : "grid2"}">` + opts.map((o, i) =>
-      `<button class="btn opt${o.kind === "else" ? " else" : ""}${holdFor([GRID[i]])}" data-pick="${i}"><span class="row"><span class="num">${i + 1}</span><span class="how">${G[GRID[i]]}</span></span><span class="txt">${esc(o.text)}</span><span class="fill"></span></button>`).join("") + "</div>";
+      `<button class="btn opt${o.kind === "else" ? " else" : ""}${holdFor([GRID[i]])}" data-pick="${i}"><span class="row"><span class="num">${i + 1}</span><span class="hint">${gest(GRID_GEST[i][0], GRID_GEST[i][1]).replace(/<small>.*?<\/small>/, "")}${GRID_HINT[i]}</span></span><span class="txt">${esc(o.text)}</span><span class="fill"></span></button>`).join("") + "</div>";
     html += `<div class="none-row"><button class="none-btn" data-answer="none">None of these <span class="key">Esc</span></button></div>`;
-    html += `<div class="answer-hint"><span>${ICON.mic}Say “one” to “four”</span><span>${ICON.hand}Left thumb = left column, right thumb = right column; up = top row, down = bottom</span><span>${ICON.keys}Keys 1–4</span></div>`;
+    html += `<div class="answer-hint">Say the number, show your thumb, or press 1-4.</div>`;
   } else if (q.kind === "detail") {
     html += `<div class="values">${(c.options || []).map((o) => `<button data-text="${esc(o.text)}">${esc(o.text)}</button>`).join("")}</div>
       <form class="detail-row" data-detail="1"><input id="detailInput" aria-label="${esc(c.title)}" placeholder="Type it"><button>OK</button></form>`;
@@ -471,7 +487,10 @@ function turnHtml(t, isLast) {
   html += `<div class="assistant"><div class="avatar" aria-hidden="true">${ICON.mark}</div><div class="items">`;
   const open = isLast && !t.finished;
   for (const item of t.items || []) {
-    if (item.type === "note") html += `<div class="note ${item.icon}">${ICON[item.icon] || ""}<span>${esc(item.text)}</span></div>`;
+    if (item.type === "note") {
+      const text = item.icon === "bolt" ? "Recognized instantly from what I've learned" : item.text;
+      html += `<div class="note ${item.icon}">${ICON[item.icon] || ""}<span>${esc(text)}</span></div>`;
+    }
     else if (item.type === "step") html += stepHtml(item, open);
     else if (item.type === "spoken") html += spokenHtml(item, open);
     else if (item.type === "typed") html += typedHtml(item, open);
@@ -509,25 +528,24 @@ function progressHtml(s) {
 }
 
 function feedHtml(s) {
-  const items = (s.feed || []).slice(0, 14);
+  const items = (s.feed || []).filter((f) => ["learned", "fast_path", "undone", "forgot", "cancelled", "new_phrase"].includes(f.kind)).slice(0, 4);
   if (!items.length) return '<li class="feed-empty">Each time you confirm something, I learn how you say it. Next time it is instant.</li>';
+  const q = (t) => `‘${esc(String(t || "").replace(/[.!?]+$/, ""))}’`;
   return items.map((f) => {
     const meant = f.request || f.meaning || f.phrase || "";
-    if (f.kind === "learned") return `<li><span class="kind k-learned">${ICON.learn}Learned</span><div><span class="said">“${esc(f.heard)}”</span> <span class="arrow">→</span> <span class="meant">${esc(meant)}</span></div></li>`;
-    if (f.kind === "fast_path") return `<li><span class="kind k-fast">${ICON.bolt}Fast path</span><div><span class="meant">${esc(meant)}</span> answered in <span class="ms">${f.latency_ms < 1 ? "<1" : Math.round(f.latency_ms)} ms</span>, no model</div><div class="said">like “${esc(f.example_heard)}”</div></li>`;
-    if (f.kind === "undone" || f.kind === "forgot" || f.kind === "cancelled") return `<li><span class="kind k-undo">${ICON.undo.replace('stroke="#fff"', 'stroke="currentColor"')}${f.kind === "cancelled" ? "Cancelled" : "Forgot"}</span><div>${f.heard ? `<span class="said">“${esc(f.heard)}”</span> <span class="arrow">≠</span> ` : ""}<span class="meant">${esc(meant)}</span></div></li>`;
-    if (f.kind === "new_phrase") return `<li><span class="kind k-learned">${ICON.learn}New phrase</span><div class="meant">${esc(f.phrase)}</div></li>`;
-    if (f.kind === "new_words") return `<li><span class="kind k-other">New words</span><div>${esc((f.words || []).join(", "))}</div></li>`;
-    if (f.kind === "sound_check") return `<li><span class="kind k-other">${ICON.ear}Listened again</span><div>${f.confirmed ? "Recording backs up" : "Not sure about"} <span class="meant">${esc(meant)}</span></div></li>`;
-    if (f.kind === "relisten") return `<li><span class="kind k-other">${ICON.ear}Found by sound</span><div class="meant">${esc(meant)}</div></li>`;
-    return "";
+    if (f.kind === "learned") return `<li><span class="kind k-learned">${ICON.learn}Learned</span><div>${q(f.heard)} means ${q(meant)}</div></li>`;
+    if (f.kind === "fast_path") return `<li><span class="kind k-fast">${ICON.bolt}Recognized instantly</span><div>${q(meant)}</div></li>`;
+    if (f.kind === "new_phrase") return `<li><span class="kind k-learned">${ICON.learn}New phrase</span><div>${q(f.phrase)}</div></li>`;
+    const undo = ICON.undo.replace('stroke="#fff"', 'stroke="currentColor"');
+    if (f.kind === "cancelled") return `<li><span class="kind k-undo">${undo}Cancelled</span><div>${q(meant)}</div></li>`;
+    return `<li><span class="kind k-undo">${undo}Forgot</span><div>${f.heard ? `${q(f.heard)} doesn't mean ${q(meant)}` : q(meant)}</div></li>`;
   }).join("");
 }
 
 function camHtml(s) {
   const c = s.camera || {};
   const hold = s.hold && s.hold.signal ? s.hold : null;
-  const ring = hold ? `<svg class="ring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" stroke="rgba(255,255,255,.35)"/><circle cx="27" cy="27" r="22" stroke="#F3B49F" stroke-dasharray="${(138 * hold.progress).toFixed(1)} 138" transform="rotate(-90 27 27)" stroke-linecap="round"/></svg>` : "";
+  const ring = '<span id="camRing"></span>';
   const picture = c.connected && c.problem
     ? `<div class="off"><div>${ICON.cam}<br>${esc(c.problem)}</div></div>`
     : c.connected
@@ -535,7 +553,7 @@ function camHtml(s) {
     : `<div class="off"><div>${ICON.cam}<br>Camera not connected<br><small>start with --camera to answer by hand</small></div></div>`;
   const cap = !c.connected ? "Hand answers need the camera"
     : c.problem ? "Answer by voice or keyboard instead" : "Watching for your answer — nothing is recorded";
-  return `${picture}<div class="cap"><span class="rec"${c.problem || !c.connected ? ' style="background:#E3A72F"' : ""}></span>${cap}</div>`;
+  return `<div class="pic">${picture}</div><div class="cap"><span class="rec"${c.problem || !c.connected ? ' style="background:var(--warn)"' : ""}></span>${cap}</div>`;
 }
 
 let camKey = "";
@@ -544,7 +562,7 @@ function render(s) {
   $("strip").innerHTML = stripHtml(s);
   const turns = turnsOf(s);
   $("convo").innerHTML = turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s);
-  $("recent").innerHTML = turns.slice().reverse().map((t, i) => `<li class="${i === 0 ? "now" : ""}">${t.finished && t.request ? '<span class="tick">✓</span>' : ""}${esc(t.request || "“" + t.heard + "”")}</li>`).join("") || '<li style="color:var(--muted)">No tasks yet</li>';
+  $("recent").innerHTML = turns.slice().reverse().map((t, i) => `<li class="${i === 0 ? "now" : ""}">${t.finished && t.request ? '<span class="tick"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>' : ""}${esc(t.request || "“" + t.heard + "”")}</li>`).join("") || '<li style="color:var(--muted)">No tasks yet</li>';
   $("progress").innerHTML = progressHtml(s);
   const counts = s.counts || {};
   $("counts").innerHTML = `<div><b>${counts.examples ?? 0}</b><span>ways you say things</span></div><div><b>${counts.phrases ?? 0}</b><span>your phrases</span></div>`;
@@ -563,17 +581,28 @@ function render(s) {
   // Camera preview: slides in while a card can be answered by hand.
   const q = s.question;
   const showCam = !!(q && (q.kind === "yes_no" || q.kind === "choice"));
-  $("cam").classList.toggle("show", showCam);
-  const key = JSON.stringify([s.camera, s.hold]);
+  $("cam").hidden = !showCam;
+  const key = JSON.stringify(s.camera);
   if (key !== camKey) { camKey = key; $("cam").innerHTML = camHtml(s); if (camUrl && $("camImg")) $("camImg").src = camUrl; }
+  if ($("camRing")) {   // only the hold-to-confirm ring changes while a hand is held up
+    const hold = s.hold && s.hold.signal ? s.hold : null;
+    $("camRing").innerHTML = hold ? `<svg class="ring" viewBox="0 0 54 54"><circle cx="27" cy="27" r="22" stroke="rgba(255,255,255,.35)"/><circle cx="27" cy="27" r="22" stroke="#F1B9A5" stroke-dasharray="${(138 * hold.progress).toFixed(1)} 138" transform="rotate(-90 27 27)" stroke-linecap="round"/></svg>` : "";
+  }
   // New card or new turn: bring it into view.
   const qid = q ? q.id : null;
   if (qid !== lastQid || turns.length !== lastTurnCount) {
     lastQid = qid; lastTurnCount = turns.length;
     const sc = $("scroll"); sc.scrollTop = sc.scrollHeight;
+    const card = document.querySelector(".perm");
+    if (card) {   // the whole card, never clipped under the header
+      const fits = card.offsetHeight + 40 <= sc.clientHeight;
+      card.scrollIntoView({ block: fits ? "end" : "start" });
+    }
     if (q && q.kind === "detail") setTimeout(() => $("detailInput") && $("detailInput").focus(), 30);
   }
-  if (s.notice && Date.now() / 1000 - s.notice.time < 6) showToast(s.notice.text);
+  const camProblem = s.camera && s.camera.problem;
+  if (s.notice && Date.now() / 1000 - s.notice.time < 6 && s.notice.text !== camProblem) showToast(s.notice.text);
+  if (camProblem && $("toast").textContent === camProblem) $("toast").hidden = true;   // shown in the camera card only
 }
 
 function showToast(text) {
@@ -595,7 +624,7 @@ setInterval(() => {
 // Camera frames, only while the preview is showing.
 let camBusy = false;
 setInterval(async () => {
-  if (camBusy || !S || !S.camera || !S.camera.connected || !$("cam").classList.contains("show")) return;
+  if (camBusy || !S || !S.camera || !S.camera.connected || $("cam").hidden) return;
   const img = $("camImg");
   if (!img) return;
   camBusy = true;
