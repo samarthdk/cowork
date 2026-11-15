@@ -23,6 +23,7 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
     POST /api/signal    {"signal": "RIGHT_UP"}      a hand signal (for testing without the camera)
     POST /api/listen    "listen now"
     POST /api/undo      forget the last thing learned
+    POST /api/teach     {"phrase": "..."} | {"action": "stop"}   Teach me: say a phrase a few times
     POST /api/stop      stop everything now (speaking, typing, waiting requests, the open question)
 """
 
@@ -125,6 +126,13 @@ def create_server(core: App) -> FastAPI:
                 "outside_clips": data["outside_profile"]["clips"],
                 "outside_wrong": data["outside_profile"]["confident_wrong"],
                 "brain_ms_median": fresh["brain_ms_median"], "asr_ms_median": data["asr_ms_median"]}
+
+    @server.post("/api/teach")
+    def teach(body: dict = Body(...)):
+        if body.get("action") == "stop":
+            core.stop_teach()
+            return {"ok": True}
+        return {"ok": core.start_teach(str(body.get("phrase", "")))}
 
     @server.post("/api/stop")
     def stop_everything():

@@ -40,6 +40,7 @@ HINT_MIN_LOGPROB = -0.5   # ...whose answer is kept only if WhisperKit was this 
                           # clips + 2 real requests: invented answers scored -0.62 or lower, real ones -0.37 or higher
 HISTORY_MAX = 20           # finished requests kept on screen
 TASKS_MAX = 50             # saved conversations kept in Recent tasks
+TEACH_TIMES = 3            # Teach me: how many times the person says a phrase
 VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
 HANDS_FREE_WAIT_S = 30.0   # mini window: listen this long for the next request, then listen again
 MINI_AFTER = ("open_app", "new_email", "new_document", "new_tab", "open_latest_email")   # these bring another app forward
@@ -310,6 +311,7 @@ class App:
             "counts": self._counts(),
             "tasks": [],                # Recent tasks: saved conversations (id, title, time, requests), newest first
             "viewing": None,            # a saved task shown read-only (with "Continue this task")
+            "teach": None,              # Teach me: {"phrase", "total", "heard": [...]} while a phrase is being taught
         }
         self._tasks = self._load_tasks()
         self.state["tasks"] = self._task_list()
@@ -516,6 +518,9 @@ class App:
         if self.is_stop(text):
             self.stop_all()
             return "stop"
+        if self.state.get("teach"):
+            self.teach_heard(text)
+            return "teach"
         if self._question is not None:
             return "answer" if self._answer_words(text, source) else "ignored"
         if self.ui_command(text, spoken=source == "speech"):
@@ -534,6 +539,44 @@ class App:
         self._requests.put(("hear", {"text": text, "source": source, "rehear": None, "asr_ms": None}))
         return "request"
 
+    # ---- Teach me: the person says a phrase a few times, Cowork learns how it hears them ----------------
+
+    def start_teach(self, phrase: str) -> bool:
+        if phrase not in self.session.profile["phrases"] or self.busy:
+            return False
+        self._set(teach={"phrase": phrase, "total": TEACH_TIMES, "heard": []})
+        if self.listener is not None and self.listener.running:
+            self.listen_now()
+        return True
+
+    def teach_heard(self, heard: str) -> None:
+        """One saying of the phrase being taught: stored as a learned example (how it was heard -> the phrase),
+        so the fast path recognises it next time. Nothing is done on the Mac."""
+        from repair.store import add_example
+        teach = self.state.get("teach")
+        heard = (heard or "").strip()
+        if not teach or not heard:
+            return
+        add_example(self.session.profile, heard, teach["phrase"])
+        self.session.save()
+        self.session.emit("learned", heard=heard, meaning=teach["phrase"])
+        self.session._changed()
+        teach = dict(teach, heard=teach["heard"] + [heard])
+        if len(teach["heard"]) >= teach["total"]:
+            self._notice(f"Learned {len(teach['heard'])} ways you say \u201c{teach['phrase']}\u201d.")
+            self._set(teach=None, counts=self._counts())
+            return
+        self._set(teach=teach, counts=self._counts())
+        if self.listener is not None and self.listener.running:
+            self.listen_now()   # ready for the next time
+
+    def stop_teach(self) -> None:
+        teach = self.state.get("teach")
+        if teach and teach["heard"]:
+            self._notice(f"Learned {len(teach['heard'])} way{'s' if len(teach['heard']) != 1 else ''} you say "
+                         f"\u201c{teach['phrase']}\u201d.")
+        self._set(teach=None)
+
     @staticmethod
     def is_stop(text: str) -> bool:
         said = " ".join("".join(c for c in (text or "").lower() if c.isalpha() or c == " ").split())
@@ -543,6 +586,8 @@ class App:
         """Stop everything at once (F2: "stop", "cancel", Esc twice): speaking, typing, anything waiting
         to be done, and any open question. What was already done is kept (Undo is separate). "Stopped"."""
         self.voice.stop()
+        if self.state.get("teach"):
+            self.stop_teach()
         actions = self.session.actions._actions if isinstance(self.session.actions, _Targeted) else self.session.actions
         if actions is not None:
             actions.stop_typing = True
@@ -773,6 +818,10 @@ class App:
             return
         if self.is_stop(text):
             self.stop_all()
+            return
+        if self.state.get("teach"):
+            self.teach_heard(text)
+            self._set(status="ready")
             return
         if self._question is not None:
             self._answer_words(text, "speech")

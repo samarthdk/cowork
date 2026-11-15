@@ -414,6 +414,18 @@ table.plain td:first-child { color: var(--muted); width: 40%; padding-right: 12p
 .results ul { margin: 0; padding-left: 20px; }
 .results li { margin: 6px 0; }
 .results h3 { font: var(--label); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 18px 0 6px; }
+.teach-row { display: flex; align-items: center; gap: 12px; }
+.teach-row span { flex: 1; }
+.teach-btn { min-height: 40px; border-radius: 10px; padding: 0 14px; border: 1px solid var(--line-strong); background: transparent; font: var(--label); font-weight: 600; flex: none; }
+.teach-btn:hover { background: var(--hover); }
+.teach { max-width: 760px; margin: 0 auto; }
+.teach .phrase { font: var(--display); margin: 8px 0 18px; }
+.teach .count { font: var(--title); color: var(--accent); }
+.teach ol { margin: 14px 0; padding-left: 22px; }
+.teach li { margin: 6px 0; color: var(--muted); }
+.teach li b { color: var(--text); font-weight: 500; }
+.teach .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.teach .row button { min-height: var(--target); border-radius: 12px; padding: 0 18px; font-weight: 600; border: 1px solid var(--line-strong); background: transparent; }
 .link-btn { border: 0; background: transparent; padding: 0; min-height: 0; color: var(--accent); text-decoration: underline; font: inherit; text-align: left; }
 .toast { position: fixed; left: 50%; bottom: 140px; transform: translateX(-50%); background: var(--white); color: var(--ink); padding: 12px 18px; border-radius: 12px; max-width: 640px; z-index: 50; }
 .toast[hidden] { display: none; }
@@ -708,6 +720,15 @@ function whenOf(t) {   // "3:42 PM" today, else "Nov 13, 3:42 PM"
   const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
   return d.toDateString() === now.toDateString() ? time : `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${time}`;
 }
+function teachHtml(t) {   // Teach me: saying a phrase a few times
+  const n = t.heard.length;
+  return `<div class="card inner teach" role="region" aria-label="Teach me"><div class="kicker">${ICON.learn}Teach me how you say it</div>
+    <div class="phrase">“${esc(t.phrase)}”</div>
+    <div class="count" role="status">Say it now: ${n + 1} of ${t.total}</div>
+    <div class="caption">Press the mic (or Space), play a test clip, or type how it came out. Each time is learned.</div>
+    ${n ? `<ol>${t.heard.map((h) => `<li>Heard: <b>“${esc(h)}”</b> ${ICON.check}</li>`).join("")}</ol>` : ""}
+    <div class="row"><button data-teach-stop="1">${n ? "Done" : "Cancel"}</button></div></div>`;
+}
 function viewHtml(v) {   // a saved task, read-only
   return `<div class="card inner viewing" role="region" aria-label="Earlier task"><div class="what"><b>Earlier task</b>: ${esc(v.title)} <span class="caption">${whenOf(v.time)}, read-only</span></div>
     <button class="go" data-task-continue="${esc(v.id)}">Continue this task</button><button data-task-close="1">Back</button></div>` +
@@ -860,7 +881,7 @@ function renderModal() {
     $("qaInput").addEventListener("input", (e) => { qaFilter = e.target.value; qaSel = 0; renderQuickList(); });
   } else if (modalView === "phrases") {
     const p = ((S && S.catalog) || {}).phrases || [];
-    m.innerHTML = head("Your phrases") + `<div class="modal-body"><table class="plain">${p.map((x, i) => `<tr><td>Phrase ${i + 1}</td><td>${esc(x)}</td></tr>`).join("")}</table></div>`;
+    m.innerHTML = head("Your phrases") + `<div class="modal-body"><p class="caption">Teach me: pick a phrase and say it ${3} times. Next time it goes straight through.</p><table class="plain">${p.map((x, i) => `<tr><td>Phrase ${i + 1}</td><td class="teach-row"><span>${esc(x)}</span><button class="teach-btn" data-teach="${i}" aria-label="Teach me how you say: ${esc(x)}">Teach</button></td></tr>`).join("")}</table></div>`;
   } else if (modalView === "learned") {
     m.innerHTML = head("What I've learned about your voice") + `<div class="modal-body"><ul class="feed" style="margin:0 12px">${feedItems(S || {}, 30) || '<li class="feed-empty">Nothing learned yet.</li>'}</ul></div>`;
   } else if (modalView === "gestures") {
@@ -963,7 +984,7 @@ function render(s) {
   const turns = turnsOf(s);
   const conference = s.mode === "conference";
   const viewing = !conference && s.viewing;
-  if (setHtml("convo", conference ? confHtml(s) : viewing ? viewHtml(s.viewing) : turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
+  if (setHtml("convo", s.teach ? teachHtml(s.teach) : conference ? confHtml(s) : viewing ? viewHtml(s.viewing) : turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
     document.querySelectorAll(".perm[data-qid]").forEach((el) => {   // the slide-in only the first time
       const qid = Number(el.dataset.qid);
       if (shownQids.has(qid)) el.classList.remove("fresh"); else shownQids.add(qid);
@@ -1057,6 +1078,8 @@ document.addEventListener("click", (e) => {
   if (b.id === "recentBtn") { const open = $("recent").hidden; $("recent").hidden = !open; b.setAttribute("aria-expanded", open ? "true" : "false"); return; }
   if (b.dataset.close) { closeModal(); return; }
   if (b.dataset.task) { post("/api/task", { action: "view", id: b.dataset.task }); return; }
+  if (b.dataset.teach !== undefined) { const phrase = ((S && S.catalog && S.catalog.phrases) || [])[+b.dataset.teach]; closeModal(); post("/api/teach", { phrase }); return; }
+  if (b.dataset.teachStop) { post("/api/teach", { action: "stop" }); return; }
   if (b.dataset.taskContinue) { post("/api/task", { action: "continue", id: b.dataset.taskContinue }); return; }
   if (b.dataset.taskClose) { post("/api/task", { action: "close" }); return; }
   if (b.dataset.view) { openModal(b.dataset.view); return; }

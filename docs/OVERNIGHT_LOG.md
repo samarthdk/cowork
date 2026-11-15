@@ -2,7 +2,12 @@
 
 ## Morning summary (kept up to date)
 
-- Started 2026-11-14 late evening on branch `cowork`. Work in progress; see the sections below.
+- Done so far (each committed, with tests): Bugs 1-6, change 7, F1 (scripts/start.sh), F2 (stop everything),
+  F3 (Cmd+1/2/3 demo clips), F4 (Results view + docs/chart.png), F6 (dictation polish). All test files pass.
+- IMPORTANT: the screen locked during the night, so nothing that needs an app in front (keys into Mail/Word,
+  reply/forward, printing) could be tried live. Those are on the morning checklist. Bonsai, WhisperKit, TTSKit,
+  Mail's scripting and reading app menus were tested for real.
+- Still to come tonight: F5 (Teach me), the tough-judge testing, README/LICENSE/cleanup, merge, MORNING.md.
 
 ## Decisions (made without asking, safest and simplest for the demo)
 
@@ -123,3 +128,14 @@
   unread". Fixed: "type ..." / "dictate ..." is now recognised instantly as typing (no model), and "answer a
   question" is never offered for a "type ..." request.
 - Test: `tests/test_dictation.py` (29 checks).
+
+### F5: Teach me (done)
+- Your voice > Phrases: each phrase has a "Teach" button. Cowork then shows the phrase and "Say it now: 1 of 3";
+  each saying (microphone, a test clip, or typed) is stored as a learned example for that phrase. After 3 it says
+  "Learned 3 ways you say ...". "Done" keeps what was taught so far; "stop" ends it. Nothing is done on the Mac.
+- Test: `tests/test_teach.py` (14 checks): before teaching a garbled saying is not recognised instantly, after
+  teaching the same saying goes straight through (no model).
+- TORGO M04 as the person (real WhisperKit transcripts): M04 recorded each phrase at most twice, and the two
+  recordings came out very differently ("Well..." and "He is really 93 years old."). Teaching one saying did not make
+  the other one instant (instant recognition needs about 90% similar words). Honest conclusion: Teach me helps
+  when a person's speech comes out the same way each time; every taught saying is also shown to Bonsai as an example.
