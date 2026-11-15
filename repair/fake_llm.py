@@ -91,6 +91,18 @@ class FakeLLM:
             log_call("llm", "fake", latency, purpose=purpose, tokens=0, tokens_per_s=0)
             kind = "question" if heard_text.strip().lower().split()[:1] in (["what"], ["who"], ["where"], ["how"], ["when"], ["why"]) else "say"
             return LLMReply(json.dumps({"guess": guess, "key_words": words, "kind": kind}), latency, 0, 0.0)
+        if schema.get("properties", {}).get("choice", {}).get("type") == "integer":   # a menu item (repair/menu_pick.py)
+            from repair.menu_pick import _overlap, _words as menu_words
+            text = messages[-1]["content"]
+            asked = re.search(r'They asked: "(.*)"', text)
+            labels = re.findall(r"^\d+\. (.+)$", text, re.MULTILINE)
+            words = menu_words(asked.group(1) if asked else "")
+            scores = [_overlap(words, label) for label in labels]
+            best = max(range(len(scores)), key=scores.__getitem__) if scores else -1
+            choice = best + 1 if best >= 0 and scores[best] >= 1 else 0
+            sure = choice and scores.count(scores[best]) == 1 and scores[best] >= len(words)
+            return LLMReply(json.dumps({"choice": choice, "confidence": "high" if sure else "low"}),
+                            (time.perf_counter() - start) * 1000, 0, 0.0)
         if "answer" in schema.get("properties", {}):   # answering a question (repair/answer.py)
             question = re.search(r"^Question: (.*)$", messages[-1]["content"], re.MULTILINE)
             text = f"[fake answer to: {question.group(1) if question else '?'}] I'm offline, so I can't check today's information."

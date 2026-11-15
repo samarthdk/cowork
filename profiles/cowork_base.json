@@ -269,6 +269,213 @@
       "request": "Close {app}"
     },
     {
+      "name": "reply_email",
+      "description": "Reply to the email that is open or selected in Mail (a reply opens, cursor in the message, nothing is sent).",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "reply",
+        "reply to this email",
+        "reply to the email",
+        "reply to this",
+        "write back",
+        "answer this email",
+        "respond to this email"
+      ],
+      "say": "Replying.",
+      "request": "Reply to this email"
+    },
+    {
+      "name": "reply_all_email",
+      "description": "Reply to everyone on the email open in Mail.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "reply all",
+        "reply to all",
+        "reply to everyone",
+        "reply to everybody"
+      ],
+      "say": "Replying to all.",
+      "request": "Reply to all"
+    },
+    {
+      "name": "forward_email",
+      "description": "Forward the email open in Mail (opens a forward, nothing is sent).",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "forward",
+        "forward this",
+        "forward this email",
+        "forward the email",
+        "forward it"
+      ],
+      "say": "Forwarding.",
+      "request": "Forward this email"
+    },
+    {
+      "name": "mark_unread",
+      "description": "Mark the email open or selected in Mail as unread.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "mark as unread",
+        "mark it as unread",
+        "mark unread",
+        "mark this as unread",
+        "make it unread"
+      ],
+      "say": "Marking it unread.",
+      "request": "Mark as unread"
+    },
+    {
+      "name": "delete_email",
+      "description": "Delete (move to the Trash) the email open or selected in Mail.",
+      "safety": "risky",
+      "args": {},
+      "said_as": [
+        "delete this email",
+        "delete the email",
+        "delete it",
+        "trash this email",
+        "move it to the trash"
+      ],
+      "say": "Deleting the email.",
+      "request": "Delete this email"
+    },
+    {
+      "name": "archive_email",
+      "description": "Archive the email open or selected in Mail.",
+      "safety": "risky",
+      "args": {},
+      "said_as": [
+        "archive",
+        "archive this",
+        "archive the email",
+        "archive it"
+      ],
+      "say": "Archiving.",
+      "request": "Archive this email"
+    },
+    {
+      "name": "undo_edit",
+      "description": "Undo the last change in the document (Word, Notes, TextEdit).",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "undo that",
+        "undo the last change",
+        "undo typing",
+        "take that back"
+      ],
+      "say": "Undoing.",
+      "request": "Undo the last change"
+    },
+    {
+      "name": "select_all",
+      "description": "Select everything in the document or text box.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "select all",
+        "select everything",
+        "highlight everything",
+        "select all the text"
+      ],
+      "say": "Selecting everything.",
+      "request": "Select all"
+    },
+    {
+      "name": "make_bold",
+      "description": "Make the selected text bold (or not bold).",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "bold",
+        "make it bold",
+        "make this bold",
+        "bold that",
+        "make that bold"
+      ],
+      "say": "Bold.",
+      "request": "Make it bold"
+    },
+    {
+      "name": "new_line",
+      "description": "Start a new line in the document or text box.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "new line",
+        "next line",
+        "line break"
+      ],
+      "say": "New line.",
+      "request": "New line"
+    },
+    {
+      "name": "new_paragraph",
+      "description": "Start a new paragraph (a blank line) in the document.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "new paragraph",
+        "next paragraph",
+        "start a new paragraph"
+      ],
+      "say": "New paragraph.",
+      "request": "New paragraph"
+    },
+    {
+      "name": "reload_page",
+      "description": "Reload the web page (Chrome, Safari).",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "reload",
+        "refresh",
+        "reload the page",
+        "refresh the page",
+        "reload this page"
+      ],
+      "say": "Reloading.",
+      "request": "Reload the page"
+    },
+    {
+      "name": "close_tab",
+      "description": "Close the browser tab in front (Chrome, Safari).",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "close tab",
+        "close this tab",
+        "close the tab"
+      ],
+      "say": "Closing the tab.",
+      "request": "Close this tab"
+    },
+    {
+      "name": "do_in_app",
+      "description": "Do something in the app in front that no other command covers, using that app's own menus and buttons (for example: print this, zoom in, add a bookmark, insert a table, show the sidebar, flag this email). Never for typing words, for questions, or for anything another command does.",
+      "safety": "safe",
+      "echo": true,
+      "whole_request": true,
+      "args": {
+        "request": "What the person wants done, in their words"
+      },
+      "said_as": [
+        "print this",
+        "zoom in",
+        "zoom out",
+        "add a bookmark",
+        "insert a table",
+        "flag this email"
+      ],
+      "say": "Looking in the app's menus.",
+      "request": "In the app: “{request}”"
+    },
+    {
       "name": "close_app",
       "description": "Close (quit) the app the person is using right now, when they do not name an app (close the app, close this).",
       "safety": "safe",
@@ -373,7 +580,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     },
     {
       "heard": "Well...",
@@ -381,7 +588,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     },
     {
       "heard": "You wish... to meet another horrible grandfiler.",
@@ -389,7 +596,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     },
     {
       "heard": "Up.",
@@ -397,7 +604,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     },
     {
       "heard": "Don't...",
@@ -405,7 +612,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     },
     {
       "heard": "back",
@@ -413,7 +620,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     },
     {
       "heard": "That",
@@ -421,7 +628,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     },
     {
       "heard": "Right?",
@@ -429,7 +636,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 22:25:48"
+      "time": "2026-11-14 23:15:28"
     }
   ],
   "answer_words": {

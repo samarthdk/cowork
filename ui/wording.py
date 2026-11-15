@@ -97,6 +97,18 @@ def permission(question: dict, profile: dict, turn: dict | None) -> dict:
         card["body"] = data.get("phrase", "")
         card["allow"], card["deny"] = "Yes, say it", "No"
         card["say_aloud"] = True
+    elif stage == "menu":   # the fallback: an item from the app's own menus or buttons
+        label, app = data.get("label", ""), data.get("app", "the app")
+        if card["risky"]:
+            card["title"] = "This can't be undone. Allow it?"
+            card["allow"], card["deny"] = "Allow", "Don't allow"
+        else:
+            card["title"] = "Did you mean\u2026?"
+            card["allow"], card["deny"] = "Yes", "No"
+        card["body"] = f"{label} (in {app})"
+    elif stage == "menu_closest":   # nothing fits: the closest items, offered
+        card["title"] = question.get("text", "") + " The closest:"
+        card["options"] = [{"text": o, "kind": "value"} for o in question.get("options", [])]
     elif stage == "screen_search":
         card["title"] = question.get("text", "")
         card["allow"], card["deny"] = "Type it there", "Don't type"

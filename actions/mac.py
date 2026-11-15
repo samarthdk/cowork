@@ -42,9 +42,12 @@ APP_FOLDERS = ["/Applications", "/System/Applications", "/System/Applications/Ut
 SKIP_APPS = ("shim", "uninstall", "python", "helper", "deploy", "installer")
 CLICKABLE_ROLES = {"AXButton", "AXLink", "AXMenuButton", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXTab"}
 KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12, "delete": 51, "l": 37, "n": 45, "t": 17,
-        "tab": 48, "s": 1, "d": 2, "w": 13, "forward_delete": 117}
+        "tab": 48, "s": 1, "d": 2, "w": 13, "forward_delete": 117, "r": 15, "f": 3, "u": 32, "a": 0, "b": 11, "z": 6}
 COMMAND_KEY = 0x100000  # kCGEventFlagMaskCommand
 SHIFT_KEY = 0x20000     # kCGEventFlagMaskShift
+CONTROL_KEY = 0x40000   # kCGEventFlagMaskControl
+EDITING_APPS = ("Microsoft Word", "TextEdit", "Pages", "Notes")   # undo, select all, bold, new line, new paragraph
+MENU_ITEMS_MAX = 400      # menu items read from an app's menu bar (the fallback; see menu_items)
 SCROLL_LINES = 12
 NOT_A_TARGET = ("Terminal", "iTerm2", "Finder", "loginwindow", "Python",   # never typed into (Python = Cowork)
                 "LM Studio")   # runs the Brain: never typed into or closed
@@ -487,20 +490,183 @@ class MacActions:
     def _do_scroll_up(self, args: dict) -> ActionResult:
         return self._scroll(SCROLL_LINES)
 
-    def _key(self, key: str, command_key: bool = False, undo_key: str | None = None, shift: bool = False) -> ActionResult:
+    def _key(self, key: str, command_key: bool = False, undo_key: str | None = None, shift: bool = False,
+             control: bool = False) -> ActionResult:
         if not accessibility_allowed():
             return ActionResult(False, problem="Pressing keys needs the Accessibility permission. " + ACCESSIBILITY_FIX)
         if not self.front.bring_forward():
             return ActionResult(False, problem="There is no app to send the key to.")
         import Quartz
-        flags = (COMMAND_KEY if command_key else 0) | (SHIFT_KEY if shift else 0)
+        flags = (COMMAND_KEY if command_key else 0) | (SHIFT_KEY if shift else 0) | (CONTROL_KEY if control else 0)
         for down in (True, False):
             event = Quartz.CGEventCreateKeyboardEvent(None, KEYS[key], down)
             Quartz.CGEventSetFlags(event, flags)   # never inherit a held modifier
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
         undo = (lambda: self._key(undo_key, command_key)) if undo_key else None
-        names = ("Command + " if command_key else "") + ("Shift + " if shift else "")
+        names = ("Control + " if control else "") + ("Command + " if command_key else "") + ("Shift + " if shift else "")
         return ActionResult(True, detail=f"Pressed {names}{key}", undo=undo)
+
+    # ---- common commands inside the app in front (keyboard shortcuts) ------------------------------
+
+    def _in(self, apps: tuple, what: str) -> str:
+        """'' if the app being worked in is one of `apps`, else what to say instead."""
+        name = self.screen().app or self.front.name or "this app"
+        if name in apps:
+            return ""
+        return f"{what} works in {' or '.join(apps)}; {name} is in front."
+
+    def _mail_key(self, key: str, done: str, shift: bool = False, control: bool = False, opens_draft: bool = False,
+                  undo_key: str | None = None, undo_shift: bool = False) -> ActionResult:
+        problem = self._in(("Mail",), done)
+        if problem:
+            return ActionResult(False, problem=problem)
+        pressed = self._key(key, command_key=True, shift=shift, control=control)
+        if not pressed.ok:
+            return pressed
+        if opens_draft:   # a reply / forward window opens with the cursor in the message
+            ready = self._wait_for(lambda s: s.place == "new email", 3.0, 0.15)
+            where = "cursor in the message" if ready.field == "body" else "cursor in To" if ready.field == "to" else ""
+            return ActionResult(True, detail=f"{done}" + (f", {where}" if where else "") + " (not sent)",
+                                undo=self._discard_email)
+        undo = (lambda: self._key(undo_key, command_key=True, shift=undo_shift)) if undo_key else None
+        return ActionResult(True, detail=done, undo=undo)
+
+    def _do_reply_email(self, args: dict) -> ActionResult:
+        if (args.get("text") or "").strip():   # the personal profile: a reply with its message already written
+            return self._reply_with_text(args)
+        return self._mail_key("r", "Reply opened", opens_draft=True)
+
+    def _do_reply_all_email(self, args: dict) -> ActionResult:
+        return self._mail_key("r", "Reply to all opened", shift=True, opens_draft=True)
+
+    def _do_forward_email(self, args: dict) -> ActionResult:
+        return self._mail_key("f", "Forward opened", shift=True, opens_draft=True)
+
+    def _do_mark_unread(self, args: dict) -> ActionResult:
+        return self._mail_key("u", "Marked as unread", shift=True, undo_key="u", undo_shift=True)
+
+    def _do_delete_email(self, args: dict) -> ActionResult:   # risky: always asked first
+        problem = self._in(("Mail",), "Deleting an email")
+        if problem:
+            return ActionResult(False, problem=problem)
+        pressed = self._key("delete")
+        return ActionResult(pressed.ok, detail="Moved the email to the Trash" if pressed.ok else "",
+                            problem=pressed.problem, undo=(lambda: self._key("z", command_key=True)) if pressed.ok else None)
+
+    def _do_archive_email(self, args: dict) -> ActionResult:   # risky: always asked first
+        return self._mail_key("a", "Archived the email", control=True, undo_key="z")
+
+    def _edit_key(self, key: str, done: str, command_key: bool = True, shift: bool = False, times: int = 1,
+                  undo_key: str | None = None, undo_command: bool = True, undo_shift: bool = False) -> ActionResult:
+        problem = self._in(EDITING_APPS, done)
+        if problem:
+            return ActionResult(False, problem=problem)
+        for _ in range(times):
+            pressed = self._key(key, command_key=command_key, shift=shift)
+            if not pressed.ok:
+                return pressed
+
+        def undo():
+            for _ in range(times):
+                self._key(undo_key, command_key=undo_command, shift=undo_shift)
+
+        return ActionResult(True, detail=f"{done} in {self.front.name}", undo=undo if undo_key else None)
+
+    def _do_undo_edit(self, args: dict) -> ActionResult:
+        return self._edit_key("z", "Undid the last change", undo_key="z", undo_shift=True)
+
+    def _do_select_all(self, args: dict) -> ActionResult:
+        return self._edit_key("a", "Selected everything")
+
+    def _do_make_bold(self, args: dict) -> ActionResult:
+        return self._edit_key("b", "Bold on (or off) for the selection", undo_key="b")
+
+    def _do_new_line(self, args: dict) -> ActionResult:
+        return self._edit_key("return", "New line", command_key=False, undo_key="delete", undo_command=False)
+
+    def _do_new_paragraph(self, args: dict) -> ActionResult:
+        return self._edit_key("return", "New paragraph", command_key=False, times=2, undo_key="delete", undo_command=False)
+
+    def _do_reload_page(self, args: dict) -> ActionResult:
+        problem = self._in(BROWSERS, "Reloading a page")
+        if problem:
+            return ActionResult(False, problem=problem)
+        pressed = self._key("r", command_key=True)
+        return ActionResult(pressed.ok, detail="Reloaded the page" if pressed.ok else "", problem=pressed.problem)
+
+    def _do_close_tab(self, args: dict) -> ActionResult:
+        problem = self._in(BROWSERS, "Closing a tab")
+        if problem:
+            return ActionResult(False, problem=problem)
+        pressed = self._key("w", command_key=True)
+        return ActionResult(pressed.ok, detail="Closed the tab" if pressed.ok else "", problem=pressed.problem,
+                            undo=(lambda: self._key("t", command_key=True, shift=True)) if pressed.ok else None)
+
+    # ---- the general fallback: the app's own menus and buttons ----------------------------------
+
+    def menu_items(self) -> list[dict]:
+        """Everything the app being worked in offers right now, through Accessibility:
+        its menu bar ("File > Print...") and the buttons in its front window. Disabled items are
+        left out. [{"label", "kind": "menu"|"button", "element"}]. Empty without Accessibility."""
+        if not accessibility_allowed() or not self.front.pid:
+            return []
+        try:
+            import ApplicationServices as AS
+            app = AS.AXUIElementCreateApplication(self.front.pid)
+            AS.AXUIElementSetMessagingTimeout(app, 0.5)
+
+            def attr(element, name):
+                error, value = AS.AXUIElementCopyAttributeValue(element, name, None)
+                return value if error == 0 else None
+
+            found, deadline = [], time.monotonic() + 2.0
+
+            def walk(menu, path, depth):
+                for item in attr(menu, "AXChildren") or []:
+                    if len(found) >= MENU_ITEMS_MAX or time.monotonic() > deadline:
+                        return
+                    title = " ".join(str(attr(item, "AXTitle") or "").split())
+                    if not title or attr(item, "AXEnabled") is False:
+                        continue
+                    submenu = next(iter(attr(item, "AXChildren") or []), None)
+                    if submenu is not None and attr(submenu, "AXRole") == "AXMenu":
+                        if depth < 2:
+                            walk(submenu, path + [title], depth + 1)
+                        continue
+                    found.append({"label": " > ".join(path + [title]), "kind": "menu", "element": item})
+
+            bar = attr(app, "AXMenuBar")
+            for top in (attr(bar, "AXChildren") or [])[1:] if bar is not None else []:   # [0] is the Apple menu
+                title = " ".join(str(attr(top, "AXTitle") or "").split())
+                menu = next(iter(attr(top, "AXChildren") or []), None)
+                if title and menu is not None:
+                    walk(menu, [title], 1)
+            window = attr(app, "AXFocusedWindow") or attr(app, "AXMainWindow")
+            queue, visited = ([window] if window is not None else []), 0
+            while queue and visited < 600 and time.monotonic() < deadline:
+                element = queue.pop(0)
+                visited += 1
+                if attr(element, "AXRole") in CLICKABLE_ROLES and attr(element, "AXEnabled") is not False:
+                    label = " ".join(str(attr(element, "AXTitle") or attr(element, "AXDescription") or "").split())
+                    if 1 < len(label) <= 40 and all(f["label"] != label for f in found):
+                        found.append({"label": label, "kind": "button", "element": element})
+                queue.extend(attr(element, "AXChildren") or [])
+            return found
+        except Exception:
+            return []
+
+    def press_item(self, item: dict) -> ActionResult:
+        """Click a menu item or button found by menu_items() (Accessibility "press")."""
+        try:
+            import ApplicationServices as AS
+            if not self.front.bring_forward():
+                return ActionResult(False, problem="The app is not open any more.")
+            error = AS.AXUIElementPerformAction(item["element"], "AXPress")
+            if error != 0:
+                return ActionResult(False, problem=f"{self.front.name} didn't let me click \u201c{item['label']}\u201d.")
+            return ActionResult(True, detail=f"Clicked \u201c{item['label']}\u201d in {self.front.name}")
+        except Exception as error:
+            return ActionResult(False, problem=f"Couldn't click it: {error}")
 
     def _do_press_left(self, args: dict) -> ActionResult:
         return self._key("left", undo_key="right")
@@ -960,7 +1126,8 @@ class MacActions:
         return ActionResult(True, say=f"From {name}. Subject: {subject.strip()}. {body}".strip(),
                             detail=f"Read the latest email (from {name})")
 
-    def _do_reply_email(self, args: dict) -> ActionResult:
+    def _reply_with_text(self, args: dict) -> ActionResult:
+        """The personal profile's reply: a reply to the newest email, with the message already in it."""
         text = args.get("text", "").strip()
         if not text:
             return ActionResult(False, problem="There is no reply message.")

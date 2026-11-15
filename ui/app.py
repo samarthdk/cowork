@@ -220,6 +220,8 @@ class _Targeted:
             app.retitle(command)
         if command == "answer_question":
             return app.answer_question(args.get("question", ""), screen)
+        if command == "do_in_app":   # not a known command: the app's own menus and buttons
+            return app.do_in_app(args.get("request", ""), screen)
         if command == "read_latest_email" and not app.voice.enabled:
             # Never confirm something and then silently do nothing: with speaking off it can't be read
             # aloud, so the email is opened on screen instead, and the person is told.
@@ -979,6 +981,49 @@ class App:
                 step["title"] = wording.step_title(sentence_for(command, {}, self.session.profile))
                 step["command"] = command
                 turn["request"] = wording.request_text(command, {}, self.session.profile)
+
+    def do_in_app(self, request: str, screen=None):
+        """A request that is not one of the known commands, done through the front app's own menu
+        items and buttons (repair/menu_pick.py): the ones sharing words with the request, Bonsai picks
+        one (or none). Unsure: "Did you mean...?". Risky (send, delete, quit, pay...): the permission
+        card, always. Nothing fits: says so and offers the closest items."""
+        from actions.base import ActionResult
+        from engine.session import Question
+        from repair.menu_pick import candidates, closest, is_risky, pick
+        actions = self.session.actions._actions if isinstance(self.session.actions, _Targeted) else self.session.actions
+        with self._lock:
+            heard = ((self.state["turn"] or {}).get("heard") or "").strip()
+        request = heard or request   # the person's own words (the Brain may shorten them)
+        app = (getattr(screen, "app", "") or getattr(getattr(actions, "front", None), "name", "") or "the app")
+        reader = getattr(actions, "menu_items", None)
+        items = reader() if reader is not None else []
+        if not items:
+            return ActionResult(False, problem=f"I couldn't read {app}'s menus and buttons. "
+                                               "Accessibility permission may be off for Terminal.")
+        shortlist = candidates(request, items)
+        chosen, sure = None, False
+        if shortlist:
+            index, confidence, problem = pick(request, app, [i["label"] for i in shortlist], self.session.llm)
+            if problem:
+                self._notice(f"The Brain couldn't choose: {problem}")
+            if index is not None:
+                chosen, sure = shortlist[index], confidence == "high"
+        if chosen is None:   # nothing fits: say so, and offer the closest items
+            near = shortlist[:3] or closest(request, items)
+            if not near:
+                return ActionResult(False, problem=f"I couldn't find a way to do that in {app}.")
+            answer = self._ask(Question("choice", "menu_closest", f"I couldn't find a way to do that in {app}.",
+                                        options=[i["label"] for i in near], data={"app": app}))
+            if answer is None or answer.kind != "pick":
+                return ActionResult(False, problem=f"I couldn't find a way to do that in {app}.")
+            chosen, sure = near[answer.value], True   # the person chose it
+        risky = is_risky(chosen["label"])
+        if risky or not sure:
+            answer = self._ask(Question("yes_no", "menu", chosen["label"],
+                                        data={"label": chosen["label"], "app": app, "risky": risky}))
+            if answer is None or answer.kind != "yes":
+                return ActionResult(True, detail=f"Nothing was clicked in {app} (you said no).")
+        return actions.press_item(chosen)
 
     def instead(self, command: str, why: str) -> None:
         """Something else is done than what was confirmed (e.g. opened, because speaking is off):

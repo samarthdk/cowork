@@ -33,6 +33,18 @@ class FakeActions:
         return ActionResult(True, say=say, detail=f"[fake] {command} {args or ''}".strip(),
                             undo=lambda: self.undone.append(command))
 
+    MENU = ["File > New", "File > Open\u2026", "File > Save", "File > Print\u2026", "Edit > Undo", "Edit > Find",
+            "View > Zoom In", "View > Zoom Out", "View > Show Sidebar", "Message > Mark > As Unread",
+            "Message > Flag", "Mailbox > Erase Deleted Items", "Insert > Table\u2026"]
+
+    def menu_items(self) -> list[dict]:
+        """A fixed, made-up menu (the real one is read with Accessibility)."""
+        return [{"label": label, "kind": "menu", "element": None} for label in self.MENU]
+
+    def press_item(self, item: dict) -> ActionResult:
+        self.done.append(("press_item", {"label": item["label"]}))
+        return ActionResult(True, detail=f"[fake] clicked {item['label']}")
+
     def front_app_name(self) -> str:
         return self.target
 

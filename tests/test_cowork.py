@@ -84,7 +84,8 @@ check("  ...websites and search are hidden (they need the internet); email is wr
 check("  ...sending is risky, writing is not",
       {c["name"]: c["safety"] for c in BASE["commands"] if c["name"] in ("send_email", "new_email")},
       {"send_email": "risky", "new_email": "safe"})
-check("  ...flaky actions are left out (click, reply_email)", "click" in names or "reply_email" in names, False)
+check("  ...the flaky free 'click' is left out (the menu fallback replaces it)", "click" in names, False)
+check("  ...reply is in (opens a reply by keyboard shortcut; nothing is sent)", "reply_email" in names, True)
 
 check("apps can be closed by name ('close Word') as well as 'close the app'",
       {c["name"]: list(c["args"]) for c in BASE["commands"] if c["name"] in ("quit_app", "close_app")},

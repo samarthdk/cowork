@@ -46,13 +46,16 @@ def fast_path(heard: str, profile: dict) -> FastMatch | None:
     # A phrase heard word for word (or the exact word this person uses for a
     # command) needs no model at all.
     exact = [p for p in profile["phrases"] if normalize(p) == text]
-    exact += [c["name"] for c in profile["commands"] if not c["args"]
+    exact += [c["name"] for c in profile["commands"] if (not c["args"] or c.get("whole_request"))
               and text in [normalize(w) for w in c.get("said_as", [])]]
     if len(exact) == 1:
         meant = exact[0]
         intent = Intent(meant, "command" if find_command(profile, meant) else "phrase",
                         {name: "" for name in all_arg_names(profile)}, "high",
                         fill_options(meant, [], all_choices(profile)))
+        command = find_command(profile, meant)
+        if command and command.get("whole_request"):   # e.g. "print this": the words are the request
+            intent.args[next(iter(command["args"]))] = heard.strip()
         latency = (time.perf_counter() - start) * 1000
         log_call("repair", "fast_path", latency, similarity=100, matched="(the phrase itself)", meant=meant)
         return FastMatch(intent, 100.0, {"heard": heard, "meant": meant, "args": {}, "builtin": True}, latency)
