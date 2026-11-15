@@ -148,6 +148,7 @@ class Listener:
         self.frames: queue.Queue = queue.Queue()
         self.armed_until = 0.0       # trigger mode: listening for a request until this time
         self.muted = False
+        self.held = False      # hold M: the person mutes Cowork (separate from muting while Cowork speaks)
         self.running = False
         self.problem = ""
         self._stream = None
@@ -204,7 +205,7 @@ class Listener:
 
     @property
     def listening(self) -> bool:
-        return self.running and not self.muted and (self.mode == "always" or time.monotonic() < self.armed_until
+        return self.running and not self.muted and not self.held and (self.mode == "always" or time.monotonic() < self.armed_until
                                                     or self.endpointer.in_speech)
 
     def mute(self) -> None:
@@ -214,6 +215,11 @@ class Listener:
 
     def unmute(self) -> None:
         self.muted = False
+        self.endpointer.reset()
+
+    def hold(self, on: bool) -> None:
+        """Hold M: not heard at all while held (what was being said is dropped)."""
+        self.held = bool(on)
         self.endpointer.reset()
 
     # ---- audio ----------------------------------------------------------
@@ -235,7 +241,7 @@ class Listener:
             if now - last_level > 0.1:
                 last_level = now
                 self.on_level(dbfs(rms(frame)), dbfs(self.endpointer.noise), self.endpointer.in_speech)
-            if self.muted:
+            if self.muted or self.held:
                 continue
             armed = self.mode == "always" or now < self.armed_until or self.endpointer.in_speech
             if not armed:

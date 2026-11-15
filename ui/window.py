@@ -113,27 +113,61 @@ def watch_keys(core):
     """Keys pressed in any app while the mini window shows go to core.mini_key first; a key it
     uses (answering an open question) is kept from the app. Needs the Accessibility permission
     (already needed for typing). Returns the tap, or None if macOS doesn't allow it."""
+    import time as _time
+
     import Quartz
+
+    from ui.mute_key import MuteKey
     own = os.getpid()
     holder = {}
+    mute = MuteKey()
+    MINE = 0x5345434F   # marks the "m" Cowork gives back after a quick tap (so it isn't caught again)
+
+    def act(actions, event):
+        for action in actions:
+            if action in ("mute", "unmute"):
+                core.hold_mute(action == "mute")
+            elif action == "type_m" and holder.get("m_down") is not None:
+                for copy in (holder["m_down"], Quartz.CGEventCreateCopy(event)):   # the quick tap, given back
+                    Quartz.CGEventSetIntegerValueField(copy, Quartz.kCGEventSourceUserData, MINE)
+                    Quartz.CGEventPost(Quartz.kCGSessionEventTap, copy)
 
     def on_key(proxy, kind, event, refcon):
         if kind in (Quartz.kCGEventTapDisabledByTimeout, Quartz.kCGEventTapDisabledByUserInput):
             Quartz.CGEventTapEnable(holder["tap"], True)
             return event
         try:
-            if Quartz.CGEventGetIntegerValueField(event, Quartz.kCGEventSourceUnixProcessID) == own:
-                return event   # Cowork's own typing
+            if Quartz.CGEventGetIntegerValueField(event, Quartz.kCGEventSourceUnixProcessID) == own \
+                    or Quartz.CGEventGetIntegerValueField(event, Quartz.kCGEventSourceUserData) == MINE:
+                return event   # Cowork's own typing, or the "m" it gave back
             flags = Quartz.CGEventGetFlags(event) & (Quartz.kCGEventFlagMaskCommand | Quartz.kCGEventFlagMaskControl
                                                      | Quartz.kCGEventFlagMaskAlternate)
-            if not flags and core.mini_key(int(Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode))):
+            code = int(Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode))
+            repeat = bool(Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventAutorepeat))
+            actions = mute.event("down" if kind == Quartz.kCGEventKeyDown else "up", code, repeat, _time.monotonic(),
+                                 modifiers=bool(flags))
+            if kind == Quartz.kCGEventKeyDown and actions == ["swallow"] and not repeat and not mute.muted:
+                holder["m_down"] = Quartz.CGEventCreateCopy(event)   # kept, in case it is only a quick tap
+            if "swallow" in actions:
+                act(actions, event)
+                return None    # hold M: muting Cowork (or deciding): the app doesn't get it
+            if kind != Quartz.kCGEventKeyDown:
+                return event
+            if not flags and core.mini_key(code):
                 return None    # it answered the question: the app doesn't get it
         except Exception:
             pass
         return event
 
+    def tick():   # key repeat may be off: mute once M has been held long enough anyway
+        actions = mute.tick(_time.monotonic())
+        if actions:
+            core.hold_mute(True)
+
+    holder["tick"] = tick
     tap = Quartz.CGEventTapCreate(Quartz.kCGSessionEventTap, Quartz.kCGHeadInsertEventTap,
-                                  Quartz.kCGEventTapOptionDefault, Quartz.CGEventMaskBit(Quartz.kCGEventKeyDown),
+                                  Quartz.kCGEventTapOptionDefault,
+                                  Quartz.CGEventMaskBit(Quartz.kCGEventKeyDown) | Quartz.CGEventMaskBit(Quartz.kCGEventKeyUp),
                                   on_key, None)
     if tap is None:
         return None
@@ -141,7 +175,7 @@ def watch_keys(core):
     source = Quartz.CFMachPortCreateRunLoopSource(None, tap, 0)
     Quartz.CFRunLoopAddSource(Quartz.CFRunLoopGetMain(), source, Quartz.kCFRunLoopCommonModes)
     Quartz.CGEventTapEnable(tap, True)
-    return tap, source, on_key
+    return tap, source, on_key, tick
 
 
 class _Closer(NSObject):
@@ -149,7 +183,9 @@ class _Closer(NSObject):
         _quit()
 
     def tick_(self, timer):
-        pass   # lets Python notice Ctrl+C while the Mac event loop runs
+        keys = getattr(run_window, "keys_tick", None)   # hold M: mute once held long enough
+        if keys is not None:
+            keys()
 
 
 def set_glass(window, effect, glass: bool) -> None:
@@ -242,6 +278,8 @@ def run_window(url: str, core=None, title: str = "Cowork", width: int = 1120, he
 
         core.window_hook = switch
         keys = watch_keys(core)
+        if keys is not None:
+            run_window.keys_tick = keys[3]
         if keys is None:
             print("Mini window: keys can't answer its questions (macOS didn't allow listening to keys); "
                   "thumbs, voice and clicks still work.")

@@ -302,6 +302,7 @@ button.chip { min-height: var(--target); }
 /* ---- Conference mode: a calm view, readable from across a table ---- */
 .mode-label { max-width: 760px; margin: 0 auto 6px; padding-left: 18px; font: var(--label); color: var(--accent); }
 .mode-label[hidden] { display: none; }
+.muted-label { color: var(--warn); font-weight: 600; }
 .conf { max-width: 860px; margin: 0 auto; padding: 0 26px 24px; display: flex; flex-direction: column; gap: 18px; min-height: 100%; }
 /* The header stays at the top (it was scrolled out of sight, or cut off, when the view was taller than the window). */
 .conf-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 12px; color: var(--muted); font: var(--label);
@@ -478,6 +479,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
       <div class="clips card" id="clips" hidden></div>
       <div class="mode-label" id="modeLabel" hidden>Conference mode: speaking for you</div>
       <div class="mode-label" id="writingLabel" role="status" hidden></div>
+      <div class="mode-label muted-label" id="mutedLabel" role="status" hidden>Muted: Cowork can't hear you while you hold M</div>
       <form class="composer card" id="typeForm" autocomplete="off">
         <label class="sr" for="typed">Type what was said</label>
         <input id="typed" placeholder="Type what was said, or press the mic…">
@@ -914,6 +916,7 @@ function renderModal() {
       <tr><td>Answer a card</td><td>Say yes / no or a number, show your thumb, or press Enter / Esc / 1-4.</td></tr>
       <tr><td>Dictation</td><td>Confirmed sentences are typed into the app you are working in. Say “type …” to dictate anything.</td></tr>
       <tr><td>Conference mode</td><td>The people icon in the composer. Cowork speaks for you in a meeting: each sentence is said aloud once you confirm it (never before). Commands are off until you switch back. Quick phrases: 1-4, a thumb, or say the number.</td></tr>
+      <tr><td>Mute</td><td>Hold M (in any app) to talk to someone without Cowork hearing you. Let go of M and Cowork listens again. A quick tap still types “m”.</td></tr>
       <tr><td>Stop everything</td><td>Say “stop” or “cancel”, or press Esc twice: speaking, typing and anything waiting stop at once. What was already done stays (use Undo for that).</td></tr>
       <tr><td>Demo clips</td><td>⌘1 to ⌘4 play demo clips 1 to 4 (4 is for Conference mode).</td></tr>
       <tr><td>Quick actions</td><td>⌘K, or say “quick actions”.</td></tr>
@@ -1023,7 +1026,8 @@ function render(s) {
   $("speak").classList.toggle("listening", !!mic.listening);
   $("speak").classList.toggle("busy", !mic.listening && (!!s.playing || s.status === "hearing"));
   if (!mic.listening) $("speak").style.removeProperty("--lvl");
-  setTip($("speak"), !mic.on ? "Speak (microphone off)" : s.playing ? "Playing test clip…" : mic.listening ? "Listening… (click to stop)" : s.status === "hearing" ? "Hearing…" : "Speak");
+  $("mutedLabel").hidden = !mic.held;   // hold M: muted
+  setTip($("speak"), mic.held ? "Muted (holding M)" : !mic.on ? "Speak (microphone off)" : s.playing ? "Playing test clip…" : mic.listening ? "Listening… (click to stop)" : s.status === "hearing" ? "Hearing…" : "Speak");
   $("speak").setAttribute("aria-pressed", mic.listening ? "true" : "false");
   $("live").hidden = !(mic.on && (mic.listening || s.status === "hearing"));
   $("partial").textContent = s.status === "hearing" ? `Working out: ${mic.partial || "…"}` : mic.partial ? `Heard so far: ${mic.partial}` : "Listening… speak now";

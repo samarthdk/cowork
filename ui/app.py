@@ -480,6 +480,12 @@ class App:
             self.listener.trigger(wait_s=HANDS_FREE_WAIT_S)
             self._set(mic=dict(self.state["mic"], listening=True))
 
+    def hold_mute(self, on: bool) -> None:
+        """Hold M (any app): Cowork doesn't hear the person while M is held; "Muted" is shown."""
+        if self.listener is not None and hasattr(self.listener, "hold"):
+            self.listener.hold(on)
+        self._set(mic=dict(self.state["mic"], held=bool(on), partial="" if on else self.state["mic"].get("partial", "")))
+
     def mini_key(self, code: int) -> bool:
         """A key pressed in any app while the mini window shows. Returns True if Cowork used it (it then
         doesn't reach the app). Only while a question is open: Enter/Y yes, Esc/N no, 1-4 a square.
