@@ -252,6 +252,11 @@ def main() -> None:
     core.set_dictation(True)
     pump(0.5)
     snapshot(web, out / "01_start_dictation_on.png")
+    web.evaluateJavaScript_completionHandler_(   # a tooltip on the icon-only composer buttons
+        "document.getElementById('dictBtn').dispatchEvent(new MouseEvent('mouseover', {bubbles: true}))", None)
+    pump(0.9)
+    snapshot(web, out / "01c_tooltip_dictation.png")
+    web.evaluateJavaScript_completionHandler_("hideTip()", None)
 
     core._set(mic=dict(core.state["mic"], listening=True, partial="We can get a joke on the"))
     core._publish({"type": "level", "level": -24, "noise": -60, "speaking": True, "listening": True})
@@ -271,7 +276,7 @@ def main() -> None:
     snapshot(web, out / "02c_quick_actions_filtered.png")
     web.evaluateJavaScript_completionHandler_("closeModal(); openModal('settings')", None)
     pump(0.4)
-    snapshot(web, out / "02d_settings_glass_plain.png")
+    snapshot(web, out / "02d_settings_about.png")
     web.evaluateJavaScript_completionHandler_("closeModal()", None)
 
     def play(clip):

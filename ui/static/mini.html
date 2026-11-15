@@ -22,7 +22,7 @@ html.plain { --tint: #141416; }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: transparent; color: var(--text); font: 400 15px/1.4 var(--sans); -webkit-font-smoothing: antialiased;
   -webkit-user-select: none; user-select: none; overflow: hidden; }
-#box { margin: 0; padding: 12px 14px 12px; background: var(--tint); border: 1px solid var(--line); border-radius: 14px; }
+#box { position: relative; margin: 0; padding: 12px 14px 12px; background: var(--tint); border: 1px solid var(--line); border-radius: 14px; }
 .top { display: flex; align-items: center; gap: 10px; min-height: 40px; cursor: pointer; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); flex: none; }
 .listening .dot { background: var(--ok); animation: pulse 1.2s ease-in-out infinite; }
@@ -35,9 +35,15 @@ html, body { margin: 0; background: transparent; color: var(--text); font: 400 1
 .status span { display: block; font: 400 13px/1.35 var(--sans); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .meter { height: 4px; border-radius: 2px; background: rgba(255,255,255,.12); margin-top: 6px; overflow: hidden; }
 .meter i { display: block; height: 100%; width: 0; background: var(--ok); transition: width .12s linear; }
-.expand { flex: none; height: 36px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.08);
-  color: var(--text); font: 500 13px var(--sans); cursor: pointer; }
-.expand:hover { background: rgba(255,255,255,.16); }
+.expand { position: relative; flex: none; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%;
+  background: transparent; color: var(--muted); cursor: pointer; }
+.expand::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: rgba(255,255,255,.08); }
+.expand:hover::before { background: rgba(255,255,255,.16); }
+.expand svg { position: relative; width: 18px; height: 18px; }
+/* tooltip: inside the box (the native window is only as big as the box), to the left of the button */
+.tip { position: absolute; z-index: 5; padding: 5px 9px; border-radius: 7px; background: rgba(0,0,0,.92); color: #fff; font: 500 13px/1.3 var(--sans);
+  white-space: nowrap; pointer-events: none; }
+.tip[hidden] { display: none; }
 .q { margin-top: 10px; }
 .q-row { display: flex; gap: 10px; align-items: flex-start; }
 .q-text { flex: 1; min-width: 0; }
@@ -65,9 +71,10 @@ html, body { margin: 0; background: transparent; color: var(--text); font: 400 1
   <div class="top paused" id="top" title="Click to stop or start listening">
     <span class="dot" aria-hidden="true"></span>
     <div class="status" aria-live="polite"><b id="what">Cowork</b><span id="sub"></span><div class="meter" id="meter" hidden><i id="level"></i></div></div>
-    <button class="expand" id="expand" title="Back to the full Cowork window (or say “show Cowork”)">Open Cowork</button>
+    <button class="expand" id="expand" aria-label="Open Cowork" data-tip="Open Cowork"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4l-7 7M10 20H4v-6M4 20l7-7"/></svg></button>
   </div>
   <div class="q" id="q" hidden></div>
+  <div class="tip" id="tip" role="tooltip" hidden></div>
 </div>
 <script>
 "use strict";
@@ -148,6 +155,22 @@ document.addEventListener("click", (e) => {
   if (b && b.dataset.pick) { post("/api/answer", { kind: "pick", value: Number(b.dataset.pick) }); return; }
   if (e.target.closest("#top") && S) post("/api/handsfree", { on: !(S.window && S.window.hands_free) });   // click: stop / listen again
 });
+// Tooltip for the icon button: after ~half a second of hover, or at once on keyboard focus.
+let tipTimer = null;
+function showTip(b, delay) {
+  clearTimeout(tipTimer);
+  tipTimer = setTimeout(() => {
+    const t = $("tip"), box = $("box").getBoundingClientRect(), r = b.getBoundingClientRect();
+    t.textContent = b.dataset.tip; t.hidden = false;
+    t.style.top = (r.top - box.top + r.height / 2 - t.offsetHeight / 2) + "px";
+    t.style.left = (r.left - box.left - t.offsetWidth - 6) + "px";
+  }, delay);
+}
+function hideTip() { clearTimeout(tipTimer); $("tip").hidden = true; }
+$("expand").addEventListener("mouseenter", (e) => showTip(e.currentTarget, 500));
+$("expand").addEventListener("mouseleave", hideTip);
+$("expand").addEventListener("focus", (e) => { if (e.currentTarget.matches(":focus-visible")) showTip(e.currentTarget, 0); });
+$("expand").addEventListener("blur", hideTip);
 function connect() {
   const source = new EventSource("/api/stream");
   source.onmessage = (m) => {

@@ -129,4 +129,5 @@ check("answering replaces it (a new question is drawn fresh)", js("document.quer
 
 print(f"\n{sum(results)}/{len(results)} passed  {'ALL PASS' if all(results) else 'SOME FAILED'}")
 import os  # noqa: E402
+sys.stdout.flush()
 os._exit(0 if all(results) else 1)
