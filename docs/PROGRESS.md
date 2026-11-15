@@ -1,4 +1,58 @@
-# Progress report (written 2026-11-12)
+# Progress report
+
+## Update 2026-11-14: Cowork branch, round D ("look before acting", the mini window)
+
+Branch `cowork`. **All 15 test files pass** (620 checks):
+
+    for t in tests/test_*.py; do .venv/bin/python $t | tail -1; done
+
+### What is new, in plain English
+
+| | What it does | Where |
+|---|---|---|
+| Look before acting | Before and after every action Cowork reads the screen (Accessibility: which app, what it shows, what has the cursor), 1-8 ms a read. Shown in Progress ("Word open, start screen", "Blank document ready") and told to Bonsai with each request. | `actions/screen.py` |
+| Never type in the wrong place | Typing only when a document, text box or email box has the cursor. Word's start screen offers "Blank document / Open a recent file / Something else"; a search box asks first. | `ui/app.py` (`_Targeted`) |
+| Commands vs. typing vs. questions | Commands in any wording ("write an email", "new mail", "compose"...). Typing only for "type ..." or dictation into a box. Questions are answered aloud in 1-2 sentences, saying plainly that it is offline; never typed. | `ui/screen_rules.py`, `repair/answer.py` |
+| Mail box by box | "open Mail" only opens Mail (bug fixed: Mail reopened last time's draft and Cowork also pressed Command+N). "write an email" = one email, cursor in To; "next box" / "back" / "go to subject"; spoken addresses ("sam at gmail dot com") or a contact's name ("me") are confirmed before typing; "send" asks first and only ever sends to Me with `EMAIL_REALLY_SEND` on (it is off). | `actions/mac.py`, `ui/spoken.py` |
+| Browsers | "new tab", "search for ..." (typed into the address bar), "hit search". | `actions/mac.py` |
+| Flicker fixed | The camera sent hand progress 15-30 times a second; each redraw replayed the card's slide-in. Now only changes are sent and the card is drawn once. | `tests/test_no_flicker.py` |
+| "Something else" | Guesses use the words heard and the screen (as background only), and can be questions. | `repair/guess.py` |
+| Mini window | When Cowork opens or brings forward an app, it shrinks to a small floating window in the top right corner that never takes the keyboard. It listens hands-free, says questions aloud, takes thumbs / voice / Enter, Esc, 1-4. "stop listening", Esc or a click stops listening; "show Cowork" or closing the last app it opened brings back the full window. | `ui/window.py`, `ui/static/mini.html` |
+
+Pictures: `docs/screenshots/12`-`17`.
+
+### Live results (real WhisperKit, Bonsai, Word, Mail, Chrome; requests made with the Mac voice and fed in)
+
+| Flow | Result |
+|---|---|
+| open Microsoft Word -> new blank document -> a sentence | Works: the sentence is in a new blank document, nothing in the search box |
+| open Mail -> write an email -> "me" -> next box x2 -> subject -> next box -> message -> send -> close Mail | Works: one window, no drafts; send asked first, then refused (`EMAIL_REALLY_SEND` off); Cowork back to full size |
+| open Mail -> open Microsoft Word -> what's the weather in Boston? | Works: answered aloud, nothing typed, no flicker |
+| open Chrome -> search for Cornell -> hit search | Works: a Google search for Cornell |
+
+Response times: learned commands 0.3-0.5 s; with Bonsai 1.5-3 s; the first request after
+learning something 4-6 s (Bonsai re-reads its instructions); a question about 6-7 s in all.
+
+### Measured and decided against
+- **Screenshot + Bonsai vision** as a fallback: 4.3-4.8 s and about +300 MB per new picture,
+  wrong on both test pictures, and it needs the Screen Recording permission. Not used.
+
+### Known problems
+- **Hands-free hears the room.** With hands-free listening on, other people's speech becomes
+  requests (seen live). "Did you mean...?" stops it doing anything unasked, but it keeps asking.
+- Confirming a misheard request teaches it (e.g. "Open" -> new blank document).
+- WhisperKit mishears spelled-out addresses; saying a contact's name ("me") is reliable.
+- The send check saves the email to Drafts (Mail shows names, not addresses, on its chips),
+  so a refused email stays in Drafts. "close Mail" also lets Mail keep an unsent email as a draft.
+- Dictated sentences sometimes get a "Did you mean: Type ...?" check first.
+
+### Test-only switches
+`COWORK_TEST_AUDIO=1` (feed recordings in), `COWORK_TEST_SILENT_MIC=1` (the room is not heard),
+`--work-profile PATH` (learn into a throwaway file). All off by default.
+
+---
+
+## Earlier report (written 2026-11-12, `fable-build` branch)
 
 Where the `fable-build` branch stands against `docs/BUILD_BRIEF.md`, in plain English.
 Based on the git log, the code, `docs/DECISIONS.md`, `docs/STATUS.md`, and a fresh run of

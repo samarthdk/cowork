@@ -119,6 +119,86 @@ def snapshot(web, path: Path) -> None:
     print("saved", path)
 
 
+def screen_scenes(core, web, out, ready, asking) -> None:
+    """Word's start screen, a question answered, and an email written box by box."""
+    from actions.screen import Screen
+    fake = core.session.actions._actions
+    start = Screen(app="Microsoft Word", pid=1, place="start screen", choices=["Blank document", "Open a recent file"])
+    doc = Screen(app="Microsoft Word", pid=1, window="Document1", place="document", focus="the document", typeable=True)
+    order = ["to", "cc", "subject", "body"]
+
+    def email(field):
+        return Screen(app="Mail", pid=2, place="new email", field=field, typeable=True,
+                      focus="the message" if field == "body" else f"the {field.capitalize()} box")
+
+    now = {"screen": start}
+    fake.screen = lambda: now["screen"]
+    fake.contacts = {"Me": "me@example.org"}
+    plain_context, plain_run = fake.context, fake.run
+
+    def context():
+        found = plain_context()
+        found["_screen"] = now["screen"]
+        found["field"] = ["To", "Cc", "Subject", "Message"]
+        return found
+
+    def run(command, args):
+        result = plain_run(command, args)
+        current = now["screen"]
+        if command == "new_document":
+            now["screen"] = doc
+        elif command == "new_email":
+            now["screen"] = email("to")
+        elif command in ("next_field", "previous_field") and current.place == "new email":
+            i = order.index(current.field) + (1 if command == "next_field" else -1)
+            now["screen"] = email(order[max(0, min(3, i))])
+        return result
+
+    fake.context, fake.run = context, run
+
+    def say_and_confirm(text):
+        n = len(core.state["history"])
+        core.say(text)
+        wait(lambda: core.state["question"] is not None or len(core.state["history"]) > n, 10)
+        q = core.state["question"]
+        if q and q["stage"] in ("did_you_mean", "address"):
+            core.answer("yes")
+            wait(lambda: core.state["question"] is None or core.state["question"]["id"] != q["id"])
+        wait(lambda: len(core.state["history"]) > n or (core.state["question"] or {}).get("stage") == "screen", 10)
+        q = core.state["question"]
+        if q and q["kind"] == "window":
+            core.answer("yes")
+            wait(ready)
+
+    core.new_task()
+    core.set_dictation(True)
+    say_and_confirm("type see you at noon")
+    pump(0.6)
+    snapshot(web, out / "14_word_start_screen_choice.png")
+    core.answer("pick", 0)
+    wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "window")
+    pump(0.6)
+    snapshot(web, out / "15_blank_document_then_typed.png")
+    core.answer("yes")
+    wait(ready)
+
+    import repair.answer   # the answer the real Bonsai gave in the live test (2026-11-14), not the fake's placeholder
+    repair.answer.answer_question = lambda *a, **k: (
+        "Boston in late November is usually cold and rainy. I'm offline, so I can't check today's forecast.", "")
+    core.voice.tts.which_voice = lambda text: "Mac voice (Reed)" if "Boston" in text else "TTSKit"   # a new sentence
+    core.new_task()
+    say_and_confirm("what's the weather in Boston")
+    pump(0.6)
+    snapshot(web, out / "16_question_answered.png")
+
+    core.new_task()
+    fake.target = "Mail"
+    for text in ("write an email", "me", "next box", "next box"):
+        say_and_confirm(text)
+    pump(0.6)
+    snapshot(web, out / "17_email_box_by_box.png")
+
+
 def main() -> None:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else config.ROOT / "docs" / "screenshots")
     out.mkdir(parents=True, exist_ok=True)
@@ -227,13 +307,7 @@ def main() -> None:
     core.answer("yes")
     wait(ready)
 
-    core.say("email anna saying lunch at noon")
-    wait(asking)
-    core.answer("yes")
-    wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "window")
-    core.answer("yes")
-    wait(ready)
-    core.say("send it")
+    core.say("send the email")
     wait(asking)
     pump(0.6)
     snapshot(web, out / "07_risky_send.png")
@@ -268,6 +342,11 @@ def main() -> None:
     core._set(mic=dict(core.state["mic"], on=False, problem="Could not open the microphone (no input device)."))
     pump(0.6)
     snapshot(web, out / "11_mic_unavailable.png")
+    core._set(mic=dict(core.state["mic"], on=True, problem=""))
+    core.camera_state({"on": True, "problem": ""})
+
+    # ---- looking at the screen (a fake Mac whose screen the script sets) ----------------------
+    screen_scenes(core, web, out, ready, asking)
     server.should_exit = True
     shutil.rmtree(work, ignore_errors=True)
 
