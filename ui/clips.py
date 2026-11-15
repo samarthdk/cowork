@@ -35,7 +35,7 @@ CLIP_IDS = [   # commands first, then sentences (all from evaluation fold 0, hel
 ]
 
 
-# The dictation demo, in this order (checked with the real WhisperKit and Bonsai on 2026-11-14):
+# The demo, in this order (checked with the real WhisperKit and Bonsai): clips 1-3 dictation, clip 4 Conference mode
 DEMO = [
     ("M04_2_0264", "Understood directly",
      "WhisperKit hears \u201cBut humanity is overwhelming.\u201d; it is typed at once"),
@@ -43,12 +43,15 @@ DEMO = [
      "WhisperKit hears \u201cWe can get a joke on the beach.\u201d; one Yes, then it is typed and learned"),
     ("M04_2_0174", "Replay: now instant",
      "the same recording again: recognised from what was learned, typed instantly"),
+    ("M04_2_0007", "Conference: new sentence",
+     "WhisperKit hears \u201cCould grandpa like to be a model in his language?\u201d; \u201cDid you mean\u201d "
+     "Grandfather likes to be modern in his language? Yes: said aloud (checked 3 of 3 runs, 2026-11-15)"),
 ]
 
 
 def load_clips() -> list[dict]:
     """[{"id", "recording", "path", "said", "heard", "seconds", "label", "note", "demo"}]:
-    the 3 demo clips first (in order), then the other recordings."""
+    the 4 demo clips first (in order), then the other recordings."""
     try:
         index = {u["id"]: u for u in json.loads((TORGO / "utterances.json").read_text())}
         heard = {}

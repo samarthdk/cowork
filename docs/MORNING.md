@@ -39,6 +39,15 @@ could be tried live. Please try each once (2 minutes):
 - [ ] Mini window: a question it can't say aloud makes one soft chime and the window glows.
 - [ ] Esc twice stops everything; Cmd+1/2/3 play the clips.
 
+## Added after the night (2026-11-15)
+- **Writing mode:** after "reply to this email" (or forward, new email, new document) just speak: everything is
+  typed there ("Writing your reply" shows). Finish with "send" / "press send" / "send it" (the permission card) or
+  "done". Sending really happens only if every recipient is your own address ("Me" in profiles/contacts.json);
+  for anyone else it says "Sending to other people is turned off in this demo" and leaves the draft open.
+- **Quick phrases never wait:** pressing 1-4 one after another always speaks the newest one.
+- **Demo clip 4 (Cmd+4)** for Conference mode: "Grandfather likes to be modern in his language" (one "Did you
+  mean", Yes, spoken at once; checked 3 of 3 runs with the real WhisperKit and Bonsai).
+
 ## 4. Known issues and how to avoid them in the demo
 - The first request after starting (or after it learns something) can take 4 to 6 seconds while Bonsai reads its
   instructions. Do one throw-away request before recording.
@@ -46,7 +55,7 @@ could be tried live. Please try each once (2 minutes):
   your phrases are made in advance, so they play at once.
 - Hands-free listening (in the corner window) also hears other people in the room. Keep the room quiet, or say
   "stop listening".
-- Cmd+1/2/3 only work while Cowork's full window is in front ("show Cowork" brings it back).
+- Cmd+1 to Cmd+4 only work while Cowork's full window is in front ("show Cowork" brings it back).
 - Don't show "send": it asks, and then refuses on purpose (sending is switched off).
 - With speaking on, "read out my latest email" usually stays silent (an email is always a new sentence and the voice
   needs more than 2 seconds); with speaking off it opens the email instead.

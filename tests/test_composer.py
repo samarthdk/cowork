@@ -172,10 +172,10 @@ check("  ...and it stays open", js("document.querySelector('.app').classList.con
 played, stopped = [], []
 core.play_clip = lambda clip_id, play_sound=True: played.append(clip_id) or ""
 core.stop_all = lambda: stopped.append(1)
-for n in ("1", "2", "3"):
+for n in ("1", "2", "3", "4"):
     js(f"document.dispatchEvent(new KeyboardEvent('keydown', {{key: '{n}', metaKey: true, bubbles: true}}))")
 pump(0.5)
-check("Cmd+1, Cmd+2, Cmd+3 play demo clips 1-3", played, ["demo1", "demo2", "demo3"])
+check("Cmd+1 to Cmd+4 play demo clips 1-4", played, ["demo1", "demo2", "demo3", "demo4"])
 js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
 pump(0.5)
 check("Esc twice stops everything", len(stopped), 1)

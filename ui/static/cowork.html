@@ -302,15 +302,18 @@ button.chip { min-height: var(--target); }
 /* ---- Conference mode: a calm view, readable from across a table ---- */
 .mode-label { max-width: 760px; margin: 0 auto 6px; padding-left: 18px; font: var(--label); color: var(--accent); }
 .mode-label[hidden] { display: none; }
-.conf { max-width: 860px; margin: 0 auto; padding: 22px 26px 30px; display: flex; flex-direction: column; gap: 22px; min-height: 100%; }
-.conf-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font: var(--label); }
+.conf { max-width: 860px; margin: 0 auto; padding: 0 26px 24px; display: flex; flex-direction: column; gap: 18px; min-height: 100%; }
+/* The header stays at the top (it was scrolled out of sight, or cut off, when the view was taller than the window). */
+.conf-head { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; gap: 12px; color: var(--muted); font: var(--label);
+             padding: 14px 0 10px; background: rgba(16, 16, 18, .92); border-bottom: 1px solid var(--line); }
+.conf-head .ways { white-space: nowrap; }
 .conf-head .badge { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 600; }
 .conf-head .badge svg { width: 18px; height: 18px; }
 .conf-head .ways { margin-left: auto; }
-.transcript { display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; min-height: 160px; }
-.transcript .past { font: 400 24px/1.35 var(--serif); color: var(--muted); margin: 0; }
+.transcript { display: flex; flex-direction: column; justify-content: flex-end; gap: 10px; }
+.transcript .past { font: 400 clamp(18px, 2vw, 24px)/1.35 var(--serif); color: var(--muted); margin: 0; }
 .transcript .past.stopped { text-decoration: line-through; opacity: .7; }
-.transcript .now { font: 500 46px/1.2 var(--serif); margin: 0; overflow-wrap: anywhere; }
+.transcript .now { font: 500 clamp(28px, 3.6vw, 46px)/1.2 var(--serif); margin: 0; overflow-wrap: anywhere; }
 .transcript .now.stopped { text-decoration: line-through; color: var(--muted); }
 .transcript .state { display: flex; align-items: center; gap: 10px; font: var(--title); font-weight: 500; color: var(--muted); }
 .transcript .state svg { width: 22px; height: 22px; }
@@ -320,7 +323,7 @@ button.chip { min-height: var(--target); }
 .transcript .state .loop { border-color: rgba(242,196,107,.3); border-top-color: var(--warn); }
 .transcript .empty-said { font: 400 28px/1.35 var(--serif); color: var(--muted); margin: 0; }
 .conf-quick h3 { font: var(--label); color: var(--muted); margin: 0 0 10px; }
-.conf-quick .btn { min-height: 84px; }
+.conf-quick .btn { min-height: 68px; }
 .conf .working { display: flex; align-items: center; gap: 10px; color: var(--muted); }
 .conf .working svg { width: 20px; height: 20px; }
 
@@ -749,10 +752,10 @@ const SAID_STATE = { preparing: "Preparing voice…", speaking: "Speaking…", s
 function confHtml(s) {
   const said = s.said || [];
   const counts = s.counts || {};
-  let html = `<div class="conf"><div class="conf-head"><span class="badge">${sv(MODE_ICON.conference)}Conference mode</span><span>Speaking for you. Nothing is said until you confirm it.</span><span class="ways">${counts.examples ?? 0} ways you say things</span></div><div class="transcript">`;
-  if (!said.length) html += `<p class="empty-said">Say a sentence, choose a test clip, or pick a quick phrase below. Once you confirm it, I say it aloud to the room.</p>`;
+  let html = `<div class="conf"><div class="conf-head"><span class="badge">${sv(MODE_ICON.conference)}Conference mode</span><span class="ways">${counts.examples ?? 0} ways you say things</span></div><div class="transcript">`;
+  if (!said.length) html += `<p class="empty-said">Say a sentence, choose a test clip, or pick a quick phrase below. Nothing is said until you confirm it; then I say it aloud to the room.</p>`;
   const asking = !!s.question;   // a card needs the room: only the newest sentence stays above it
-  said.slice(asking ? -1 : -4, -1).forEach((e) => { html += `<p class="past ${e.status === "stopped" ? "stopped" : ""}">${esc(e.text)}</p>`; });
+  said.slice(asking ? -1 : -3, -1).forEach((e) => { html += `<p class="past ${e.status === "stopped" ? "stopped" : ""}">${esc(e.text)}</p>`; });
   const now = said[said.length - 1];
   if (now) {
     const icon = now.status === "preparing" ? '<span class="loop" aria-hidden="true"></span>' : now.status === "said" ? ICON.check : now.status === "stopped" ? ICON.undo : ICON.speaker;
@@ -912,7 +915,7 @@ function renderModal() {
       <tr><td>Dictation</td><td>Confirmed sentences are typed into the app you are working in. Say “type …” to dictate anything.</td></tr>
       <tr><td>Conference mode</td><td>The people icon in the composer. Cowork speaks for you in a meeting: each sentence is said aloud once you confirm it (never before). Commands are off until you switch back. Quick phrases: 1-4, a thumb, or say the number.</td></tr>
       <tr><td>Stop everything</td><td>Say “stop” or “cancel”, or press Esc twice: speaking, typing and anything waiting stop at once. What was already done stays (use Undo for that).</td></tr>
-      <tr><td>Demo clips</td><td>⌘1, ⌘2, ⌘3 play test clips 1 to 3.</td></tr>
+      <tr><td>Demo clips</td><td>⌘1 to ⌘4 play demo clips 1 to 4 (4 is for Conference mode).</td></tr>
       <tr><td>Quick actions</td><td>⌘K, or say “quick actions”.</td></tr>
       <tr><td>Results</td><td><button class="link-btn" data-view="results">See how well Cowork understands impaired speech</button></td></tr>
       <tr><td>Panels</td><td>Say “show learned”, “show progress” or “show camera”.</td></tr></table></div>`;
@@ -1157,7 +1160,7 @@ function showClips() {
   const clips = (S && S.clips) || [];
   const row = (c, n) => `<button data-clip="${esc(c.id)}"><span class="play">${ICON.play}</span><span>${n ? `<b class="step-n">${n}</b> ` : ""}“${esc(c.said)}”${c.label ? `<span class="clip-label">${esc(c.label)}</span>` : ""}</span><span class="secs">${c.seconds ? c.seconds.toFixed(1) + " s" : ""}</span></button>`;
   const demo = clips.filter((c) => c.demo), more = clips.filter((c) => !c.demo);
-  $("clips").innerHTML = (clips.length ? `<h4>Dictation demo: play in this order</h4>` + demo.map((c, i) => row(c, i + 1)).join("") +
+  $("clips").innerHTML = (clips.length ? `<h4>Demo: play in this order (1-3 dictation, 4 Conference mode)</h4>` + demo.map((c, i) => row(c, i + 1)).join("") +
     (more.length ? `<h4>More recordings</h4>` + more.map((c) => row(c, 0)).join("") : "") : '<p class="feed-empty" style="padding:0 8px">No clips found on this Mac.</p>') + `<div class="caption">${esc((S && S.credit) || "")}</div>`;
   $("clips").hidden = false; $("clipBtn").setAttribute("aria-expanded", "true");
   const first = $("clips").querySelector("button"); if (first) first.focus();
@@ -1167,8 +1170,8 @@ function hideClips() { $("clips").hidden = true; $("clipBtn").setAttribute("aria
 let lastEsc = 0;
 document.addEventListener("keydown", (e) => {
   if (!S) return;
-  // Demo backup: Cmd+1, Cmd+2, Cmd+3 play demo clips 1-3 (only in Cowork's own window)
-  if (e.metaKey && !e.shiftKey && !e.altKey && ["1", "2", "3"].includes(e.key)) {
+  // Demo backup: Cmd+1 to Cmd+4 play demo clips 1-4 (only in Cowork's own window)
+  if (e.metaKey && !e.shiftKey && !e.altKey && ["1", "2", "3", "4"].includes(e.key)) {
     e.preventDefault();
     post("/api/clip", { id: "demo" + e.key }).then((r) => r && r.problem && showToast(r.problem));
     return;

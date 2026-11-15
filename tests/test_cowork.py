@@ -379,9 +379,12 @@ clips = load_clips()
 if not (config.ROOT / "datasets" / "torgo").exists():
     print("SKIP  TORGO test clips: datasets/torgo is not on this Mac (it is not in the repo; see README.md)")
 else:
-    check("TORGO test clips found (3 demo + the rest)", len(clips), len(CLIP_IDS) + 3)
-    check("  ...the demo three first, in order", [c["label"] for c in clips[:3]],
-          ["Understood directly", "Needs \u201cDid you mean\u201d", "Replay: now instant"])
+    check("TORGO test clips found (4 demo + the rest)", len(clips), len(CLIP_IDS) + 4)
+    check("  ...the demo four first, in order", [c["label"] for c in clips[:4]],
+          ["Understood directly", "Needs \u201cDid you mean\u201d", "Replay: now instant", "Conference: new sentence"])
+    from tts.lines import to_prepare  # noqa: E402
+    check("  ...clip 4's sentence is made whole at startup (instant in Conference mode)",
+          "Grandfather likes to be modern in his language." in to_prepare(BASE, []), True)
     check("  ...the replay is the same recording", clips[1]["recording"] == clips[2]["recording"], True)
     check("  ...credit names the dataset", "TORGO" in CREDIT and "Rudzicz" in CREDIT, True)
     core, tts, actions = make()

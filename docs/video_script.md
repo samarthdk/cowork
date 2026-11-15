@@ -21,7 +21,7 @@
 | 0:40-0:50 | Click the keyboard icon so dictation is on (green dot, Word). Press Cmd+1: clip 1 plays out loud and is typed into Word. | "Now the voice of a man with cerebral palsy, from the TORGO research recordings. WhisperKit heard 'But humanity is overwhelming'. Cowork typed what he meant." |
 | 0:50-1:05 | Press Cmd+2: "Did you mean: We gathered shells on the beach?" Raise your RIGHT hand and hold it until the bar fills. It is typed into Word. | "When it isn't sure, it asks. He can answer with a hand." |
 | 1:05-1:15 | Press Cmd+3 (the same recording again): typed at once, "Recognised instantly". | "It learned. Next time, no question at all." |
-| 1:15-1:40 | Click the people icon (Switch to Conference mode). Press Cmd+1, answer Yes (Enter or right hand). The sentence is spoken aloud. Then press 2 for "I agree." | "In a meeting, Cowork speaks for him, in a natural voice, only after he confirms." |
+| 1:15-1:40 | Click the people icon (Switch to Conference mode). Press Cmd+4 (demo clip 4, a sentence not used before): WhisperKit hears "Could grandpa like to be a model in his language?", the card asks "Did you mean: Grandfather likes to be modern in his language?". Answer Yes (Enter or right hand): it is spoken aloud at once. Then press 2 for "I agree." | "In a meeting, Cowork speaks for him, in a natural voice, only after he confirms." |
 | 1:40-1:55 | Press Cmd+K, type "results", Enter. The Results view: 8% vs 70%, 0% confidently wrong. | "WhisperKit alone got 8% exactly right. Cowork reached the right meaning 70% of the time, and was never confidently wrong." |
 | 1:55-2:00 | Close the Results view. | "Bonsai and Argmax, fully offline. Cowork." |
 
@@ -29,4 +29,4 @@
 - A wrong guess: say "no" (or press Esc), it offers other options; or say "stop".
 - Anything stuck: press Esc twice (stops everything), then "New task".
 - The window is in the corner and you need the full one: say "show Cowork", or click the expand icon.
-- Cmd+1/2/3 only work while Cowork's full window is in front.
+- Cmd+1 to Cmd+4 only work while Cowork's full window is in front.
