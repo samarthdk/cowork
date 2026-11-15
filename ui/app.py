@@ -185,6 +185,7 @@ class App:
                  backends=None, warm=False, question_wait_s=QUESTION_WAIT_S):
         self.asr, self.listener, self.camera = asr, None, None
         self.question_wait_s = question_wait_s
+        self._continuous = False   # the Speak button keeps the microphone on until pressed again
         self.voice = _Voice(tts, self)
         if actions is not None and hasattr(actions, "target_name"):
             actions = _Targeted(actions, self)
@@ -503,13 +504,22 @@ class App:
         self._set(mic=dict(self.state["mic"], on=False, off_reason=reason))
 
     def listen_toggle(self) -> bool:
-        """The Speak button: start listening, or stop if it is already listening.
+        """The Speak button: start listening continuously, or stop (it does not
+        time out after a pause; it keeps listening until it is pressed again).
         Returns True when it is now listening."""
-        if self.listener and self.listener.running and self.listener.listening:
+        if not self.listener or not self.listener.running:
+            self._notice("The microphone is off. Start the app with --mic to use it.")
+            return False
+        if self._continuous:
+            self._continuous = False
+            self.listener.set_always(False)
             self.listener.cancel()
             self._set(mic=dict(self.state["mic"], listening=False, partial=""))
             return False
-        return self.listen_now()
+        self._continuous = True
+        self.listener.set_always(True)
+        self._set(mic=dict(self.state["mic"], listening=True, partial=""))
+        return True
 
     def partial_audio(self, samples) -> None:
         """Audio so far while the person is speaking (from the microphone thread):

@@ -194,6 +194,14 @@ class Listener:
         self._was_armed = False
         self.endpointer.reset()
 
+    def set_always(self, on: bool) -> None:
+        """Continuously listen (mode "always": every stretch of speech becomes a
+        request, with no pause timeout) or go back to one-shot "trigger" mode."""
+        self.mode = "always" if on else "trigger"
+        self.armed_until = 0.0
+        self._was_armed = False
+        self.endpointer.reset()
+
     @property
     def listening(self) -> bool:
         return self.running and not self.muted and (self.mode == "always" or time.monotonic() < self.armed_until

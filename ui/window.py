@@ -178,7 +178,7 @@ def _menus(app) -> None:
     app.setMainMenu_(bar)
 
 
-def run_window(url: str, core=None, title: str = "Cowork", width: int = 1380, height: int = 880,
+def run_window(url: str, core=None, title: str = "Cowork", width: int = 1120, height: int = 740,
                glass: bool = True) -> None:
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyRegular)
@@ -188,7 +188,7 @@ def run_window(url: str, core=None, title: str = "Cowork", width: int = 1380, he
     window.setTitle_(title)
     window.setTitleVisibility_(1)              # hidden: the page shows the name
     window.setTitlebarAppearsTransparent_(True)
-    window.setMinSize_((900, 640))
+    window.setMinSize_((820, 560))
     window.center()
     window.setAppearance_(NSAppearance.appearanceNamed_("NSAppearanceNameDarkAqua"))
 

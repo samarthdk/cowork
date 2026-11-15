@@ -243,6 +243,9 @@ class FakeListener:
     def cancel(self):
         self.listening = False
 
+    def set_always(self, on):
+        self.listening = on
+
     def mute(self): pass
 
     def unmute(self): pass

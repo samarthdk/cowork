@@ -14,8 +14,8 @@
    Type scale: display 40 serif | title 22 semibold | body 17 | label 14 medium | caption 12.
    One card style: 12px radius, 20px padding, 1px light border at 15%. No emoji. */
 :root {
-  --tint: rgba(12, 12, 14, 0.76);
-  --tint-strong: rgba(14, 14, 16, 0.90);
+  --tint: rgba(12, 12, 14, 0.72);
+  --tint-strong: rgba(14, 14, 16, 0.86);
   --base: rgba(10, 10, 12, 0.22);       /* gutters between panels: no text sits here */
   --line: rgba(255, 255, 255, 0.15);
   --line-strong: rgba(255, 255, 255, 0.32);
@@ -52,13 +52,10 @@ svg { flex: none; }
 /* The one card style */
 .card { background: var(--tint); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
 
-.app { display: grid; grid-template-columns: 250px minmax(0, 1fr) 330px; gap: 10px; height: 100vh; padding: 10px; }
+.app { --side-w: 250px; --rail-w: 260px; display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--rail-w); gap: 10px; height: 100vh; padding: 10px; }
 
 /* ---- sidebar: grouped, an icon on every item ---- */
 .side { display: flex; flex-direction: column; min-height: 0; padding: 16px 12px; gap: 2px; overflow-y: auto; }
-.brand { display: flex; align-items: center; gap: 10px; font: 600 22px/1.3 var(--serif); padding: 0 8px 8px; }
-.brand-mark { width: 30px; height: 30px; border-radius: 8px; background: var(--white); display: grid; place-items: center; }
-.brand-mark svg { width: 20px; height: 20px; }
 .group { font: var(--caption); font-weight: 600; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin: 10px 10px 2px; }
 .nav { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--target); padding: 0 10px; border: 0; border-radius: 10px;
        background: transparent; text-align: left; color: var(--text); flex: none; }
@@ -70,12 +67,39 @@ svg { flex: none; }
 .recent li { padding: 6px 0; font: var(--label); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent li.now { color: var(--text); }
 .side .spacer { flex: 1; min-height: 12px; }
-.side .credit { padding: 10px 10px 0; border-top: 1px solid var(--line); margin-top: 6px; }
+.toggle-btn { display: flex; align-items: center; justify-content: center; width: 40px; min-height: 40px; flex: none;
+              border: 0; border-radius: 10px; background: transparent; color: var(--muted); }
+.toggle-btn:hover { background: var(--hover); }
+.toggle-btn svg { width: 20px; height: 20px; transition: transform .18s; }
+.side-top { display: flex; align-items: center; gap: 8px; }
+.side-top .quick-open { flex: none; width: 40px; min-height: 40px; padding: 0; justify-content: center; border: 0; background: transparent; }
+.side-top .quick-open:hover { background: var(--hover); }
+.side-top .quick-open svg { width: 18px; height: 18px; }
+/* Collapsed sidebar: only the item icons remain, in a narrow strip. Group headings
+   become thin dividers and the spacer keeps Settings/Help pinned to the bottom. */
+.app.collapsed { --side-w: 60px; }
+.app.collapsed .side { padding: 12px 8px; align-items: center; }
+.app.collapsed .side-top { flex-direction: column; gap: 4px; }
+.app.collapsed .toggle-btn svg { transform: scaleX(-1); }
+.app.collapsed .quick-open { width: 40px; min-height: 40px; padding: 0; justify-content: center; }
+.app.collapsed .quick-open span, .app.collapsed .quick-open .kbd { display: none; }
+.app.collapsed .group { align-self: stretch; font-size: 0; height: 1px; margin: 10px 6px; background: var(--line); }
+.app.collapsed .nav { justify-content: center; padding: 0 8px; gap: 0; font-size: 0; }
+.app.collapsed .nav .count, .app.collapsed .recent { display: none; }
+.app.collapsed .nav svg { width: 22px; height: 22px; }
+
+/* ---- right rail: narrower, collapsible to an icon strip ---- */
+.rail-toggle { display: flex; align-items: center; justify-content: center; width: 40px; min-height: 40px; flex: none;
+               align-self: center; border: 0; border-radius: 10px; background: transparent; color: var(--muted); }
+.rail-toggle:hover { background: var(--hover); }
+.rail-toggle svg { width: 20px; height: 20px; transition: transform .18s; }
+.app.rail-collapsed { --rail-w: 44px; }
+.app.rail-collapsed .rail { padding: 12px 8px; }
+.app.rail-collapsed .rail .row { display: none; }
+.app.rail-collapsed .rail-toggle svg { transform: scaleX(-1); }
 
 /* ---- main column ---- */
 .main { display: flex; flex-direction: column; min-width: 0; min-height: 0; padding: 0; overflow: hidden; position: relative; }
-.strip { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border-bottom: 1px solid var(--line); }
-.strip .grow { flex: 1; }
 .chip { display: inline-flex; align-items: center; gap: 8px; padding: 0 14px; min-height: 36px; border-radius: 999px; background: rgba(255,255,255,.06);
         border: 1px solid var(--line); font: var(--label); white-space: nowrap; color: var(--text); }
 button.chip { min-height: var(--target); }
@@ -217,7 +241,6 @@ button.chip { min-height: var(--target); }
 .cbtn.mic[disabled] { color: var(--muted); border-color: var(--line); cursor: not-allowed; }
 .cbtn.mic[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .cbtn.mic .lvl { display: none; }
-.cbtn.pill[aria-pressed="true"] { border-color: var(--ok); color: var(--ok); }
 .cbtn.pill .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
 .cbtn.pill[aria-pressed="true"] .dot { background: var(--ok); }
 .live { display: flex; align-items: center; gap: 12px; margin-top: 10px; min-height: 28px; }
@@ -320,10 +343,9 @@ table.plain td:first-child { color: var(--muted); width: 40%; padding-right: 12p
 @keyframes rise { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
 html.still *, html.still *::before, html.still *::after { animation: none !important; transition: none !important; }   /* screenshots */
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
-@media (max-width: 1180px) { .app { grid-template-columns: 220px minmax(0, 1fr) 280px; } }
+@media (max-width: 1180px) { .app { --side-w: 220px; --rail-w: 250px; } }
 @media (max-width: 960px) {
-  .app { grid-template-columns: minmax(0, 1fr); height: auto; min-height: 100vh; }
-  .side, .rail { display: none; }
+  .app { --side-w: 200px; --rail-w: 230px; }
   .buttons, .grid4 { grid-template-columns: 1fr; }
   .clips { width: auto; left: 16px; right: 16px; }
   .convo { padding: 20px 16px 32px; }
@@ -334,7 +356,10 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
 <body>
 <div class="app">
   <aside class="side card" aria-label="Navigation">
-    <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="#1A1411" stroke-width="2.4" stroke-linecap="round"><path d="M4 12h2M8 8v8M12 5v14M16 8v8M20 12h0"/></svg></span>Cowork</div>
+    <div class="side-top">
+      <button class="toggle-btn" id="sideToggle" aria-label="Collapse sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button class="quick-open" id="quickBtn" aria-haspopup="dialog" aria-label="Quick actions" title="Quick actions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+    </div>
     <div class="group">Tasks</div>
     <button class="nav" id="newTask" data-icon="plus">New task</button>
     <button class="nav" id="recentBtn" data-icon="clock" aria-expanded="false" aria-controls="recent">Recent tasks<span class="count" id="recentCount"></span></button>
@@ -351,11 +376,9 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
     <div class="spacer"></div>
     <button class="nav" data-view="settings" data-icon="gear">Settings</button>
     <button class="nav" data-view="help" data-icon="help">Help</button>
-    <div class="credit caption" id="credit"></div>
   </aside>
 
   <main class="main card">
-    <div class="strip" id="strip" aria-label="Status"></div>
     <div class="scroll" id="scroll"><div class="convo" id="convo" aria-live="polite"></div></div>
     <div class="composer-wrap">
       <div class="clips card" id="clips" hidden></div>
@@ -384,6 +407,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
   </main>
 
   <aside class="rail" aria-label="Camera, progress and learning">
+    <button class="rail-toggle" id="railToggle" title="Collapse panel" aria-label="Collapse panel" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     <section class="row card cam" id="camRow">
       <button class="row-head" data-row="camera" aria-expanded="false" aria-controls="camBody"></button>
       <div class="row-body" id="camBody" hidden></div>
@@ -459,9 +483,8 @@ const GRID_HINT = ["Left thumb up", "Right thumb up", "Left thumb down", "Right 
 const GRID_GEST = [["up", "left"], ["up", "right"], ["down", "left"], ["down", "right"]];
 const YES_SIGNALS = ["RIGHT", "RIGHT_UP", "LEFT_UP"], NO_SIGNALS = ["LEFT", "RIGHT_DOWN", "LEFT_DOWN"];
 const GRID = ["LEFT_UP", "RIGHT_UP", "LEFT_DOWN", "RIGHT_DOWN"];
-const NAMES = { "Speech in": "WhisperKit", "Brain": "Bonsai 2 4B", "Voice": "TTSKit" };
 
-let camUrl = null, camKey = "", S = null, lastQid = null, lastTurnCount = -1, toastTimer = null, detailsOpen = false, uiSeq = 0;
+let camUrl = null, camKey = "", S = null, lastQid = null, lastTurnCount = -1, toastTimer = null, uiSeq = 0;
 const rowsOpen = { camera: false, progress: false, learned: false };
 
 // ---- small helpers ------------------------------------------------------------
@@ -488,26 +511,7 @@ function turnsOf(s) {
 function lastTurn(s) { const t = turnsOf(s); return t[t.length - 1]; }
 function voiceTag(item) { return item.voice ? `<span class="voice" title="Which voice spoke this">voice: ${esc(item.voice)}</span>` : ""; }
 
-// ---- header -----------------------------------------------------------------------
-function stripHtml(s) {
-  const chips = [];
-  const off = s.metrics && s.metrics.offline;
-  if (!off) chips.push('<span class="chip"><span class="dot"></span>Checking network…</span>');
-  else if (off.offline) chips.push('<span class="chip ok"><span class="dot"></span>Offline</span>');
-  else chips.push('<span class="chip warn"><span class="dot"></span>Wi-Fi on · Cowork sends nothing</span>');
-  chips.push(`<button class="chip" id="localBtn" aria-expanded="${detailsOpen}"><span class="dot" style="background:var(--ok)"></span>Running locally${ICON.chev}</button>`);
-  if (detailsOpen) {
-    for (const [part, name] of Object.entries(NAMES)) {
-      const fake = (s.backends || {})[part] === "fake";
-      chips.push(`<span class="chip${fake ? "" : " ok"}"><span class="dot"></span>${name}${fake ? ' <span class="tag">test</span>' : ""}</span>`);
-    }
-    const c = s.camera || {};
-    chips.push(`<span class="chip${c.connected && !c.problem ? " ok" : c.problem ? " warn" : ""}"><span class="dot"></span>${!c.connected ? "Camera off" : c.problem ? "Camera not found" : "Camera"}</span>`);
-  }
-  chips.push('<span class="grow"></span>');
-  chips.push(`<button class="quick-open" id="quickBtn" aria-haspopup="dialog">${ICON.search}<span>Quick actions</span><span class="kbd">⌘K</span></button>`);
-  return chips.join("");
-}
+
 
 // ---- conversation -----------------------------------------------------------------
 function stepHtml(item, open) {
@@ -771,7 +775,6 @@ function applyHold(s) {
 }
 function render(s) {
   S = s;
-  setHtml("strip", stripHtml(s));
   const turns = turnsOf(s);
   if (setHtml("convo", turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
     document.querySelectorAll(".perm[data-qid]").forEach((el) => {   // the slide-in only the first time
@@ -783,7 +786,6 @@ function render(s) {
   $("recent").innerHTML = turns.slice().reverse().map((t, i) => `<li class="${i === 0 ? "now" : ""}">${esc(t.request || "“" + t.heard + "”")}</li>`).join("") || "<li>No tasks yet</li>";
   $("recentCount").textContent = turns.length || "";
   renderRows(s);
-  $("credit").textContent = s.credit || "";
   const dict = s.dictation || {};
   const where = shortApp(dict.app);
   $("dictBtn").setAttribute("aria-pressed", dict.on ? "true" : "false");
@@ -851,7 +853,6 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (e.target === $("backdrop")) { closeModal(); return; }
   if (!b) { if (!e.target.closest("#clips") && !e.target.closest("#clipBtn")) hideClips(); return; }
-  if (b.id === "localBtn") { detailsOpen = !detailsOpen; setHtml("strip", stripHtml(S)); return; }
   if (b.id === "quickBtn") { openModal("quick"); return; }
   if (b.id === "recentBtn") { const open = $("recent").hidden; $("recent").hidden = !open; b.setAttribute("aria-expanded", open ? "true" : "false"); return; }
   if (b.dataset.close) { closeModal(); return; }
@@ -875,6 +876,19 @@ document.addEventListener("submit", (e) => {
   post("/api/say", { text: v });
 });
 $("speak").addEventListener("click", () => post("/api/listen", { toggle: true }));
+$("sideToggle").addEventListener("click", () => {
+  const root = document.querySelector(".app");
+  const collapsed = root.classList.toggle("collapsed");
+  $("sideToggle").setAttribute("aria-expanded", collapsed ? "false" : "true");
+  $("sideToggle").setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
+});
+$("railToggle").addEventListener("click", () => {
+  const root = document.querySelector(".app");
+  const collapsed = root.classList.toggle("rail-collapsed");
+  $("railToggle").setAttribute("aria-expanded", collapsed ? "false" : "true");
+  $("railToggle").setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
+  $("railToggle").setAttribute("title", collapsed ? "Expand panel" : "Collapse panel");
+});
 $("newTask").addEventListener("click", () => post("/api/new"));
 $("dictBtn").addEventListener("click", () => post("/api/dictation", { on: !(S && S.dictation && S.dictation.on) }));
 $("clipBtn").addEventListener("click", () => ($("clips").hidden ? showClips() : hideClips()));
