@@ -277,6 +277,17 @@ class _Targeted:
             app.typed_last(args.get("text", ""))
         app.saw(app.look())
         app._after_action(command, args, outcome, screen)
+        if command == "open_app" and args.get("app") == "Microsoft Word" and outcome.ok:
+            # "open Microsoft Word": Word and a new blank document in one go (saves a step in the demo);
+            # writing mode starts for the document.
+            from actions.base import ActionResult
+            made = actions.run("new_document", {})
+            app.saw(app.look())
+            app._after_action("new_document", {}, made, app.look())
+            if made.ok:
+                return ActionResult(True, detail=f"{outcome.detail} \u00b7 new blank document ready", undo=outcome.undo)
+            return ActionResult(True, detail=f"{outcome.detail} \u00b7 couldn't make a blank document: {made.problem}",
+                                undo=outcome.undo)
         return outcome
 
 

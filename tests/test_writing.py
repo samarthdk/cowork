@@ -135,8 +135,8 @@ say(core, "We can get a joke on the beach.")   # learned: now instant
 check("  ...the same words again: typed at once as the phrase",
       [a.get("text") for c, a in actions.done[before:] if c == "type_text"], ["We gathered shells on the beach. "])
 say(core, "open Word")
-check("a clear new command ('open Word') ends writing and is done",
-      (core.state["writing"], [c for c, _ in actions.done][-1:]), (None, ["open_app"]))
+check("a clear new command ('open Word') ends writing the reply and is done (with a blank document to write in)",
+      ((core.state["writing"] or {}).get("label"), [c for c, _ in actions.done][-2:]), ("your document", ["open_app", "new_document"]))
 
 core, actions, now = make()
 say(core, "open Mail")
@@ -168,6 +168,15 @@ check("  ...'no' to 'Type ...?': nothing typed, and it says so", core.state["his
       "Okay, nothing was typed. Say it again.")
 core.say("stop", source="speech")
 check("'stop' ends writing too", wait_for(lambda: core.state["writing"] is None), True)
+
+# "open Microsoft Word": Word and a new blank document in one go, ready for writing
+core, actions, now = make()
+say(core, "open Microsoft Word")
+check("'open Microsoft Word' also makes a new blank document", [c for c, _ in actions.done], ["open_app", "new_document"])
+check("  ...and writing mode is on for it", (core.state["writing"] or {}).get("label"), "your document")
+check("  ...one step on screen says so", "new blank document ready" in core.state["history"][-1]["items"][-2].get("detail", "")
+      if len(core.state["history"][-1]["items"]) > 1 else
+      any("new blank document ready" in (i.get("detail") or "") for i in core.state["history"][-1]["items"]), True)
 
 print(f"\n{sum(results)}/{len(results)} passed  {'ALL PASS' if all(results) else 'SOME FAILED'}")
 sys.stdout.flush()
