@@ -808,7 +808,7 @@ class MacActions:
         for start in range(0, len(text), TYPE_CHUNK):
             if self.stop_typing:   # "stop" said (ui/app.py stop_all): the rest is not typed
                 return ActionResult(True, detail=f"Stopped typing in {self.front.name} after: {text[:start]}")
-            chunk = text[start:start + TYPE_CHUNK]
+            chunk = text[start:start + TYPE_CHUNK].replace("\n", "\r")   # a line break is Return in every app
             for down in (True, False):
                 event = Quartz.CGEventCreateKeyboardEvent(None, 0, down)
                 Quartz.CGEventSetFlags(event, 0)   # plain typing, whatever was pressed before

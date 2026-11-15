@@ -109,6 +109,11 @@ def permission(question: dict, profile: dict, turn: dict | None) -> dict:
     elif stage == "menu_closest":   # nothing fits: the closest items, offered
         card["title"] = question.get("text", "") + " The closest:"
         card["options"] = [{"text": o, "kind": "value"} for o in question.get("options", [])]
+    elif stage == "type_check":   # dictation: numbers, times or dates were written as digits
+        card["title"] = "Type it like this?"
+        card["body"] = data.get("text", "")
+        card["allow"], card["deny"] = "Yes, like this", "No, as words"
+        card["say_aloud"] = False
     elif stage == "screen_search":
         card["title"] = question.get("text", "")
         card["allow"], card["deny"] = "Type it there", "Don't type"

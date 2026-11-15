@@ -232,6 +232,9 @@ class _Targeted:
             app.instead(command, "Speaking is off, opened it instead.")
         if command in NEEDS_TARGET and not app.ensure_target():
             return ActionResult(False, problem="No app was chosen to type into.")
+        if command == "type_text" and args.get("text") and not args.get("raw"):   # spoken punctuation, numbers, dates
+            args = dict(args, text=app.ready_to_type(args["text"]))
+        args = {k: v for k, v in args.items() if k != "raw"}
         if command == "type_text" and not args.get("anyway"):
             screen = app.look()
             if screen is not None and screen.readable and not screen.typeable:
@@ -246,6 +249,8 @@ class _Targeted:
                 else:
                     return ActionResult(False, problem=how or "Nothing was typed.")
         outcome = actions.run(command, args)
+        if command == "type_text" and outcome.ok:
+            app.typed_last(args.get("text", ""))
         app.saw(app.look())
         app._after_action(command, args, outcome, screen)
         return outcome
@@ -978,8 +983,62 @@ class App:
             from actions.base import ActionResult
             outcome = ActionResult(False, problem=f"{type(error).__name__}: {error}")
         app = self._typing_app() or "the app"
+        if outcome.ok:
+            self.typed_last(typed)
         return {"type": "typed", "text": text, "app": app, "chars": len(typed),
                 "status": "done" if outcome.ok else "failed", "problem": outcome.problem}
+
+    def ready_to_type(self, words: str) -> str:
+        """Dictated words tidied (ui/dictation.py). When number words were written as digits, times or dates,
+        the person sees the result first: "Type it like this?" (No: typed as the words were said)."""
+        from engine.session import Question
+        from ui.dictation import tidy
+        text, numbers = tidy(words)
+        if numbers:
+            answer = self._ask(Question("yes_no", "type_check", "Type it like this?", data={"text": text, "said": words}))
+            if answer is None or answer.kind != "yes":
+                text, _ = tidy(words, numbers=False)   # as said: numbers stay words (punctuation still tidied)
+        if text.endswith((".", "?", "!", ",", ":", ";")) or words.endswith(" "):
+            text += " "   # the next dictated sentence doesn't run into this one ("Hello.World")
+        return text
+
+    def typed_last(self, text: str) -> None:
+        """Remember the last text Cowork typed, for "delete that" and "period" (dictation editing)."""
+        self._last_typed = {"text": text, "chars": len(text), "time": time.time()}
+
+    def dictation_edit(self, heard: str) -> bool:
+        """While dictating: "delete that" removes the last dictated sentence; "period", "comma", "question mark"
+        add the mark right after it. Returns True if handled (no Brain needed)."""
+        from ui.dictation import editing
+        what = editing(heard)
+        last = getattr(self, "_last_typed", None)
+        dictating = self.state["dictation"]["on"] or (last and time.time() - last["time"] < 300)
+        if what is None or what.startswith("\n") or not dictating or self.session.actions is None:
+            return False
+        with self._lock:
+            turn = self.state["turn"]
+        raw = self.session.actions._actions if isinstance(self.session.actions, _Targeted) else self.session.actions
+        if what == "delete":
+            if not last:
+                self._notice("There is nothing I typed to delete.")
+                return True
+            outcome = raw.run("delete_text", {"count": last["chars"]})
+            self._last_typed = None
+            step = {"type": "step", "title": "Deleted the last sentence", "status": "done" if outcome.ok else "failed",
+                    "detail": f"\u201c{last['text'].strip()}\u201d", "problem": outcome.problem}
+        else:
+            if last and last["text"].endswith(" "):   # right after the last sentence, not after its space
+                raw.run("delete_text", {"count": 1})
+            outcome = raw.run("type_text", {"text": what + " ", "anyway": True})
+            if outcome.ok and last:
+                self.typed_last(last["text"].rstrip() + what + " ")
+            step = {"type": "step", "title": f"Typed \u201c{what}\u201d", "status": "done" if outcome.ok else "failed",
+                    "detail": "", "problem": outcome.problem}
+        with self._lock:
+            if turn is not None:
+                turn["request"] = heard.strip()
+                turn["items"].append(step)
+        return True
 
     def _untype(self, item: dict) -> None:
         try:
@@ -1197,6 +1256,9 @@ class App:
         if self.camera is not None:
             self.camera.want(False)   # warm the camera up now (about 2 s), in case a card follows
         heard, then_type = request["text"], None
+        if self.dictation_edit(heard):   # "delete that", "period"... while dictating
+            self._finish_turn()
+            return
         parts = split_compound(heard)
         if parts:
             first, rest, sure = parts
@@ -1258,7 +1320,7 @@ class App:
             with self._lock:
                 self.state["turn"]["items"].append({"type": "reply", "text": "Okay, I didn't type it."})
             return
-        outcome = self.session.actions.run("type_text", {"text": address})
+        outcome = self.session.actions.run("type_text", {"text": address, "raw": True})   # exactly as confirmed
         with self._lock:
             self.state["turn"]["items"].append({"type": "typed", "text": address, "app": self._typing_app() or "the app",
                                                 "chars": len(address), "status": "done" if outcome.ok else "failed",

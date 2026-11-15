@@ -107,3 +107,19 @@
 - Chart: two horizontal bars on one axis, WhisperKit in quiet gray, Cowork in the app's accent, values in text colour,
   tooltips on the bars, a screen-reader label. `docs/chart.png` made from the same view
   (scripts/screenshots.py, results_scene). Test: `tests/test_composer.py`.
+
+### F6: dictation polish (done)
+- `ui/dictation.py`: spoken "period", "comma", "question mark", "exclamation mark", "colon", "new line", "new
+  paragraph" inside dictated words become the marks and line breaks; a capital starts each sentence; a sentence ends
+  with a space so the next one doesn't run into it.
+- Said on their own while dictating: "period" / "comma" / "question mark" add the mark right after the last
+  sentence; "delete that" (or "scratch that") removes the last dictated sentence; "new line" / "new paragraph" are
+  the editing commands.
+- Numbers above ten, times ("three thirty pm" -> 3:30 PM, "ten o clock" -> 10:00) and dates ("november fifteenth"
+  -> November 15th) are written as digits, and then Cowork asks "Type it like this?" (No: typed as the words were
+  said). Email addresses, web addresses, file names and decimals are never changed (bug found while testing: an
+  address was typed as "Sam@gmail. Com"; fixed and tested). None of the demo phrases is changed.
+- Found while testing: "type hello comma how are you question mark" was taken for "answer a question" or even "mark as
+  unread". Fixed: "type ..." / "dictate ..." is now recognised instantly as typing (no model), and "answer a
+  question" is never offered for a "type ..." request.
+- Test: `tests/test_dictation.py` (29 checks).

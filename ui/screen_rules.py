@@ -57,6 +57,8 @@ def hide_for(screen, heard: str, dictation: bool) -> tuple:
     typing_ok = says_type(heard) or (dictation and screen is not None and screen.typeable and not is_question(heard))
     if not typing_ok or (is_question(heard) and not says_type(heard)):
         hidden.append("type_text")
+    if says_type(heard):   # "type how are you": words to type, never a question to answer
+        hidden.append("answer_question")
     if not in_email:
         hidden += ["go_to_field", "send_email"]
         if not (screen is not None and screen.typeable and screen.place != "document" and screen.field != "address"):

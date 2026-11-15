@@ -286,7 +286,7 @@ core.say("open notes and type see you at noon")
 if asking(core, "yes_no"):
     core.answer("yes")   # the fake Brain may ask "Did you mean: Open Notes?"
 check("'open notes and type ...': opens Notes, then types the rest there",
-      wait_for(lambda: ("type_text", {"text": "see you at noon "}) in fa.done, 5) and
+      wait_for(lambda: ("type_text", {"text": "See you at noon "}) in fa.done, 5) and
       [c for c, _ in fa.done][:2], ["open_app", "type_text"])
 check("  ...one message on screen with both", wait_for(lambda: "then type" in (core.state["turn"]["request"] or "")), True)
 if asking(core, "window"):

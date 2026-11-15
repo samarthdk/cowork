@@ -45,6 +45,17 @@ def fast_path(heard: str, profile: dict) -> FastMatch | None:
         return None
     # A phrase heard word for word (or the exact word this person uses for a
     # command) needs no model at all.
+    # "type ..." / "dictate ...": always typing the words that follow (measured: words like "question mark"
+    # in the dictation pulled the model towards other commands, e.g. mark as unread).
+    first, _, rest = heard.strip().partition(" ")
+    typing = next((c for c in profile["commands"] if c["name"] == "type_text"), None)
+    if typing and rest.strip() and first.lower().strip(".,!?") in ("type", "dictate"):
+        intent = Intent("type_text", "command", {name: "" for name in all_arg_names(profile)}, "high",
+                        fill_options("type_text", [], all_choices(profile)))
+        intent.args["text"] = rest.strip()
+        latency = (time.perf_counter() - start) * 1000
+        log_call("repair", "fast_path", latency, similarity=100, matched="type ...", meant="type_text")
+        return FastMatch(intent, 100.0, {"heard": heard, "meant": "type_text", "args": {}, "builtin": True}, latency)
     exact = [p for p in profile["phrases"] if normalize(p) == text]
     exact += [c["name"] for c in profile["commands"] if (not c["args"] or c.get("whole_request"))
               and text in [normalize(w) for w in c.get("said_as", [])]]
