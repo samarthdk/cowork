@@ -179,12 +179,18 @@ mac.screen = lambda: Screen(app="Mail", pid=1, place="new email", field="body", 
 saved_fields, saved_value = mac_module.mail_fields, mac_module.value_of
 mac_module.mail_fields = lambda pid: {"to": "to"}
 mac_module.value_of = lambda element: draft[element]
-check("sending to anyone but 'Me' is refused", "only sent to 'Me'" in mac.run("send_email", {}).problem, True)
+pressed = []
+mac._key = lambda key, **kw: (pressed.append((key, kw)), types.SimpleNamespace(ok=True, problem=""))[1]   # never really pressed here
+mac._wait_for = lambda test, seconds=0, every=0: Screen(app="Mail", pid=1, place="inbox")
+REFUSED = "Sending to other people is turned off in this demo. The email is still open in Mail."
+check("sending to anyone but 'Me' is refused, the draft stays", (mac.run("send_email", {}).problem, pressed), (REFUSED, []))
 draft["to"] = "me@example.org"
-check("  ...to 'Me' it still needs EMAIL_REALLY_SEND", "switched off" in mac.run("send_email", {}).problem,
-      not config.EMAIL_REALLY_SEND)
+sent = mac.run("send_email", {})
+check("  ...to 'Me' only, it is really sent (Send pressed)", (sent.ok, pressed[-1:]), (True, [("d", {"command_key": True, "shift": True})]))
+check("  ...EMAIL_REALLY_SEND is unchanged (off)", config.EMAIL_REALLY_SEND, False)
+pressed.clear()
 draft["to"] = "me@example.org, anna@example.com"
-check("  ...one other address with 'Me' is refused too", "only sent to 'Me'" in mac.run("send_email", {}).problem, True)
+check("  ...one other address with 'Me' is refused too", (mac.run("send_email", {}).problem, pressed), (REFUSED, []))
 mac.screen = lambda: Screen(app="Mail", pid=1, place="inbox")
 check("  ...with no email open there is nothing to send", "no email open" in mac.run("send_email", {}).problem, True)
 mac_module.mail_fields, mac_module.value_of = saved_fields, saved_value

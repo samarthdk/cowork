@@ -41,6 +41,15 @@ HINT_MIN_LOGPROB = -0.5   # ...whose answer is kept only if WhisperKit was this 
 HISTORY_MAX = 20           # finished requests kept on screen
 TASKS_MAX = 50             # saved conversations kept in Recent tasks
 TEACH_TIMES = 3            # Teach me: how many times the person says a phrase
+# Writing mode: after these, everything said is typed into the place that opened (until "send" / "done" / a new command)
+WRITING_AFTER = {"reply_email": "your reply", "reply_all_email": "your reply", "forward_email": "your email",
+                 "new_email": "your email", "new_document": "your document", "new_note": "your note"}
+SEND_WORDS = ("send", "press send", "send it", "send the email", "send email", "send this", "hit send", "send the reply",
+              "send my reply", "send the message", "click send")
+DONE_WORDS = ("done", "im done", "i am done", "stop writing", "stop dictating", "finished", "thats it", "done writing",
+              "i'm done", "that's it")
+STAY_WRITING = ("next_field", "previous_field", "go_to_field", "new_line", "new_paragraph", "select_all", "make_bold",
+                "undo_edit")   # commands that work on the text being written: writing mode goes on
 VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
 HANDS_FREE_WAIT_S = 30.0   # mini window: listen this long for the next request, then listen again
 MINI_AFTER = ("open_app", "new_email", "new_document", "new_tab", "open_latest_email")   # these bring another app forward
@@ -144,6 +153,7 @@ class _Voice:
         conference = self.conference
         if conference:   # said to the room: always, however long TTSKit takes ("Preparing voice…" meanwhile)
             self.app._said_status(text, "speaking" if ready else "preparing")
+        before = self.app.state["status"]
         self.app._set(status="speaking", speaking=text)
         if self.app.listener:
             self.app.listener.mute()   # never hear itself (also while waiting for TTSKit)
@@ -156,7 +166,10 @@ class _Voice:
         finally:
             if self.app.listener:
                 self.app.listener.unmute()
-            self.app._set(speaking=None)
+            # Speech is over: the status goes back to what it was (a quick phrase said outside any request used
+            # to leave it on "speaking", so Cowork looked busy forever: "Wait until the current request is finished").
+            status = self.app.state["status"]
+            self.app._set(speaking=None, **({"status": before if before != "speaking" else "ready"} if status == "speaking" else {}))
         self.app._mark_voice(text, "TTSKit" if spoken else ("stopped" if conference else "not spoken (voice not ready)"))
         if conference:
             self.app._said_status(text, "said" if spoken else "stopped")
@@ -312,6 +325,7 @@ class App:
             "tasks": [],                # Recent tasks: saved conversations (id, title, time, requests), newest first
             "viewing": None,            # a saved task shown read-only (with "Continue this task")
             "teach": None,              # Teach me: {"phrase", "total", "heard": [...]} while a phrase is being taught
+            "writing": None,            # writing mode: {"label": "your reply", "app": "Mail"}: what is said is typed there
         }
         self._tasks = self._load_tasks()
         self.state["tasks"] = self._task_list()
@@ -480,6 +494,10 @@ class App:
         closed: back to full size."""
         if not outcome.ok:
             return
+        if command in WRITING_AFTER:   # a place to write opened: what is said next is typed there
+            screen = self.state.get("screen") or {}
+            app = OPENS.get(command) if command != "new_document" else (screen.get("app") or OPENS.get(command))
+            self._set(writing={"label": WRITING_AFTER[command], "app": app or screen.get("app") or ""})
         if command in MINI_AFTER:
             app = args.get("app") or OPENS.get(command) or (self.state.get("screen") or {}).get("app", "")
             if app:
@@ -506,7 +524,9 @@ class App:
 
     @property
     def busy(self) -> bool:
-        return self.state["turn"] is not None and self.state["status"] != "ready"
+        """A request is being handled right now (a finished request, or a voice still talking, is not busy)."""
+        turn = self.state["turn"]
+        return turn is not None and not turn.get("finished") and self.state["status"] != "ready"
 
     def say(self, text: str, source: str = "keyboard") -> str:
         """Something typed (or said) by the person. If a question is open and this
@@ -588,6 +608,8 @@ class App:
         self.voice.stop()
         if self.state.get("teach"):
             self.stop_teach()
+        if self.state.get("writing"):
+            self._set(writing=None)
         actions = self.session.actions._actions if isinstance(self.session.actions, _Targeted) else self.session.actions
         if actions is not None:
             actions.stop_typing = True
@@ -852,8 +874,18 @@ class App:
         clip = self._clips.get(clip_id)
         if clip is None:
             return "No such clip."
-        if self.busy or self._question is not None:
-            return "Wait until the current request is finished."
+        question = self._question
+        if question is not None and question.kind == "window":
+            self._give(Answer("yes", source="test clip"))   # the 3 s undo window: keep what was done, move on
+        if self.busy or (question is not None and question.kind != "window"):
+            # Something really is in progress: play it automatically as soon as that is finished.
+            self._pending_clip = (clip_id, play_sound)
+            self._notice("I'll play it as soon as " + ("you answer the question on screen." if question is not None
+                                                          and question.kind != "window" else "this request is finished."))
+            return ""
+        if question is not None:   # the undo window is closing: play it once the request has finished
+            self._pending_clip = (clip_id, play_sound)
+            return ""
 
         def run():
             self._set(status="playing clip", playing=clip_id)
@@ -901,9 +933,18 @@ class App:
                 prepare(list(QUICK_PHRASES))
 
     def quick_phrase(self, index: int) -> bool:
-        """Conference mode: say a meeting phrase now (a key or a held thumb is a deliberate choice)."""
-        if not self.session.conference or self._question is not None or not 0 <= index < len(QUICK_PHRASES):
+        """Conference mode: say a meeting phrase now (a key or a held thumb is a deliberate choice).
+        Never blocked: whatever is still being spoken is cut off and the new phrase is said; the 3 s undo
+        window of the sentence before is closed (that sentence is kept)."""
+        if not self.session.conference or not 0 <= index < len(QUICK_PHRASES):
             return False
+        question = self._question
+        if question is not None and question.kind != "window":
+            return False   # a question is open: its own answers (1-4, thumbs) belong to it
+        if question is not None:
+            self._give(Answer("yes", source="quick phrase"))   # keep the sentence just said, close its undo window
+        if self.state.get("speaking") or not self.voice.wait(0):
+            self.voice.stop()   # something is still being said: the new phrase replaces it
         text = QUICK_PHRASES[index]
         self._said_add(text, quick=True)
         self.voice.later(text)
@@ -1061,7 +1102,7 @@ class App:
         from ui.dictation import editing
         what = editing(heard)
         last = getattr(self, "_last_typed", None)
-        dictating = self.state["dictation"]["on"] or (last and time.time() - last["time"] < 300)
+        dictating = self.state["dictation"]["on"] or self.state.get("writing") or (last and time.time() - last["time"] < 300)
         if what is None or what.startswith("\n") or not dictating or self.session.actions is None:
             return False
         with self._lock:
@@ -1184,6 +1225,55 @@ class App:
                 return ActionResult(True, detail=f"Nothing was clicked in {app} (you said no).")
         return actions.press_item(chosen)
 
+    def _while_writing(self, heard: str) -> tuple[bool, str]:
+        """Writing mode (after "reply to this email", "new document"...): what is said is typed into that place as
+        dictation, never matched against phrases or guessed by the Brain. Except, recognised at once:
+        "send" / "press send" (Mail), "done" / "stop writing", a command for the text ("new paragraph", "next box"),
+        or a clear new command ("open Word", "close Mail"), which ends writing mode.
+        Returns (handled, heard): heard may be replaced ("press send" -> "send the email") for the normal flow."""
+        from repair.learning import close_app_match, fast_path, normalize, open_app_match
+        from repair.profile import find_command
+        writing = self.state["writing"]
+        said = normalize(heard).replace("'", "")
+        screen = self.look()
+        if screen is not None and getattr(screen, "readable", False) and screen.app and writing["app"] \
+                and screen.app != writing["app"]:
+            self._set(writing=None)   # the person went to another app by hand: follow the screen
+            return False, heard
+        if said in [w.replace("'", "") for w in SEND_WORDS]:
+            self._set(writing=None)
+            if writing["app"] == "Mail":
+                return False, "send the email"   # the permission card, as always
+            with self._lock:
+                self.state["turn"]["items"].append({"type": "reply", "text": f"There is nothing to send in {writing['app']}."})
+            return True, heard
+        if said in [w.replace("'", "") for w in DONE_WORDS]:
+            self._set(writing=None)
+            with self._lock:
+                self.state["turn"]["request"] = "Done writing"
+                self.state["turn"]["items"].append({"type": "reply", "text": f"Done writing. {writing['label'].capitalize()} "
+                                                                             f"stays open in {writing['app'] or 'the app'}."})
+            return True, heard
+        if screen is not None and getattr(screen, "place", "") == "new email" and getattr(screen, "field", "") in ("to", "cc"):
+            return False, heard   # an address box: spoken addresses and contacts are handled as usual
+        profile = self.session.profile
+        apps = list(self.state["catalog"].get("apps") or [])
+        match = fast_path(heard, profile)
+        if match and match.example.get("builtin") and find_command(profile, match.intent.choice) \
+                and match.intent.choice != "type_text":
+            if match.intent.choice not in STAY_WRITING:
+                self._set(writing=None)   # a clear new command: writing is over
+            return False, heard
+        if open_app_match(heard, profile, apps) or close_app_match(heard, profile, apps):
+            self._set(writing=None)
+            return False, heard
+        item = self._type_sentence(heard)   # dictation (spoken punctuation, numbers checked first)
+        with self._lock:
+            turn = self.state["turn"]
+            turn["request"] = f"Write \u201c{heard.strip()}\u201d"
+            turn["items"].append(item)
+        return True, heard
+
     def instead(self, command: str, why: str) -> None:
         """Something else is done than what was confirmed (e.g. opened, because speaking is off):
         the step card says what is really done, with a short note why."""
@@ -1278,13 +1368,16 @@ class App:
                 self._question = None
                 self._notice(f"Something went wrong: {type(error).__name__}: {error}")
             self._drop = False
+            pending_clip, self._pending_clip = getattr(self, "_pending_clip", None), None
             then, self._then = self._then, []
             for words, source in then:   # said along with an answer: the next request(s)
                 self._requests.put(("hear", {"text": words, "source": source, "rehear": None, "asr_ms": None}))
             self._set(status="ready", question=None, hold=None, attention=False, counts=self._counts())
             if self.session.conference and self.camera is not None:
                 self.camera.want(True)   # Conference mode: thumbs can pick a quick phrase at any time
-            if self._requests.empty():
+            if pending_clip and self._requests.empty():   # a clip asked for while this request was running
+                self.play_clip(*pending_clip)
+            elif self._requests.empty():
                 self._listen_on()   # mini window: hands-free, listen for the next request
 
     def _run_turn(self, request: dict) -> None:
@@ -1308,6 +1401,11 @@ class App:
         if self.dictation_edit(heard):   # "delete that", "period"... while dictating
             self._finish_turn()
             return
+        if self.state.get("writing"):
+            handled, heard = self._while_writing(heard)
+            if handled:
+                self._finish_turn()
+                return
         from ui.screen_rules import cannot_do, mumble
         if mumble(heard):   # only "mm", "uh": nothing to guess from
             with self._lock:

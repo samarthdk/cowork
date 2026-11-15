@@ -33,6 +33,7 @@ html, body { margin: 0; background: transparent; color: var(--text); font: 400 1
 .thinking .dot, .hearing .dot { background: var(--accent); animation: pulse .8s ease-in-out infinite; }
 .speaking .dot { background: #8DB6FF; animation: pulse .6s ease-in-out infinite; }
 .paused .dot { background: transparent; border: 2px solid var(--muted); }
+.writing .dot { background: var(--accent); }
 @keyframes pulse { 50% { opacity: .35; } }
 .status { flex: 1; min-width: 0; }
 .status b { display: block; font: 600 17px/1.25 var(--sans); }
@@ -96,6 +97,8 @@ function statusOf(s) {
   const mic = s.mic || {}, win = s.window || {};
   if (s.question && s.question.kind !== "window") return ["asking", "Your answer, please", "Thumb, hand, voice or keys"];
   if (s.speaking) return ["speaking", "Speaking", s.speaking];
+  if (s.writing && !(s.turn && !s.turn.finished && s.status !== "ready"))
+    return ["writing", `Writing ${s.writing.label}`, "Say “send” or “done” when finished"];
   if (s.status === "hearing") return ["hearing", "Hearing…", mic.partial || ""];
   if (s.status === "thinking" || s.status === "listening again" || (s.turn && !s.turn.finished && s.status !== "ready"))
     return ["thinking", "Thinking…", (s.turn && (s.turn.request || "“" + s.turn.heard + "”")) || ""];

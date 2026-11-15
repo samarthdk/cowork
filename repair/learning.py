@@ -117,15 +117,23 @@ def prompt_examples(profile: dict, count: int | None = None) -> list[tuple[str, 
 OPEN_WORDS = ("open", "launch", "start", "can you open", "please open", "open up")
 
 
-def open_app_match(heard: str, profile: dict, apps: list[str]) -> FastMatch | None:
+CLOSE_WORDS = ("close", "quit", "exit", "please close", "can you close")
+
+
+def close_app_match(heard: str, profile: dict, apps: list[str]) -> FastMatch | None:
+    """"close Mail", "quit Word": an app named clearly. Recognised without the model."""
+    return open_app_match(heard, profile, apps, words=CLOSE_WORDS, command="quit_app")
+
+
+def open_app_match(heard: str, profile: dict, apps: list[str], words=OPEN_WORDS, command: str = "open_app") -> FastMatch | None:
     """"open Safari", "launch Microsoft Word", "open word": an app on this Mac named clearly. Recognised
     without the model (measured: Bonsai sometimes took "open Safari" for "new tab")."""
     from rapidfuzz import fuzz
     start = time.perf_counter()
-    if not apps or not any(c["name"] == "open_app" for c in profile["commands"]):
+    if not apps or not any(c["name"] == command for c in profile["commands"]):
         return None
     text = normalize(heard)
-    rest = next((text[len(w) + 1:] for w in sorted(OPEN_WORDS, key=len, reverse=True) if text.startswith(w + " ")), "")
+    rest = next((text[len(w) + 1:] for w in sorted(words, key=len, reverse=True) if text.startswith(w + " ")), "")
     rest = rest.removeprefix("the ").removesuffix(" app").strip()
     if not rest or len(rest.split()) > 3:
         return None
@@ -137,9 +145,9 @@ def open_app_match(heard: str, profile: dict, apps: list[str]) -> FastMatch | No
     if not scored or scored[0][0] < 90 or (len(scored) > 1 and scored[1][0] >= 90 and scored[1][1] != scored[0][1]):
         return None   # not clearly one app: the Brain decides (and asks if unsure)
     app = scored[0][1]
-    intent = Intent("open_app", "command", {name: "" for name in all_arg_names(profile)}, "high",
-                    fill_options("open_app", [], all_choices(profile)))
+    intent = Intent(command, "command", {name: "" for name in all_arg_names(profile)}, "high",
+                    fill_options(command, [], all_choices(profile)))
     intent.args["app"] = app
     latency = (time.perf_counter() - start) * 1000
-    log_call("repair", "fast_path", latency, similarity=round(scored[0][0]), matched="open <app>", meant=f"open_app {app}")
-    return FastMatch(intent, scored[0][0], {"heard": heard, "meant": "open_app", "args": {"app": app}, "builtin": True}, latency)
+    log_call("repair", "fast_path", latency, similarity=round(scored[0][0]), matched=f"{command} <app>", meant=f"{command} {app}")
+    return FastMatch(intent, scored[0][0], {"heard": heard, "meant": command, "args": {"app": app}, "builtin": True}, latency)

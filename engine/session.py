@@ -43,7 +43,7 @@ from choose.answers import Answer
 from repair import confirm as listen_again
 from repair import repair, warm_up
 from repair.guess import MAX_GUESSES, free_guess, is_repeat
-from repair.learning import fast_path, open_app_match
+from repair.learning import close_app_match, fast_path, open_app_match
 from repair.profile import all_choices, find_command, is_risky, phrase_codes
 from repair.rank import SOMETHING_ELSE, group_of, rank_options, score
 from repair.store import (add_example, add_phrase, add_vocabulary, delete_example,
@@ -177,7 +177,8 @@ class Session:
         self.emit("heard", text=heard, source=source)
         context = self.context()
 
-        match = fast_path(heard, profile) or open_app_match(heard, profile, list((context or {}).get("app", [])))
+        apps = list((context or {}).get("app", []))
+        match = fast_path(heard, profile) or open_app_match(heard, profile, apps) or close_app_match(heard, profile, apps)
         if match:
             intent = match.intent
             intent.stats = {"source": "fast_path", "latency_ms": round(match.latency_ms, 2),

@@ -741,8 +741,10 @@ class MacActions:
         return ActionResult(True, detail=f"Email to {shown} ready in Mail (not sent)", undo=undo)
 
     def _do_send_email(self, args: dict) -> ActionResult:
-        """Send the email open on screen in Mail. (Risky: the person has already said yes.)
-        Only ever to config.SEND_ONLY_TO, and only when config.EMAIL_REALLY_SEND is on."""
+        """Send the email open on screen in Mail. (Risky: the person has already said yes on the permission card.)
+        Demo rule: it is really sent only when every recipient is your own address (config.SEND_ONLY_TO, the
+        "Me" entry in profiles/contacts.json). For anyone else it is not sent and the draft stays open.
+        (config.EMAIL_REALLY_SEND is not used here; it still controls the personal profile's reply.)"""
         screen = self.screen()
         if screen.app != "Mail" or screen.place != "new email":
             return ActionResult(False, problem="There's no email open to send. Say \u201cwrite an email\u201d first.")
@@ -751,10 +753,7 @@ class MacActions:
         if not to:
             return ActionResult(False, problem="The email has no address in To yet. The email is still open in Mail.")
         if not allowed or any(address != allowed for address in to):
-            return ActionResult(False, problem=f"For safety, emails are only sent to '{config.SEND_ONLY_TO}' "
-                                               "(SEND_ONLY_TO in config.py). The email is still open in Mail.")
-        if not config.EMAIL_REALLY_SEND:
-            return ActionResult(False, problem="Sending is switched off (EMAIL_REALLY_SEND in config.py). "
+            return ActionResult(False, problem="Sending to other people is turned off in this demo. "
                                                "The email is still open in Mail.")
         pressed = self._key("d", command_key=True, shift=True)   # Mail: Message > Send
         if not pressed.ok:

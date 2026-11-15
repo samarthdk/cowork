@@ -474,6 +474,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
     <div class="composer-wrap">
       <div class="clips card" id="clips" hidden></div>
       <div class="mode-label" id="modeLabel" hidden>Conference mode: speaking for you</div>
+      <div class="mode-label" id="writingLabel" role="status" hidden></div>
       <form class="composer card" id="typeForm" autocomplete="off">
         <label class="sr" for="typed">Type what was said</label>
         <input id="typed" placeholder="Type what was said, or press the mic…">
@@ -1004,6 +1005,9 @@ function render(s) {
   $("modeBtn").setAttribute("aria-pressed", conference ? "true" : "false");
   setTip($("modeBtn"), conference ? "Switch to Computer mode" : "Switch to Conference mode");
   $("modeLabel").hidden = !conference;
+  const writing = s.writing;   // writing mode: what is said is typed into the reply / document
+  $("writingLabel").hidden = !writing;
+  if (writing) $("writingLabel").textContent = `Writing ${writing.label}: everything you say is typed. Say “send” or “done” when finished.`;
   $("dictBtn").hidden = conference;   // nothing is typed in Conference mode
   $("dictBtn").setAttribute("aria-pressed", dict.on ? "true" : "false");
   $("dictDot").classList.toggle("on", !!dict.on);
@@ -1190,10 +1194,14 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("clips").hidden) { hideClips(); return; }
   if (!q) {
     if (e.key === " " && !typing && document.activeElement === document.body) { e.preventDefault(); post("/api/listen", { toggle: true }); }
-    else if (S.mode === "conference" && !typing && /^[1-4]$/.test(e.key) && !(S.turn && !S.turn.finished)) { e.preventDefault(); post("/api/quick", { index: +e.key - 1 }); }
+    else if (S.mode === "conference" && !typing && /^[1-4]$/.test(e.key)) { e.preventDefault(); post("/api/quick", { index: +e.key - 1 }); }
     return;
   }
-  if (q.kind === "window") { if (e.key === "Escape") { e.preventDefault(); post("/api/answer", { kind: "no" }); } return; }
+  if (q.kind === "window") {
+    if (e.key === "Escape") { e.preventDefault(); post("/api/answer", { kind: "no" }); }
+    else if (S.mode === "conference" && !typing && /^[1-4]$/.test(e.key)) { e.preventDefault(); post("/api/quick", { index: +e.key - 1 }); }   // never blocked by the undo window
+    return;
+  }
   if (q.kind === "detail") return;
   if (typing && $("typed").value) return;
   if (q.kind === "yes_no") {
