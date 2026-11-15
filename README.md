@@ -4,7 +4,7 @@ Cowork is an unofficial, fully offline recreation of an AI computer assistant, b
 Parkinson's, cerebral palsy and other speech or motor impairments can use their computer and speak in meetings.
 Everything runs on a MacBook Air: no internet, no cloud, no account.
 
-> Unofficial recreation, not affiliated with Anthropic. Demo video: VIDEO_LINK_HERE
+> Unofficial recreation, not affiliated with Anthropic. Demo video: [VIDEO_LINK_HERE](https://drive.google.com/file/d/1uMjNDRbnOrKiywdW_jDtwIzUXYR8Aaka/view?usp=sharing)
 
 ![Cowork, the start screen](docs/screenshots/01_start_dictation_on.png)
 
