@@ -31,3 +31,9 @@
   first; clicking one shows it read-only with "Continue this task" and "Back". Empty conversations are not saved.
   `--fresh` moves the tasks file into profiles/backups/ together with the learning.
 - Test: `tests/test_tasks.py` (18 checks, including a restart).
+
+### Bug 3: right column opened by itself (fixed)
+- The right column (Camera, Progress, Learned) now starts collapsed, and stays as the person leaves it. The camera row
+  no longer opens by itself when a question waits for a hand answer: a small camera picture appears inside the
+  question card instead. (Saying "show learned" still opens it, since the person asked.)
+- Test: added to `tests/test_composer.py`.

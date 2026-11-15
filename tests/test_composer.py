@@ -133,6 +133,25 @@ js("document.body.dispatchEvent(new MouseEvent('mouseover', {bubbles: true}))")
 pump(0.1)
 check("tooltip goes away", js("document.getElementById('tip').hidden"), True)
 
+import types  # noqa: E402
+check("the right column starts collapsed", js("document.querySelector('.app').classList.contains('rail-collapsed')"), True)
+core.attach_camera(types.SimpleNamespace(want=lambda on: None, jpeg=lambda: None))
+core.say("wan oop en noat")    # a question that waits for a hand answer
+end = time.monotonic() + 5
+while core.state["question"] is None and time.monotonic() < end:
+    pump(0.05)
+pump(0.5)
+check("  ...and does not open by itself for a question", js("document.querySelector('.app').classList.contains('rail-collapsed')"), True)
+check("  ...the camera row stays closed", js("document.getElementById('camBody').hidden"), True)
+check("  ...a camera thumbnail is in the question card instead", js("!!document.querySelector('.perm img[data-qcam]')"), True)
+core.answer("none")
+pump(0.5)
+js("document.getElementById('railToggle').click()")
+pump(0.3)
+check("the toggle opens it", js("document.querySelector('.app').classList.contains('rail-collapsed')"), False)
+core._set(counts=core._counts())   # any update
+pump(0.3)
+check("  ...and it stays open", js("document.querySelector('.app').classList.contains('rail-collapsed')"), False)
 js("openModal('settings')")
 pump(0.3)
 about = js("document.getElementById('aboutCredit').textContent") or ""

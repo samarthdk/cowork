@@ -187,7 +187,11 @@ button.chip { min-height: var(--target); }
 
 /* ---- question cards (the only card with a shadow) ---- */
 .perm { background: var(--tint-strong); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
-.perm.fresh { animation: rise .2s ease-out; }   /* only the first time a question is shown (else it flickers) */
+.perm.fresh { animation: rise .2s ease-out; }
+.perm { position: relative; }
+.perm .qcam { position: absolute; top: 16px; right: 16px; width: 120px; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 8px;
+              background: #000; border: 1px solid var(--line); }
+.perm.with-cam .perm-title, .perm.with-cam .perm-head { margin-right: 136px; }   /* only the first time a question is shown (else it flickers) */
 .perm-head { display: flex; align-items: center; gap: 8px; font: var(--label); color: var(--muted); }
 .perm.risky .perm-head { color: var(--bad); }
 .perm-head svg { width: 18px; height: 18px; }
@@ -411,7 +415,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
 </style>
 </head>
 <body>
-<div class="app">
+<div class="app rail-collapsed">
   <aside class="side card" aria-label="Navigation">
     <div class="side-top">
       <button type="button" class="toggle-btn" id="sideToggle" aria-label="Collapse sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
@@ -470,7 +474,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
   </main>
 
   <aside class="rail" aria-label="Camera, progress and learning">
-    <button type="button" class="rail-toggle" id="railToggle" title="Collapse panel" aria-label="Collapse panel" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button type="button" class="rail-toggle" id="railToggle" title="Expand panel" aria-label="Expand panel" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     <section class="row card cam" id="camRow">
       <button class="row-head" data-row="camera" aria-expanded="false" aria-controls="camBody"></button>
       <div class="row-body" id="camBody" hidden></div>
@@ -624,7 +628,9 @@ function permHtml(q) {
   if (c.risky) head = `${ICON.warn}Needs your permission`;
   else if (c.guess) head = `${ICON.learn}A guess`;
   else head = `${ICON.shield}Checking with you`;
-  let html = `<div class="card perm${fresh ? " fresh" : ""}${c.risky ? " risky" : ""}${c.guess ? " guess" : ""}" data-qid="${q.id}" role="dialog" aria-label="${esc(c.title)}"><div class="perm-head">${head}</div>`;
+  const cam = S && S.camera && S.camera.connected && !S.camera.problem && (q.kind === "yes_no" || q.kind === "choice");
+  let html = `<div class="card perm${fresh ? " fresh" : ""}${c.risky ? " risky" : ""}${c.guess ? " guess" : ""}${cam ? " with-cam" : ""}" data-qid="${q.id}" role="dialog" aria-label="${esc(c.title)}"><div class="perm-head">${head}</div>`;
+  if (cam) html += `<img class="qcam" alt="Camera: show your hand or thumb to answer" data-qcam="1">`;
   html += `<div class="perm-title">${esc(c.title)}</div>`;
   if (c.guess) html += '<span class="tagline">Not from your list — only ever spoken or typed, never done on the Mac</span>';
   if (c.body) html += `<div class="perm-body">${c.say_aloud ? "“" + esc(c.body) + "”" : esc(c.body)}</div>`;
@@ -769,11 +775,11 @@ function renderRows(s) {
   const steps = progressRows(s);
   const counts = s.counts || {};
   const sets = [
-    ["camera", "cam", "Camera", !c.connected ? "off" : c.problem ? "not found" : handQuestion ? "watching" : "ready", handQuestion || rowsOpen.camera, "camBody"],
+    ["camera", "cam", "Camera", !c.connected ? "off" : c.problem ? "not found" : handQuestion ? "watching" : "ready", rowsOpen.camera, "camBody"],
     ["progress", "progress", "Progress", steps.length ? `${steps.length} step${steps.length === 1 ? "" : "s"}` : "nothing yet", rowsOpen.progress, "progressBody"],
     ["learned", "wave", "Learned", `${counts.examples ?? 0} ways, ${counts.phrases ?? 0} phrases`, rowsOpen.learned, "learnedBody"],
   ];
-  for (const [name, icon, title, summary, open, body] of sets) {   // the camera row opens by itself while a question waits for a hand answer
+  for (const [name, icon, title, summary, open, body] of sets) {   // rows open and close only when the person says so
     const head = document.querySelector(`[data-row="${name}"]`);
     head.innerHTML = rowHead(icon, title, summary);
     head.setAttribute("aria-expanded", open ? "true" : "false");
@@ -896,6 +902,7 @@ function render(s) {
       if (shownQids.has(qid)) el.classList.remove("fresh"); else shownQids.add(qid);
     });
   }
+  if (camUrl) document.querySelectorAll("img[data-qcam]").forEach((img) => { if (!img.src) img.src = camUrl; });
   applyHold(s);
   const tasks = s.tasks || [];
   const current = turns.length ? `<li class="now">${esc(turns[0].request || "“" + turns[0].heard + "”")}<span class="when">now</span></li>` : "";
@@ -928,7 +935,7 @@ function render(s) {
   const ui = s.ui || {};
   if (ui.seq && ui.seq !== uiSeq) {
     uiSeq = ui.seq;
-    if (ui.action === "open") { rowsOpen[ui.value] = true; renderRows(s); }
+    if (ui.action === "open") { rowsOpen[ui.value] = true; setRail(true); renderRows(s); }
     else if (ui.action === "quick") ui.value ? openModal("quick") : closeModal();
     else if (ui.action === "filter" && modalView === "quick") { qaFilter = ui.value; qaSel = 0; renderModal(); }
     else if (ui.action === "pick" && modalView === "quick") chooseQuick(ui.value);
@@ -960,14 +967,15 @@ setInterval(() => {   // countdown bars
   });
 }, 100);
 let camBusy = false;
-setInterval(async () => {   // camera frames, only while the camera row is open
-  if (camBusy || !S || !S.camera || !S.camera.connected || $("camBody").hidden) return;
-  const img = $("camImg");
-  if (!img) return;
+setInterval(async () => {   // camera frames: while the camera row is open, or into the question card's thumbnail
+  if (camBusy || !S || !S.camera || !S.camera.connected) return;
+  const targets = [...document.querySelectorAll("img[data-qcam]")];
+  if (!$("camBody").hidden && $("camImg")) targets.push($("camImg"));
+  if (!targets.length) return;
   camBusy = true;
   try {
     const r = await fetch("/api/camera.jpg?t=" + Date.now());
-    if (r.status === 200) { const url = URL.createObjectURL(await r.blob()); img.src = url; if (camUrl) URL.revokeObjectURL(camUrl); camUrl = url; }
+    if (r.status === 200) { const url = URL.createObjectURL(await r.blob()); targets.forEach((img) => (img.src = url)); if (camUrl) URL.revokeObjectURL(camUrl); camUrl = url; }
   } catch (e) {}
   camBusy = false;
 }, 100);
@@ -1038,13 +1046,14 @@ $("sideToggle").addEventListener("click", () => {
   $("sideToggle").setAttribute("aria-expanded", collapsed ? "false" : "true");
   $("sideToggle").setAttribute("aria-label", collapsed ? "Expand sidebar" : "Collapse sidebar");
 });
-$("railToggle").addEventListener("click", () => {
+function setRail(open) {   // the right column: collapsed at start, then as the person leaves it
   const root = document.querySelector(".app");
-  const collapsed = root.classList.toggle("rail-collapsed");
-  $("railToggle").setAttribute("aria-expanded", collapsed ? "false" : "true");
-  $("railToggle").setAttribute("aria-label", collapsed ? "Expand panel" : "Collapse panel");
-  $("railToggle").setAttribute("title", collapsed ? "Expand panel" : "Collapse panel");
-});
+  root.classList.toggle("rail-collapsed", !open);
+  $("railToggle").setAttribute("aria-expanded", open ? "true" : "false");
+  $("railToggle").setAttribute("aria-label", open ? "Collapse panel" : "Expand panel");
+  $("railToggle").setAttribute("title", open ? "Collapse panel" : "Expand panel");
+}
+$("railToggle").addEventListener("click", () => setRail(document.querySelector(".app").classList.contains("rail-collapsed")));
 $("newTask").addEventListener("click", () => post("/api/new"));
 $("modeBtn").addEventListener("click", () => post("/api/mode", { mode: S && S.mode === "conference" ? "computer" : "conference" }));
 $("dictBtn").addEventListener("click", () => post("/api/dictation", { on: !(S && S.dictation && S.dictation.on) }));
