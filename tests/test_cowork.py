@@ -370,20 +370,23 @@ check("'write an email' starts one new email (a command, not typing)", [c for c,
 
 # ---- test clips -----------------------------------------------------------------
 clips = load_clips()
-check("TORGO test clips found (3 demo + the rest)", len(clips), len(CLIP_IDS) + 3)
-check("  ...the demo three first, in order", [c["label"] for c in clips[:3]],
-      ["Understood directly", "Needs \u201cDid you mean\u201d", "Replay: now instant"])
-check("  ...the replay is the same recording", clips[1]["recording"] == clips[2]["recording"], True)
-check("  ...credit names the dataset", "TORGO" in CREDIT and "Rudzicz" in CREDIT, True)
-core, tts, actions = make()
-core.set_clips(clips, CREDIT)
-check("clips are listed on screen (no file paths)", "path" in core.state["clips"][0], False)
-check("unknown clip refused", core.play_clip("nope", play_sound=False), "No such clip.")
-up = next(c for c in clips if c["id"] == "M04_2_0015")
-check("a clip plays into the pipeline", core.play_clip("M04_2_0015", play_sound=False), "")
-check("  ...as a 'test clip' request with what WhisperKit heard",
-      wait_for(lambda: core.state["turn"] is not None) and
-      (core.state["turn"]["source"], core.state["turn"]["heard"]), ("test clip", up["heard"]))
+if not (config.ROOT / "datasets" / "torgo").exists():
+    print("SKIP  TORGO test clips: datasets/torgo is not on this Mac (it is not in the repo; see README.md)")
+else:
+    check("TORGO test clips found (3 demo + the rest)", len(clips), len(CLIP_IDS) + 3)
+    check("  ...the demo three first, in order", [c["label"] for c in clips[:3]],
+          ["Understood directly", "Needs \u201cDid you mean\u201d", "Replay: now instant"])
+    check("  ...the replay is the same recording", clips[1]["recording"] == clips[2]["recording"], True)
+    check("  ...credit names the dataset", "TORGO" in CREDIT and "Rudzicz" in CREDIT, True)
+    core, tts, actions = make()
+    core.set_clips(clips, CREDIT)
+    check("clips are listed on screen (no file paths)", "path" in core.state["clips"][0], False)
+    check("unknown clip refused", core.play_clip("nope", play_sound=False), "No such clip.")
+    up = next(c for c in clips if c["id"] == "M04_2_0015")
+    check("a clip plays into the pipeline", core.play_clip("M04_2_0015", play_sound=False), "")
+    check("  ...as a 'test clip' request with what WhisperKit heard",
+          wait_for(lambda: core.state["turn"] is not None) and
+          (core.state["turn"]["source"], core.state["turn"]["heard"]), ("test clip", up["heard"]))
 
 # ---- web endpoints ------------------------------------------------------------------
 core, tts, actions = make()
@@ -417,7 +420,10 @@ check("  ...loads nothing from the internet", b"http://" in page or b"https://" 
 check("  ...never says 'Claude'", b"claude" in page.lower(), False)
 check("the earlier page is still at /classic", get("/classic")[0], 200)
 check("no camera: no frame", get("/api/camera.jpg")[0], 204)
-check("clip endpoint", post("/api/clip", {"id": "M04_2_0034"})["ok"], True)
+if clips:   # needs the TORGO recordings (not in the repo)
+    check("clip endpoint", post("/api/clip", {"id": "M04_2_0034"})["ok"], True)
+else:
+    check("clip endpoint: without the recordings it says so", post("/api/clip", {"id": "M04_2_0034"})["ok"], False)
 for _ in range(6):   # finish the clip's request, answering whatever it asks
     if finished(core, 1) and core.state["question"] is None:
         break
