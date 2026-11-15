@@ -1,5 +1,6 @@
 """Start Cowork (Second Voice's screen) on this Mac.
 
+    scripts/start.sh                        the demo: checks everything (plain English), then starts (= --demo)
     .venv/bin/python -m ui --fake           everything fake: no LM Studio, WhisperKit, microphone or camera needed
     .venv/bin/python -m ui                  the real parts chosen in config.py, with the camera
     .venv/bin/python -m ui --real --dictation   the dictation demo: everything real, typing into Word
@@ -65,6 +66,9 @@ def wait_for_server(url: str, seconds: float = 10.0) -> bool:
 
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description="Cowork")
+    parser.add_argument("--demo", action="store_true",
+                        help="check everything first (plain English), then start with the demo settings: "
+                             "real models, microphone and camera on, the demo profile (scripts/start.sh)")
     parser.add_argument("--fake", action="store_true", help="use the fake ASR, LLM, voice and Mac actions")
     parser.add_argument("--real", action="store_true",
                         help="use every real part (WhisperKit, Bonsai, TTSKit, Mac actions), whatever config.py says")
@@ -83,6 +87,17 @@ def main(argv=None) -> None:
     parser.add_argument("--no-window", "--no-browser", dest="no_window", action="store_true")
     options = parser.parse_args(argv)
 
+    if options.demo:
+        if options.fake:
+            sys.exit("--demo uses the real models; leave out --fake.")
+        from ui.checks import ready, run_all
+        print("Checking everything before the demo:")
+        if not ready(run_all()):
+            sys.exit("\nNot ready: fix the FAIL lines above, then run scripts/start.sh again.")
+        print("\nAll set. Starting Cowork...\n")
+        options.real = True                       # real WhisperKit, Bonsai, TTSKit, Mac actions
+        options.no_mic = options.no_camera = False   # microphone and camera on
+        options.profile = "cowork"                # the demo profile
     if options.fake and options.real:
         sys.exit("Choose --fake or --real, not both.")
     if options.fake:

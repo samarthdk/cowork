@@ -77,3 +77,11 @@
   lets no app come to the front and key presses go nowhere, so reply / forward / mark unread / print could not be
   tried live tonight (they failed with "There is no app to send the key to", which is the lock, not the code).
   Opening the latest email (AppleScript) did work while locked. These are on the morning checklist.
+
+### F1: one start command (done)
+- `scripts/start.sh` (= `.venv/bin/python -m ui --demo`): checks LM Studio and Bonsai, a 1-second known-answer test
+  with thinking off, WhisperKit and TTSKit models, how many demo sentences are ready, the built-in camera, the
+  microphone, Accessibility, and Wi-Fi on/off. Each line in plain English with a fix. Needed checks failing: it stops
+  and says what to do. Then Cowork starts with real models, microphone and camera on, demo profile.
+- Run on this Mac: all 8 checks OK (Bonsai test 2.2 s, 57 demo sentences ready). Cowork started with mic and camera.
+- Test: `tests/test_start.py`. Just the checks: `.venv/bin/python -m ui.checks`.
