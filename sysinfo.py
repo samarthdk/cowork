@@ -1,10 +1,6 @@
 """Measurements for the metrics panel and the start-up checks: memory used by
 each model process, and whether the Mac is offline.
 
-Memory is the "physical footprint" macOS itself reports (the Memory column in
-Activity Monitor), which includes model weights held by the GPU or Neural
-Engine; plain "resident size" badly undercounts those.
-
 The offline check only reads local settings (is Wi-Fi switched on, is there
 any network route). It never sends anything to the network.
 """
