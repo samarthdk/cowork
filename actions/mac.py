@@ -41,16 +41,22 @@ APP_FOLDERS = ["/Applications", "/System/Applications", "/System/Applications/Ut
                str(Path.home() / "Applications")]
 SKIP_APPS = ("shim", "uninstall", "python", "helper", "deploy", "installer")
 CLICKABLE_ROLES = {"AXButton", "AXLink", "AXMenuButton", "AXCheckBox", "AXRadioButton", "AXPopUpButton", "AXTab"}
-KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12, "delete": 51, "l": 37, "n": 45, "t": 17}
+KEYS = {"left": 123, "right": 124, "return": 36, "[": 33, "]": 30, "q": 12, "delete": 51, "l": 37, "n": 45, "t": 17,
+        "tab": 48, "s": 1, "d": 2, "w": 13, "forward_delete": 117}
 COMMAND_KEY = 0x100000  # kCGEventFlagMaskCommand
+SHIFT_KEY = 0x20000     # kCGEventFlagMaskShift
 SCROLL_LINES = 12
 NOT_A_TARGET = ("Terminal", "iTerm2", "Finder", "loginwindow", "Python",   # never typed into (Python = Cowork)
                 "LM Studio")   # runs the Brain: never typed into or closed
-# Where the cursor goes when an app is opened by voice (the natural place to start typing):
-BROWSERS = ("Google Chrome", "Safari", "Firefox", "Arc", "Microsoft Edge", "Brave Browser")
-NEW_ITEM_APPS = ("Mail", "Notes")                     # Command+N: a new message / a new note
-DOCUMENT_APPS = ("Microsoft Word", "TextEdit", "Pages")   # Command+N only if no document is open yet
+from actions.screen import BROWSERS, mail_fields, read_screen, value_of  # noqa: E402
+DOCUMENT_APPS = ("Microsoft Word", "TextEdit", "Pages")
+# Opening an app only opens it (measured: Mail reopens unsent drafts at launch, and Cowork used to press
+# Command+N as well, so "open Mail" gave two drafts). A new email or document only when asked.
+NO_RESTORE = ("Mail",)   # launched without reopening the windows left open last time
 LAUNCH_WAIT_S = 12.0
+READY_WAIT_S = 8.0       # longest wait for a new document / email window to be ready for typing
+MAIL_ORDER = ("to", "cc", "subject", "body")
+FIELD_NAMES = {"to": "To", "cc": "Cc", "subject": "Subject", "message": "body", "body": "body"}
 NEVER_CLOSE = ("Finder", "Terminal", "loginwindow", "Dock", "Python", "LM Studio")   # LM Studio runs the Brain
 NOT_A_WINDOW_OWNER = ("Window Server", "Dock", "Control Center", "SystemUIServer", "Notification Center",
                       "Spotlight", "WindowManager", "Wallpaper", "TextInputMenuAgent", "screencaptureui")
@@ -282,11 +288,22 @@ class MacActions:
         ordered += [a for a in installed if a not in ordered]
         return ordered[:config.MAX_APPS]
 
+    def screen(self):
+        """What is on screen in the app the person is using, right now (actions/screen.py)."""
+        self.front.update()
+        screen = read_screen(self.front.pid if self.target_name() else None, self.target_name())
+        if not screen.readable:   # measured: Word doesn't answer for a moment right after typing
+            time.sleep(0.4)
+            screen = read_screen(self.front.pid if self.target_name() else None, self.target_name())
+        return screen
+
     def context(self) -> dict:
         self._targets = self._on_screen()
-        found = {"app": list(self._apps), "target": list(self._targets), "site": list(config.SITES)}
+        found = {"app": list(self._apps), "target": list(self._targets), "site": list(config.SITES),
+                 "field": ["To", "Cc", "Subject", "Message"]}
         if self.contacts:
             found["to"] = list(self.contacts)
+        found["_screen"] = self.screen()   # not a detail: what the Brain is told is on screen
         return found
 
     def _on_screen(self) -> dict:
@@ -340,26 +357,49 @@ class MacActions:
             return ActionResult(False, problem=f"'{app}' is not an app on this Mac.")
         was_running = app in running_apps()
         windows = self.front.windows_of(app)
-        had_windows = bool(windows)
         if windows:   # already open: bring it forward without a "reopen" (see FrontApp.bring_forward)
             self.front._remember(windows[0]["pid"], app)
             if not self.front.bring_forward():
                 return ActionResult(False, problem=f"Could not bring {app} forward.")
         else:
-            done = subprocess.run(["open", "-a", app], capture_output=True, text=True, timeout=config.ACTION_TIMEOUT_S)
+            done = self._launch(app)
             if done.returncode != 0:
                 return ActionResult(False, problem=done.stderr.strip() or f"Could not open {app}.")
         detail = f"Opened {app}"
-        # It becomes the dictation target, with the cursor where typing naturally starts.
+        # It becomes the app being worked in (and typed into). Nothing else is done to it.
         if app not in NOT_A_TARGET and self.front.wait_until_front(app, LAUNCH_WAIT_S):
-            placed = self._place_cursor(app, had_windows) if accessibility_allowed() else ""
-            detail += f" · typing goes here{f' ({placed})' if placed else ''}"
+            detail += " · typing goes here"
 
         def undo():
             if not was_running:   # only close what this action opened
                 run_applescript(["on run argv", "tell application (item 1 of argv) to quit", "end run"], app)
 
         return ActionResult(True, detail=detail, undo=undo)
+
+    def _launch(self, app: str):
+        command = ["open", "-a", app]
+        if app in NO_RESTORE and app not in running_apps():
+            command += ["--args", "-ApplePersistenceIgnoreState", "YES"]   # no windows from last time
+        return subprocess.run(command, capture_output=True, text=True, timeout=config.ACTION_TIMEOUT_S)
+
+    def _ensure_open(self, app: str) -> bool:
+        """The app is open and in front, and is the app being worked in."""
+        windows = self.front.windows_of(app)
+        if windows:
+            self.front._remember(windows[0]["pid"], app)
+            return self.front.bring_forward()
+        if self._launch(app).returncode != 0:
+            return False
+        return self.front.wait_until_front(app, LAUNCH_WAIT_S)
+
+    def _wait_for(self, test, seconds: float = READY_WAIT_S, every: float = 0.15):
+        """Read the screen until test(screen) is true. Returns the last screen read."""
+        end = time.monotonic() + seconds
+        while True:
+            screen = self.screen()
+            if test(screen) or time.monotonic() > end:
+                return screen
+            time.sleep(every)
 
     def _scroll(self, lines: int) -> ActionResult:
         if not accessibility_allowed():
@@ -381,18 +421,20 @@ class MacActions:
     def _do_scroll_up(self, args: dict) -> ActionResult:
         return self._scroll(SCROLL_LINES)
 
-    def _key(self, key: str, command_key: bool = False, undo_key: str | None = None) -> ActionResult:
+    def _key(self, key: str, command_key: bool = False, undo_key: str | None = None, shift: bool = False) -> ActionResult:
         if not accessibility_allowed():
             return ActionResult(False, problem="Pressing keys needs the Accessibility permission. " + ACCESSIBILITY_FIX)
         if not self.front.bring_forward():
             return ActionResult(False, problem="There is no app to send the key to.")
         import Quartz
+        flags = (COMMAND_KEY if command_key else 0) | (SHIFT_KEY if shift else 0)
         for down in (True, False):
             event = Quartz.CGEventCreateKeyboardEvent(None, KEYS[key], down)
-            Quartz.CGEventSetFlags(event, COMMAND_KEY if command_key else 0)   # never inherit a held modifier
+            Quartz.CGEventSetFlags(event, flags)   # never inherit a held modifier
             Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
         undo = (lambda: self._key(undo_key, command_key)) if undo_key else None
-        return ActionResult(True, detail=f"Pressed {'Command + ' if command_key else ''}{key}", undo=undo)
+        names = ("Command + " if command_key else "") + ("Shift + " if shift else "")
+        return ActionResult(True, detail=f"Pressed {names}{key}", undo=undo)
 
     def _do_press_left(self, args: dict) -> ActionResult:
         return self._key("left", undo_key="right")
@@ -467,21 +509,29 @@ class MacActions:
         return ActionResult(True, detail=f"Email to {shown} ready in Mail (not sent)", undo=undo)
 
     def _do_send_email(self, args: dict) -> ActionResult:
-        if self._last_email is None:
-            return ActionResult(False, problem="There is no email to send. Ask me to write one first.")
-        allowed = self.contacts.get(config.SEND_ONLY_TO, "")
-        if not allowed or getattr(self, "_last_email_to", "").lower() != allowed.lower():
+        """Send the email open on screen in Mail. (Risky: the person has already said yes.)
+        Only ever to config.SEND_ONLY_TO, and only when config.EMAIL_REALLY_SEND is on."""
+        screen = self.screen()
+        if screen.app != "Mail" or screen.place != "new email":
+            return ActionResult(False, problem="There's no email open to send. Say \u201cwrite an email\u201d first.")
+        fields = mail_fields(screen.pid)
+        to = " ".join(value_of(fields[k]) for k in ("to", "cc", "bcc") if k in fields)
+        to = [w.strip(" ,;<>").lower() for w in to.replace(",", " ").split() if "@" in w]
+        allowed = self.contacts.get(config.SEND_ONLY_TO, "").lower()
+        if not to:
+            return ActionResult(False, problem="The email has no address in To yet. The email is still open in Mail.")
+        if not allowed or any(address != allowed for address in to):
             return ActionResult(False, problem=f"For safety, emails are only sent to '{config.SEND_ONLY_TO}' "
                                                "(SEND_ONLY_TO in config.py). The email is still open in Mail.")
         if not config.EMAIL_REALLY_SEND:
             return ActionResult(False, problem="Sending is switched off (EMAIL_REALLY_SEND in config.py). "
                                                "The email is still open in Mail.")
-        ok, output = run_applescript(["on run argv", 'tell application "Mail"',
-                                      "set m to first outgoing message whose subject is (item 1 of argv)",
-                                      "send m", "end tell", "end run"], self._last_email)
-        if not ok:
-            return ActionResult(False, problem=output)
-        self._last_email = None
+        pressed = self._key("d", command_key=True, shift=True)   # Mail: Message > Send
+        if not pressed.ok:
+            return pressed
+        after = self._wait_for(lambda s: s.place != "new email", 4.0)
+        if after.place == "new email":
+            return ActionResult(False, problem="Mail didn't send it (the email is still open).")
         return ActionResult(True, say="Your email was sent.", detail="Sent the email")
 
     def _do_type_text(self, args: dict) -> ActionResult:
@@ -492,6 +542,11 @@ class MacActions:
             return ActionResult(False, problem="Typing needs the Accessibility permission. " + ACCESSIBILITY_FIX)
         if not self.front.bring_forward():
             return ActionResult(False, problem="There is no app to type into. Open one first.")
+        screen = self.screen()
+        if not screen.typeable and not args.get("anyway") and screen.readable:
+            # Never type unless a place for words has the cursor (Cowork asks the person first).
+            return ActionResult(False, problem=f"Nothing in {screen.app or 'the app'} is ready for typing "
+                                               f"({screen.words()}).")
         import Quartz
         for start in range(0, len(text), TYPE_CHUNK):
             chunk = text[start:start + TYPE_CHUNK]
@@ -545,48 +600,156 @@ class MacActions:
         done = subprocess.run(["open", "-a", name], capture_output=True, text=True, timeout=config.ACTION_TIMEOUT_S)
         return done.returncode == 0 and self.front.wait_until_front(name, LAUNCH_WAIT_S)
 
-    def _tab_to(self, pid: int, role: str, window_title: str = "New Message", most: int = 6) -> bool:
-        """Press Tab until the focused element has this role (e.g. Mail: To -> Cc -> Subject -> body).
-        Measured: setting the focus through Accessibility did not move Mail's cursor; Tab does."""
+    # ---- documents, email boxes and browsers (each reads the screen before and after) ----------
+
+    def _do_new_document(self, args: dict) -> ActionResult:
+        """A new blank document in the app being worked in (Word: "Blank Document" on its start screen)."""
+        screen = self.screen()
+        app = screen.app if screen.app in DOCUMENT_APPS else "Microsoft Word" if "Microsoft Word" in self._apps else "TextEdit"
+        if screen.app != app and not self._ensure_open(app):
+            return ActionResult(False, problem=f"Couldn't open {app}.")
+        screen = self._wait_for(lambda s: s.app == app and (s.place or s.typeable), 6.0)
+        if app == "Microsoft Word" and screen.place == "start screen":
+            if not self._press_button(screen.pid, "Blank Document"):
+                return ActionResult(False, problem="Couldn't find \u201cBlank Document\u201d on Word's start screen.")
+        elif not self._key("n", command_key=True).ok:
+            return ActionResult(False, problem=f"Couldn't make a new document in {app}.")
+        ready = self._wait_for(lambda s: s.place == "document" and s.typeable)
+        if not ready.typeable:
+            return ActionResult(False, problem=f"The new document didn't open in time ({ready.words()}).")
+        return ActionResult(True, detail=ready.words())
+
+    def _press_button(self, pid: int, title: str) -> bool:
+        """Press an on-screen button by its name (Accessibility). True if it was found."""
         import ApplicationServices as AS
-        import Quartz
-        app = AS.AXUIElementCreateApplication(pid)
-        end = time.monotonic() + 3.0   # wait for the new window to open and take the focus
-        while time.monotonic() < end:
-            error, window = AS.AXUIElementCopyAttributeValue(app, "AXFocusedWindow", None)
-            if error == 0 and AS.AXUIElementCopyAttributeValue(window, "AXTitle", None)[1] == window_title:
-                break
-            time.sleep(0.1)
-        else:
+        from actions.screen import _attr, find
+        root = AS.AXUIElementCreateApplication(pid)
+        AS.AXUIElementSetMessagingTimeout(root, 1.0)
+        window = _attr(root, "AXFocusedWindow")
+        button = find(window, lambda e: _attr(e, "AXRole") == "AXButton" and _attr(e, "AXTitle") == title) if window else None
+        if button is None:
             return False
-        time.sleep(0.2)
-        for _ in range(most + 1):
-            error, focused = AS.AXUIElementCopyAttributeValue(app, "AXFocusedUIElement", None)
-            if error == 0 and AS.AXUIElementCopyAttributeValue(focused, "AXRole", None)[1] == role:
-                return True
-            for down in (True, False):
-                event = Quartz.CGEventCreateKeyboardEvent(None, 48, down)
-                Quartz.CGEventSetFlags(event, 0)   # a plain Tab (right after Command+N it became Command+Tab)
-                Quartz.CGEventPost(Quartz.kCGHIDEventTap, event)
-            time.sleep(0.25)
+        AS.AXUIElementPerformAction(button, "AXPress")   # Word answers "cannot complete" yet does it (measured)
+        return True
+
+    def _do_new_email(self, args: dict) -> ActionResult:
+        """Exactly one new email in Mail, with the cursor in To."""
+        if not self._ensure_open("Mail"):
+            return ActionResult(False, problem="Couldn't open Mail.")
+        screen = self._wait_for(lambda s: s.app == "Mail" and s.place, 6.0)
+        if screen.place == "new email" and not any(value_of(e) for k, e in mail_fields(screen.pid).items() if k != "body"):
+            ready = screen   # an empty new email is already open: use it rather than open another
+        else:
+            if not self._key("n", command_key=True).ok:
+                return ActionResult(False, problem="Couldn't start a new email.")
+            ready = self._wait_for(lambda s: s.place == "new email" and s.field == "to")
+        if ready.field != "to":
+            return ActionResult(False, problem=f"The new email didn't open in time ({ready.words()}).")
+        return ActionResult(True, detail="New email, cursor in To", undo=self._discard_email)
+
+    def _discard_email(self) -> None:
+        """Close the email on screen without saving it (undo for "write an email")."""
+        screen = self.screen()
+        if screen.app == "Mail" and screen.place == "new email" and self._key("w", command_key=True).ok:
+            time.sleep(0.6)
+            self._press_button_in_sheet(screen.pid, "Don\u2019t Save")
+
+    def _press_button_in_sheet(self, pid: int, title: str) -> bool:
+        import ApplicationServices as AS
+        from actions.screen import _attr
+        root = AS.AXUIElementCreateApplication(pid)
+        for window in _attr(root, "AXWindows") or []:
+            for child in _attr(window, "AXChildren") or []:
+                if _attr(child, "AXRole") == "AXSheet":
+                    for button in _attr(child, "AXChildren") or []:
+                        if _attr(button, "AXTitle") == title:
+                            AS.AXUIElementPerformAction(button, "AXPress")
+                            return True
         return False
 
-    def _place_cursor(self, app: str, had_windows: bool) -> str:
-        """Put the cursor where typing naturally starts. Returns what was done, in words."""
-        if app in BROWSERS:
-            # Command+T: a new tab with the cursor in its address bar. (Command+L would put the cursor
-            # in the address bar of the page already open, and typing would replace that page.)
-            return "a new tab, cursor in the address bar" if self._key("t", command_key=True).ok else ""
-        if app in NEW_ITEM_APPS:
-            what = "a new message" if app == "Mail" else "a new note"
-            if not self._key("n", command_key=True).ok:
-                return ""
-            if app == "Mail":   # a new message starts in "To:"; the person dictates the message itself
-                what += ", cursor in the body" if self._tab_to(self.front.pid, "AXWebArea") else ""
-            return what
-        if app in DOCUMENT_APPS and not had_windows:
-            return "a new document" if self._key("n", command_key=True).ok else ""
-        return ""
+    def _do_next_field(self, args: dict) -> ActionResult:
+        return self._move_field(+1)
+
+    def _do_previous_field(self, args: dict) -> ActionResult:
+        return self._move_field(-1)
+
+    def _move_field(self, step: int) -> ActionResult:
+        """Mail: To -> Cc -> Subject -> body ("next box"), and back. Elsewhere: Tab / Shift+Tab."""
+        screen = self.screen()
+        if screen.app == "Mail" and screen.place == "new email":
+            here = screen.field if screen.field in MAIL_ORDER else "to"
+            index = MAIL_ORDER.index(here) + step
+            if not 0 <= index < len(MAIL_ORDER):
+                return ActionResult(True, detail=f"Already in the {'last' if step > 0 else 'first'} box "
+                                                 f"({FIELD_NAMES.get(here, here)})")
+            return self._focus_mail(MAIL_ORDER[index])
+        if not screen.typeable:
+            return ActionResult(False, problem=f"There are no boxes to move between ({screen.words()}).")
+        pressed = self._key("tab", shift=step < 0)
+        if not pressed.ok:
+            return pressed
+        time.sleep(0.3)
+        return ActionResult(True, detail=self.screen().words())
+
+    def _focus_mail(self, name: str) -> ActionResult:
+        """Put the cursor in one of the boxes of the new email (measured: setting the focus through
+        Accessibility moves Mail's cursor for To, Cc, Subject and the body; Tab in the body types a tab)."""
+        import ApplicationServices as AS
+        fields = mail_fields(self.front.pid)
+        if name not in fields:
+            return ActionResult(False, problem=f"The email has no {FIELD_NAMES.get(name, name)} box.")
+        AS.AXUIElementSetAttributeValue(fields[name], "AXFocused", True)
+        ready = self._wait_for(lambda s: s.field == name, 1.5, 0.1)
+        if ready.field != name:
+            return ActionResult(False, problem=f"Couldn't move the cursor to {FIELD_NAMES.get(name, name)}.")
+        return ActionResult(True, detail=f"Cursor in {'the message' if name == 'body' else FIELD_NAMES[name]}")
+
+    def _do_go_to_field(self, args: dict) -> ActionResult:
+        name = (args.get("field", "") or "").strip().lower()
+        name = {"message": "body", "body": "body", "text": "body"}.get(name, name)
+        screen = self.screen()
+        if screen.app != "Mail" or screen.place != "new email":
+            return ActionResult(False, problem="There's no email open. Say \u201cwrite an email\u201d first.")
+        return self._focus_mail(name)
+
+    def _do_save_document(self, args: dict) -> ActionResult:
+        pressed = self._key("s", command_key=True)
+        return ActionResult(pressed.ok, detail=f"Saved (Command + S) in {self.front.name}" if pressed.ok else "",
+                            problem=pressed.problem)
+
+    def _do_new_tab(self, args: dict) -> ActionResult:
+        screen = self.screen()
+        app = screen.app if screen.app in BROWSERS else "Google Chrome" if "Google Chrome" in self._apps else config.BROWSER
+        if screen.app != app and not self._ensure_open(app):
+            return ActionResult(False, problem=f"Couldn't open {app}.")
+        if not self._key("t", command_key=True).ok:
+            return ActionResult(False, problem="Couldn't open a new tab.")
+        ready = self._wait_for(lambda s: s.field == "address", 2.0, 0.1)
+        return ActionResult(True, detail="New tab, cursor in the address bar" if ready.field == "address" else "New tab")
+
+    def _do_search_for(self, args: dict) -> ActionResult:
+        """Type the words into the browser's address bar (or the search box that has the cursor).
+        Not run yet: "hit search" (Return) runs it, so the person can check the words first."""
+        query = (args.get("query", "") or "").strip()
+        if not query:
+            return ActionResult(False, problem="There is nothing to search for.")
+        screen = self.screen()
+        if screen.app in BROWSERS:
+            if screen.field != "address":
+                self._key("l", command_key=True)   # the address bar of the page on screen
+                screen = self._wait_for(lambda s: s.field == "address", 1.5, 0.1)
+            if screen.field != "address":
+                return ActionResult(False, problem="Couldn't put the cursor in the address bar.")
+        elif not screen.search:
+            return ActionResult(False, problem=f"There's no search box here ({screen.words()}).")
+        typed = self._do_type_text({"text": query, "anyway": True})
+        if not typed.ok:
+            return typed
+        if screen.app in BROWSERS:   # measured: Chrome filled in "Cornell" as a page from its history; keep the words only
+            time.sleep(0.2)
+            self._key("forward_delete")
+        return ActionResult(True, detail=f"Typed \u201c{query}\u201d in {screen.focus or 'the search box'} "
+                                         "(say \u201chit search\u201d to run it)")
 
     def _do_close_app(self, args: dict) -> ActionResult:
         """Quit the app the person was using (no name given)."""

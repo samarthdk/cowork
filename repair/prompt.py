@@ -46,9 +46,17 @@ def _shape(properties: dict) -> dict:
             "additionalProperties": False}
 
 
+def not_now(context: dict | None) -> tuple:
+    """Commands that don't fit what is on screen right now (context["_hide"], set by Cowork: e.g. "next box"
+    with no email open, or typing a question). They are left out of the schema only, never out of the
+    instructions, so LM Studio can keep reusing the instructions it has already read (see DYNAMIC_DETAILS)."""
+    return tuple((context or {}).get("_hide") or ())
+
+
 def build_schema(profile: dict, context: dict | None = None, exclude: tuple = ()) -> dict:
     """`exclude`: choices (phrases or command names) that may not be answered,
     e.g. the guess the person just said "no" to."""
+    exclude = tuple(exclude) + not_now(context)
     commands = [c for c in usable_commands(profile, context) if c["name"] not in exclude]
     simple = [code for code, phrase in phrase_codes(profile).items() if phrase not in exclude]
     simple += [c["name"] for c in commands if not c["args"]]
@@ -118,10 +126,15 @@ COMMANDS (actions on the Mac):
 Rules:
 - "choice" must be exactly one phrase CODE (like P1) or one command name from the list above.
 - If the command's line says it needs something, add that key too, taken from what the person said.
+- A request to DO something on the Mac is a command, in any wording. A QUESTION (what, who, when, where,
+  how, why...) is answer_question. Typing (type_text) only when they say "type"/"write" and the words.
 - "confidence" is "high" only if you are sure; otherwise "low".
 {examples}Reply with JSON only, on ONE line with no spaces or line breaks."""
 
     now = ""
+    screen = (context or {}).get("_screen")
+    if screen is not None:   # what is on screen right now (actions/screen.py), so the choice fits what is open
+        now += f"On screen now: {screen.brief() if hasattr(screen, 'brief') else screen}\n"
     for arg in DYNAMIC_DETAILS:
         values = listed_values(arg, context)
         if values and any(arg in c["args"] for c in usable_commands(profile, context)):

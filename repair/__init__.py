@@ -41,6 +41,7 @@ def repair(heard: str, profile: dict, llm, context: dict | None = None, exclude:
                 return intent
             intent = validate(parse_json(reply.text), profile, context)
             intent.stats = stats
+            _echo(heard, intent, profile)
             if intent.choice:
                 score = support.evidence(heard, intent.choice, profile, intent.args)
                 intent.stats["evidence"] = round(score, 2)
@@ -63,6 +64,34 @@ def repair(heard: str, profile: dict, llm, context: dict | None = None, exclude:
         except Exception as error:  # e.g. LM Studio not running
             problem = f"LLM call failed: {type(error).__name__}: {error}"
     return failed(profile, f"{problem} (after 1 retry)")
+
+
+def words_after(heard: str, starts: list[str]) -> str:
+    """The person's own words after "type" / "search for" ... ("" if it doesn't start that way)."""
+    from rapidfuzz import fuzz
+    words = heard.split()
+    for start in sorted(starts, key=len, reverse=True):
+        lead = start.split()
+        said = [w.strip(".,!?").lower() for w in words[:len(lead)]]
+        if len(words) > len(lead) and all(fuzz.ratio(a, b) >= 80 for a, b in zip(said, lead)):
+            return " ".join(words[len(lead):]).strip()
+    return ""
+
+
+def _echo(heard: str, intent, profile: dict) -> None:
+    """For "type ..." and "search for ...", the words are exactly the ones heard after them (measured:
+    Bonsai shortened "type this is a test from Cowork" to "Cowork.")."""
+    from repair.profile import find_command
+    command = find_command(profile, intent.choice) if intent.choice else None
+    if command and command.get("echo"):   # measured: Bonsai sometimes leaves JSON bits at the end ("...Boston?'}")
+        for name in command["args"]:
+            if intent.args.get(name):
+                intent.args[name] = intent.args[name].strip().rstrip("'\"{}[] ").lstrip("'\"{[ ").strip()
+    if command and command.get("echo_after") and command["args"]:
+        rest = words_after(heard, command["echo_after"])
+        name = next(iter(command["args"]))
+        if rest:
+            intent.args[name] = rest if name == "text" else rest.rstrip(".!?")   # a search: no full stop
 
 
 def warm_up(profile: dict, llm, context: dict | None = None) -> float:

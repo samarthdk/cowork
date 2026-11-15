@@ -259,6 +259,8 @@ button.chip { min-height: var(--target); }
 .progress li.failed .pi { background: var(--bad); border-color: var(--bad); color: var(--ink); }
 .progress li.running .pi { border-color: var(--accent); border-top-color: transparent; animation: spin .8s linear infinite; }
 .progress li.open .pi { border-color: var(--accent); }
+.progress li.seen { color: var(--muted); }
+.progress li.seen .pi { border-style: dashed; }
 .progress .muted, .feed-empty { color: var(--muted); }
 .feed { list-style: none; margin: 0; padding: 0; }
 .feed li { padding: 10px 0; border-top: 1px solid var(--line); }
@@ -416,6 +418,7 @@ const ICON = {
   bolt: sv('<path d="M13 2L4 14h7l-1 8 9-12h-7z"/>'),
   learn: sv('<path d="M12 3l9 5-9 5-9-5z"/><path d="M7 10.5V15c0 1.5 2.5 3 5 3s5-1.5 5-3v-4.5"/>'),
   ear: sv('<path d="M6 9a6 6 0 1 1 12 0c0 4-4 5-4 9a3 3 0 0 1-6 0"/>'),
+  eye: sv('<path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>'),
   speaker: sv('<path d="M11 5L6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/>'),
   shield: sv('<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'),
   warn: sv('<path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/>'),
@@ -580,7 +583,8 @@ function turnHtml(t, isLast) {
     if (item.type === "note") {
       const text = item.icon === "bolt" ? "Recognized instantly from what I've learned" : item.text;
       html += `<div class="note ${item.icon}">${ICON[item.icon] || ""}<span>${esc(text)}</span></div>`;
-    } else if (item.type === "step") html += stepHtml(item, open);
+    } else if (item.type === "seen") html += `<div class="note seen">${ICON.eye}<span>On screen: ${esc(item.text)}</span></div>`;
+    else if (item.type === "step") html += stepHtml(item, open);
     else if (item.type === "spoken") html += spokenHtml(item, open);
     else if (item.type === "typed") html += typedHtml(item, open);
     else if (item.type === "reply") html += `<div class="reply${item.error ? " error" : ""}">${item.read_aloud ? `<div class="kicker">${ICON.speaker}Read aloud${voiceTag(item)}</div>` : ""}${esc(item.text)}</div>`;
@@ -611,6 +615,7 @@ function progressRows(s) {
     else if (item.type === "step") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: item.title });
     else if (item.type === "spoken") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: "Say it out loud" });
     else if (item.type === "typed") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: `Type it into ${item.app}` });
+    else if (item.type === "seen") rows.push({ cls: "seen", text: `Saw: ${item.text}` });
   }
   return rows;
 }

@@ -192,7 +192,10 @@ class Session:
         pending = None
         while result is not None:
             choice, args, how = result.choice, result.args, result.how
-            learned = how != "confident"   # only confirmed answers are learned from
+            command = find_command(profile, choice)
+            # Only confirmed answers are learned from, and never the person's own free words (what they
+            # typed or asked: learning those would make the fast path type or ask the same words again).
+            learned = how != "confident" and not (command and command.get("echo"))
             if learned:
                 add_example(profile, heard, choice, args, new_phrase=(how == "new phrase"),
                             new_words=result.new_words)
@@ -304,7 +307,7 @@ class Session:
             return None
         picked = options[answer.value]
         if picked == SOMETHING_ELSE:
-            return (yield from self._something_else(heard))
+            return (yield from self._something_else(heard, context))
         args = intent.args if find_command(profile, picked) else {}
         args = yield from self._fill_missing(picked, args, context)
         return Result(picked, args, "picked")
@@ -322,14 +325,17 @@ class Session:
                     args[name] = str(answer.value).strip() if answer is not None and answer.kind == "text" else ""
         return args
 
-    def _something_else(self, heard: str):
-        """Free guesses, up to MAX_GUESSES. Each new guess is told the rejected ones.
-        A confirmed guess becomes a phrase; its important words join the vocabulary."""
+    def _something_else(self, heard: str, context: dict | None = None):
+        """Free guesses, up to MAX_GUESSES. Each new guess is told the rejected ones, what is on
+        screen now, and only the words heard. A confirmed guess becomes a phrase (its important
+        words join the vocabulary), or, if it is a question, is answered (never learned as a phrase)."""
         profile = self.profile
         rejected = []
+        screen = (context or {}).get("_screen")
+        screen = screen.brief() if hasattr(screen, "brief") else str(screen or "")
         for attempt in range(1, MAX_GUESSES + 1):
             start = time.perf_counter()
-            guess, problem = free_guess(heard, profile, self.llm, rejected)
+            guess, problem = free_guess(heard, profile, self.llm, rejected, screen=screen)
             took_ms = (time.perf_counter() - start) * 1000
             if guess is None:
                 self.emit("guess_failed", attempt=attempt, problem=problem)
@@ -339,12 +345,15 @@ class Session:
                 continue
             self.emit("guess_ready", attempt=attempt, total=MAX_GUESSES, took_ms=took_ms, text=guess.text)
             answer = yield Question("yes_no", "guess", f'My guess {attempt} (NOT from your list): "{guess.text}"',
-                                    data={"attempt": attempt, "total": MAX_GUESSES, "guess": guess.text})
+                                    data={"attempt": attempt, "total": MAX_GUESSES, "guess": guess.text,
+                                          "kind": guess.kind})
             if answer is None or answer.kind == "none":
                 return None   # nobody answered: stop guessing
             if answer.kind != "yes":
                 rejected.append(guess.text)
                 continue
+            if guess.kind == "question" and find_command(profile, "answer_question") and self.actions is not None:
+                return Result("answer_question", {"question": guess.text}, "confident")   # answered, not learned
             phrase, added = add_phrase(profile, guess.text)
             if added:
                 code = next(c for c, p in phrase_codes(profile).items() if p == phrase)

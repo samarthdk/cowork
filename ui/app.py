@@ -26,6 +26,7 @@ from choose.answers import Answer, from_signal, from_text, hint
 from engine.session import Session
 from ui import wording
 from ui.compound import split as split_compound
+from ui.spoken import email_address
 
 QUESTION_WAIT_S = 60.0     # an unanswered question closes after this (nothing chosen; silence is not a "no")
 FEED_MAX = 30              # items kept in the learning feed
@@ -109,22 +110,68 @@ class _Voice:
 
 NEEDS_TARGET = ("type_text", "press_return")   # these act on the app being typed into
 SOMETHING_ELSE_APP = "Something else"
+SCREEN_CHOICES = {   # what can be chosen on a screen, and what each choice does
+    "start screen": [("Blank document", "new_document"), ("Open a recent file", "recent"),
+                     ("Something else", None)],
+    "inbox": [("Write a new email", "new_email"), ("Something else", None)],
+}
 
 
 class _Targeted:
-    """Wraps the Mac actions: a typing action with no target app yet first asks
-    "Which app should I type into?" (the engine itself is unchanged)."""
+    """Wraps the Mac actions so every action looks at the screen first and after
+    (actions/screen.py), and so typing only ever lands where words belong:
+
+      - before: the current app and what has the cursor are read again (never taken
+        from the last command); "back" in an email means back a box (ui/screen_rules.py);
+      - typing with nothing typeable asks first ("Word is on its start screen. Blank
+        document, open a recent file, or something else?"); a search box asks too;
+      - a question is answered from the Brain's own knowledge (repair/answer.py);
+      - after: what is on screen now goes into Progress ("Blank document ready").
+    The engine itself is unchanged by this: it just calls run()."""
     def __init__(self, actions, app):
         self._actions, self._app = actions, app
 
     def __getattr__(self, name):
         return getattr(self._actions, name)
 
+    def context(self) -> dict:
+        from ui.screen_rules import hide_for
+        found = self._actions.context()
+        screen = found.get("_screen")
+        if screen is not None:
+            self._app.seen_screen(screen)
+            turn = self._app.state.get("turn") or {}
+            found["_hide"] = hide_for(screen, turn.get("heard", ""), self._app.state["dictation"]["on"])
+        return found
+
     def run(self, command: str, args: dict):
-        if command in NEEDS_TARGET and not self._app.ensure_target():
-            from actions.base import ActionResult
+        from actions.base import ActionResult
+        from ui.screen_rules import remap
+        app, actions = self._app, self._actions
+        screen = app.look()
+        if remap(command, screen) != command:
+            command = remap(command, screen)
+            app.retitle(command)
+        if command == "answer_question":
+            return app.answer_question(args.get("question", ""), screen)
+        if command in NEEDS_TARGET and not app.ensure_target():
             return ActionResult(False, problem="No app was chosen to type into.")
-        return self._actions.run(command, args)
+        if command == "type_text" and not args.get("anyway"):
+            screen = app.look()
+            if screen is not None and screen.readable and not screen.typeable:
+                how = app.ask_where_to_type(screen)
+                if how == "anyway":
+                    args = dict(args, anyway=True)
+                elif how == "new_document":
+                    made = actions.run("new_document", {})
+                    app.saw(app.look())
+                    if not made.ok:
+                        return made
+                else:
+                    return ActionResult(False, problem=how or "Nothing was typed.")
+        outcome = actions.run(command, args)
+        app.saw(app.look())
+        return outcome
 
 
 class App:
@@ -159,6 +206,7 @@ class App:
             "clips": [],                # TORGO test clips (see ui/clips.py)
             "credit": "",               # where the test clips come from
             "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
+            "screen": None,             # what is on screen in the app being worked in (actions/screen.py)
             "catalog": {"phrases": [], "commands": [], "apps": []},   # everything Quick Actions can do
             "ui": {"seq": 0, "action": None, "value": None, "quick": False},   # screen-only commands
             "question": None,
@@ -570,7 +618,102 @@ class App:
         except Exception as error:
             self._notice(f"Couldn't delete the typed text: {error}")
 
-        # ---- camera -----------------------------------------------------------
+    # ---- the screen: what the person is looking at --------------------------
+
+    def look(self):
+        """Read the screen now (None with actions that can't, e.g. the fakes)."""
+        actions = self.session.actions
+        reader = getattr(actions, "screen", None)
+        if reader is None:
+            return None
+        try:
+            screen = reader()
+        except Exception as error:
+            self._notice(f"Couldn't read the screen: {error}")
+            return None
+        self.seen_screen(screen)
+        return screen
+
+    def seen_screen(self, screen) -> None:
+        shown = screen.to_dict() if hasattr(screen, "to_dict") else None
+        if shown != self.state.get("screen"):
+            self._set(screen=shown)
+
+    def saw(self, screen) -> None:
+        """Show what was seen in Progress (and the conversation), in plain words: "Word open, start screen"."""
+        if screen is None:
+            return
+        with self._lock:
+            turn = self.state["turn"]
+            if turn is None or turn.get("finished"):
+                return
+            seen = [i for i in turn["items"] if i["type"] == "seen"]
+            if seen and seen[-1]["text"] == screen.words():
+                return
+            turn["items"].append({"type": "seen", "text": screen.words(), "ms": screen.took_ms})
+        self._publish({"type": "state", "event": None, "state": self.snapshot()})
+
+    def retitle(self, command: str) -> None:
+        """The step card's title, when the same words meant another command on this screen."""
+        from engine.session import sentence_for
+        with self._lock:
+            turn = self.state["turn"]
+            step = next((i for i in reversed(turn["items"]) if i["type"] == "step"), None) if turn else None
+            if step is not None:
+                step["title"] = wording.step_title(sentence_for(command, {}, self.session.profile))
+                step["command"] = command
+                turn["request"] = wording.request_text(command, {}, self.session.profile)
+
+    def ask_where_to_type(self, screen) -> str:
+        """Nothing typeable has the cursor: ask what to do. Returns "anyway", "new_document",
+        or why nothing will be typed."""
+        from engine.session import Question
+        name = screen.app.replace("Microsoft ", "").replace("Google ", "") or "The app"
+        if screen.search:
+            answer = self._ask(Question("yes_no", "screen_search",
+                                        f"The cursor is in a search box in {name}, not in a document. Type there anyway?"))
+            return "anyway" if answer is not None and answer.kind == "yes" else "Nothing was typed (the cursor was in a search box)."
+        choices = SCREEN_CHOICES.get(screen.place)
+        if not choices:
+            return f"Nothing was typed: no box in {name} has the cursor. Click where the words should go, then say it again."
+        labels = [label for label, _ in choices]
+        title = (f"{name} is on its start screen. Blank document, open a recent file, or something else?"
+                 if screen.place == "start screen" else f"{name} has no email open. Write a new email, or something else?")
+        answer = self._ask(Question("choice", "screen", title, options=labels))
+        if answer is None or answer.kind != "pick":
+            return "Nothing was typed."
+        what = choices[answer.value][1]
+        if what == "new_document":
+            return "new_document"
+        if what == "new_email":
+            made = self.session.actions._actions.run("new_email", {}) if hasattr(self.session.actions, "_actions") else None
+            self.saw(self.look())
+            return ("Started a new email (cursor in To). Say the address, then the words again."
+                    if made is not None and made.ok else "Couldn't start a new email.")
+        if what == "recent":
+            return f"Choose the file in {name}'s list, then say the words again."
+        return "Nothing was typed."
+
+    def answer_question(self, question: str, screen=None):
+        """A question: answered in one or two sentences from the Brain's own knowledge (it is offline),
+        shown and spoken. Never typed."""
+        from actions.base import ActionResult
+        from repair.answer import answer_question
+        with self._lock:
+            heard = (self.state["turn"] or {}).get("heard", "")
+        question = question.strip() or heard
+        start = time.perf_counter()
+        text, problem = answer_question(question, self.session.llm, heard,
+                                        screen.brief() if screen is not None else "")
+        took = (time.perf_counter() - start) * 1000
+        with self._lock:
+            if self.state["turn"] is not None:
+                self.state["turn"]["steps"].append({"name": "Answer (Bonsai)", "ms": round(took)})
+        if text is None:
+            return ActionResult(False, problem=f"Couldn't answer that: {problem}")
+        return ActionResult(True, say=text, detail="Answered from the Brain's own knowledge (offline, no internet)")
+
+    # ---- camera -----------------------------------------------------------
 
     def attach_camera(self, camera) -> None:
         self.camera = camera
@@ -626,6 +769,13 @@ class App:
                 sure = answer is not None and answer.kind == "yes"
             if sure:
                 heard, then_type = first, rest
+        address = None if parts else email_address(heard)
+        if address and self.session.actions is not None:
+            try:
+                self._type_address(address)
+            finally:
+                self._finish_turn()
+            return
         flow = self.session.hear(heard, source=request["source"],
                                  rehear=request["rehear"] if then_type is None else None)
         pending = None
@@ -643,6 +793,23 @@ class App:
         if pending:   # a sentence said during the correction window: the next request
             self._requests.put(("hear", {"text": pending, "source": request["source"], "rehear": None,
                                          "asr_ms": None}))
+
+    def _type_address(self, address: str) -> None:
+        """A spoken email address ("sam at gmail dot com"): easy to mishear, so always checked first."""
+        from engine.session import Question
+        with self._lock:
+            self.state["turn"]["request"] = f"Type the address {address}"
+        answer = self._ask(Question("yes_no", "address", "Did you mean this address?", data={"address": address}))
+        if answer is None or answer.kind != "yes":
+            with self._lock:
+                self.state["turn"]["items"].append({"type": "reply", "text": "Okay \u2014 I didn't type it."})
+            return
+        outcome = self.session.actions.run("type_text", {"text": address})
+        with self._lock:
+            self.state["turn"]["items"].append({"type": "typed", "text": address, "app": self._typing_app() or "the app",
+                                                "chars": len(address), "status": "done" if outcome.ok else "failed",
+                                                "problem": outcome.problem})
+        self._publish({"type": "state", "event": None, "state": self.snapshot()})
 
     def _then_type(self, text: str) -> None:
         """The second half of "open Notes and type ...": typed once the command has been done."""

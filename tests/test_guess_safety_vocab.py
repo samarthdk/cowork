@@ -170,7 +170,7 @@ prompt = guess_messages(BASE, "x")[0]["content"]
 check("vocabulary is in the free-guess prompt", "Pepsi, tea, coffee, Anna" in prompt, True)
 check("  ...with 'only if it sounds like a word they said'", "ONLY if it sounds like a word they actually said"
       in prompt, True)
-check("guess must return key words", guess_schema()["required"], ["guess", "key_words"])
+check("guess must return key words (and whether it is a question)", guess_schema()["required"], ["guess", "key_words", "kind"])
 m = Model(guesses=[("Can Ben bring my glasses?", ["Ben", "glasses", "bring", "the"])])
 printed, said, p = session(["kan ben brin ma glasses", "n", "4", "y", ""], m)
 check("confirmed guess: new words added", p["vocabulary"][-3:], ["Ben", "glasses", "bring"])

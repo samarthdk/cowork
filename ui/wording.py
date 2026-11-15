@@ -7,6 +7,7 @@ from repair.profile import find_command
 GENERIC = {   # a command chosen before its details are known
     "open_app": "Open an app", "open_website": "Open a website", "search_web": "Search Google",
     "compose_email": "Write an email", "type_text": "Type something", "quit_app": "Close an app",
+    "go_to_field": "Go to a box", "search_for": "Search for something", "answer_question": "Answer a question",
 }
 
 
@@ -64,7 +65,7 @@ def permission(question: dict, profile: dict, turn: dict | None) -> dict:
     elif stage == "guess":
         card["title"] = f"My guess {data.get('attempt', 1)} of {data.get('total', 3)} — not from your list"
         card["body"] = data.get("guess", "")
-        card["allow"], card["deny"] = "Yes, say it", "No"
+        card["allow"], card["deny"] = ("Yes, answer it", "No") if data.get("kind") == "question" else ("Yes, say it", "No")
         card["guess"] = card["say_aloud"] = True
     elif stage == "options":
         card["title"] = "Which one did you mean?"
@@ -83,6 +84,17 @@ def permission(question: dict, profile: dict, turn: dict | None) -> dict:
     elif stage == "target_other":
         card["title"] = "Which app?"
         card["options"] = [{"text": v, "kind": "value"} for v in (data.get("values") or [])[:8]]
+    elif stage == "address":
+        card["title"] = "Did you mean this address?"
+        card["body"] = data.get("address", "")
+        card["allow"], card["deny"] = "Yes, type it", "No"
+    elif stage == "screen":   # choices on screen, e.g. Word's start screen
+        card["title"] = question.get("text", "")
+        card["options"] = [{"text": o if o != "Something else" else "Something else\u2026",
+                            "kind": "else" if o == "Something else" else "value"} for o in question.get("options", [])]
+    elif stage == "screen_search":
+        card["title"] = question.get("text", "")
+        card["allow"], card["deny"] = "Type it there", "Don't type"
     elif stage == "split":
         card["title"] = "Did you mean\u2026?"
         card["body"] = f"\u201c{data.get('first', '')}\u201d, then type \u201c{data.get('rest', '')}\u201d"

@@ -64,13 +64,14 @@ def finished(core, n):
 # ---- the profile ----------------------------------------------------------
 names = [c["name"] for c in BASE["commands"]]
 check("Cowork profile has the new actions", all(n in names for n in (
-    "open_app", "compose_email", "send_email", "read_latest_email",
+    "open_app", "new_email", "next_field", "previous_field", "go_to_field", "send_email", "read_latest_email",
+    "new_document", "save_document", "new_tab", "search_for", "answer_question",
     "type_text", "close_app", "scroll_down", "scroll_up")), True)
-check("  ...websites and search are hidden (they need the internet)",
-      "open_website" in names or "search_web" in names, False)
+check("  ...websites and search are hidden (they need the internet); email is written box by box",
+      [n for n in ("open_website", "search_web", "compose_email") if n in names], [])
 check("  ...sending is risky, writing is not",
-      {c["name"]: c["safety"] for c in BASE["commands"] if c["name"] in ("send_email", "compose_email")},
-      {"send_email": "risky", "compose_email": "safe"})
+      {c["name"]: c["safety"] for c in BASE["commands"] if c["name"] in ("send_email", "new_email")},
+      {"send_email": "risky", "new_email": "safe"})
 check("  ...flaky actions are left out (click, reply_email)", "click" in names or "reply_email" in names, False)
 
 check("apps can be closed by name ('close Word') as well as 'close the app'",
@@ -166,14 +167,25 @@ check("unexpected sentence: the Mac voice", voice.which_voice("Searching for cat
 config.TTS_CACHE_DIR, config.TTS_NEW_SENTENCES = saved_cache, saved_mode
 
 # ---- sending only ever to "Me" -----------------------------------------------
+import actions.mac as mac_module  # noqa: E402
 from actions.mac import MacActions  # noqa: E402
+from actions.screen import Screen  # noqa: E402
 mac = MacActions()
 mac.contacts = {"Me": "me@example.org", "Anna": "anna@example.com"}
-mac._last_email, mac._last_email_to = "Hi", "anna@example.com"
+draft = {"to": "anna@example.com"}
+mac.screen = lambda: Screen(app="Mail", pid=1, place="new email", field="body", typeable=True)
+saved_fields, saved_value = mac_module.mail_fields, mac_module.value_of
+mac_module.mail_fields = lambda pid: {"to": "to"}
+mac_module.value_of = lambda element: draft[element]
 check("sending to anyone but 'Me' is refused", "only sent to 'Me'" in mac.run("send_email", {}).problem, True)
-mac._last_email_to = "me@example.org"
+draft["to"] = "me@example.org"
 check("  ...to 'Me' it still needs EMAIL_REALLY_SEND", "switched off" in mac.run("send_email", {}).problem,
       not config.EMAIL_REALLY_SEND)
+draft["to"] = "me@example.org, anna@example.com"
+check("  ...one other address with 'Me' is refused too", "only sent to 'Me'" in mac.run("send_email", {}).problem, True)
+mac.screen = lambda: Screen(app="Mail", pid=1, place="inbox")
+check("  ...with no email open there is nothing to send", "no email open" in mac.run("send_email", {}).problem, True)
+mac_module.mail_fields, mac_module.value_of = saved_fields, saved_value
 mac.front.stop()
 
 # ---- microphone off: the screen says why ---------------------------------------
@@ -345,12 +357,11 @@ check("  ...the card says how it was answered",
 core.answer("none")
 check("  ...and nothing was done", finished(core, 1) and actions.done, [])
 
-# ---- email card shows the fields ----------------------------------------------
+# ---- "write an email": one new email, by any wording -----------------------------
 core, tts, actions = make()
-core.say("email anna saying lunch at noon")
-asking(core, "yes_no")
-email = core.state["question"]["card"]["email"]
-check("email card shows to / message", (email["to"], email["body"]), ("Anna", "lunch at noon"))
+core.say("write an email")
+finished(core, 1)
+check("'write an email' starts one new email (a command, not typing)", [c for c, _ in actions.done], ["new_email"])
 
 # ---- test clips -----------------------------------------------------------------
 clips = load_clips()

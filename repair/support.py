@@ -119,6 +119,8 @@ def support_texts(choice: str, profile: dict) -> list[str]:
     when they meant it."""
     command = find_command(profile, choice)
     texts = (list(command.get("said_as", [])) or [choice.replace("_", " ")]) if command else [choice]
+    if command and command.get("echo"):
+        texts.append("")   # its detail is the person's own words (a question, words to type): they count alone
     return texts + [e["heard"] for e in profile.get("examples", []) if e["meant"] == choice]
 
 

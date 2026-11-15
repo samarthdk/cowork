@@ -28,6 +28,7 @@ LLM_MODEL = "ternary-bonsai-2-4b"
 LLM_TIMEOUT_S = 60
 LLM_MAX_TOKENS = 80    # a normal answer is 11-25 tokens; a reply message can add about 30
 GUESS_MAX_TOKENS = 120 # a free guess: one sentence plus up to 3 key words
+ANSWER_MAX_TOKENS = 110  # an answer to a question: one or two short sentences
 
 # When may "high confidence" be trusted? (see repair/support.py and eval/calibrate.py)
 HIGH_EVIDENCE = 0.7         # share of the heard words / the phrase that must agree to act without asking

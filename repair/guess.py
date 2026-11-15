@@ -22,6 +22,7 @@ MAX_KEY_WORDS = 3
 class Guess:
     text: str
     key_words: list = field(default_factory=list)  # names/things in it, for the vocabulary
+    kind: str = "say"                               # "say": a sentence for other people; "question": to answer
 
 
 def guess_schema() -> dict:
@@ -31,13 +32,14 @@ def guess_schema() -> dict:
             "guess": {"type": "string", "maxLength": config.MAX_GUESS_CHARS},
             "key_words": {"type": "array", "items": {"type": "string", "maxLength": 30},
                           "maxItems": MAX_KEY_WORDS},
+            "kind": {"type": "string", "enum": ["say", "question"]},
         },
-        "required": ["guess", "key_words"],
+        "required": ["guess", "key_words", "kind"],
         "additionalProperties": False,
     }
 
 
-def guess_messages(profile: dict, heard: str, rejected: list | None = None) -> list[dict]:
+def guess_messages(profile: dict, heard: str, rejected: list | None = None, screen: str = "") -> list[dict]:
     phrases = "\n".join(f"- {p}" for p in profile["phrases"])
     vocabulary = ", ".join(profile.get("vocabulary", []))
     # Wording tested on the real model: a plain list made it cram every word in
@@ -55,12 +57,18 @@ misheard or incomplete. They did NOT mean any of their usual phrases:
 {phrases}
 {words}{tried}
 Write your best guess of the sentence they meant, in plain English: ONE short
-sentence (under {config.MAX_GUESS_CHARS} characters) that they would say to another person.
+sentence (under {config.MAX_GUESS_CHARS} characters), built from the words they actually said.
+"kind": "question" if it is a question they are asking (what, who, when, where, how, why...),
+otherwise "say" (a sentence for another person).
 "key_words": up to {MAX_KEY_WORDS} important words from your sentence (names, drinks,
 foods, places, things), or [] if none.
-Reply with JSON only, on ONE line: {{"guess": "...", "key_words": [...]}}"""
+Reply with JSON only, on ONE line: {{"guess": "...", "key_words": [...], "kind": "say"}}"""
+    now = ""
+    if screen:   # only background: the words heard decide, not what happened to be open before
+        now = (f"On their screen now: {screen} (only background: do NOT assume they are still doing "
+               "an earlier task; go by the words heard).\n")
     return [{"role": "system", "content": system},
-            {"role": "user", "content": f"The person said: \"{heard}\""}]
+            {"role": "user", "content": f"{now}The person said: \"{heard}\""}]
 
 
 def clean_guess(data: dict) -> str | None:
@@ -78,12 +86,13 @@ def is_repeat(text: str, rejected: list) -> bool:
     return any(similarity(text, old) >= SAME_GUESS for old in rejected)
 
 
-def free_guess(heard: str, profile: dict, llm, rejected: list | None = None) -> tuple[Guess | None, str]:
+def free_guess(heard: str, profile: dict, llm, rejected: list | None = None,
+               screen: str = "") -> tuple[Guess | None, str]:
     """Returns (the guess or None, a problem description or "").
     Later attempts (after a rejection) use some randomness: at temperature 0 the
     small model tends to give the same answer even when told it was rejected."""
     temperature = config.GUESS_AGAIN_TEMPERATURE if rejected else 0.0
-    messages, schema = guess_messages(profile, heard, rejected), guess_schema()
+    messages, schema = guess_messages(profile, heard, rejected, screen), guess_schema()
     problem = ""
     for _ in (1, 2):  # one retry, like every model call
         try:
@@ -94,7 +103,8 @@ def free_guess(heard: str, profile: dict, llm, rejected: list | None = None) -> 
             text = clean_guess(data)
             if text:
                 words = data.get("key_words") if isinstance(data.get("key_words"), list) else []
-                return Guess(text, words[:MAX_KEY_WORDS]), ""
+                kind = "question" if data.get("kind") == "question" else "say"
+                return Guess(text, words[:MAX_KEY_WORDS], kind), ""
             problem = f"unusable guess: {reply.text[:80]!r}"
         except BadJSON as error:
             problem = str(error)

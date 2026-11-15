@@ -19,42 +19,94 @@
   "commands": [
     {
       "name": "open_app",
-      "description": "Open an application on the Mac.",
+      "description": "Open an application on the Mac (only opens it).",
       "safety": "safe",
       "args": {
         "app": "Name of the app to open"
       },
       "said_as": [
-        "open"
+        "open",
+        "launch",
+        "start"
       ],
       "say": "Opening {app}.",
       "request": "Open {app}"
     },
     {
-      "name": "compose_email",
-      "description": "Write a new email in Mail (it is NOT sent; sending is a separate command).",
+      "name": "new_email",
+      "description": "Start ONE new email in Mail, with the cursor in To. Any wording: write an email, new email, new mail, compose, open a draft, new message.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "write an email",
+        "new email",
+        "new mail",
+        "compose",
+        "compose an email",
+        "open a draft",
+        "new message",
+        "start an email",
+        "draft an email",
+        "write a new email",
+        "an email"
+      ],
+      "say": "Starting a new email.",
+      "request": "Write a new email"
+    },
+    {
+      "name": "next_field",
+      "description": "In an email (or a form): move the cursor to the next box (To, Cc, Subject, message).",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "next box",
+        "next",
+        "next field",
+        "go to the next box",
+        "move on"
+      ],
+      "say": "Next box.",
+      "request": "Next box"
+    },
+    {
+      "name": "previous_field",
+      "description": "In an email (or a form): move the cursor back to the previous box.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "previous box",
+        "back a box",
+        "last box",
+        "previous field",
+        "go back a box"
+      ],
+      "say": "Back a box.",
+      "request": "Back a box"
+    },
+    {
+      "name": "go_to_field",
+      "description": "In an email: put the cursor in a box the person names (go to subject, go to the message).",
       "safety": "safe",
       "args": {
-        "to": "Who the email is for",
-        "subject": "A short subject line",
-        "body": "The message, as one or two short sentences"
+        "field": "Which box"
       },
       "said_as": [
-        "email",
-        "write an email to"
+        "go to",
+        "go to the"
       ],
-      "say": "Writing an email to {to}.",
-      "request": "Write an email to {to}"
+      "say": "Going to {field}.",
+      "request": "Go to {field}"
     },
     {
       "name": "send_email",
-      "description": "Send the email that was just written.",
+      "description": "Send the email that is open on screen.",
       "safety": "risky",
       "args": {},
       "said_as": [
         "send",
         "send it",
-        "send the email"
+        "send the email",
+        "send email"
       ],
       "say": "Sending your email.",
       "request": "Send the email"
@@ -72,9 +124,105 @@
       "request": "Read my latest email"
     },
     {
-      "name": "type_text",
-      "description": "Type words the person dictates into the app they are using (anything to write that is not one of the phrases or commands, e.g. a search or a message).",
+      "name": "new_document",
+      "description": "Create a new blank document (Word, TextEdit, Pages). Any wording: new document, blank document, new page.",
       "safety": "safe",
+      "args": {},
+      "said_as": [
+        "new document",
+        "blank document",
+        "new blank document",
+        "a blank document",
+        "new page",
+        "create a document",
+        "new doc"
+      ],
+      "say": "Making a blank document.",
+      "request": "New blank document"
+    },
+    {
+      "name": "save_document",
+      "description": "Save the document or file being worked on.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "save",
+        "save it",
+        "save the document",
+        "save this"
+      ],
+      "say": "Saving.",
+      "request": "Save"
+    },
+    {
+      "name": "new_tab",
+      "description": "Open a new tab in the web browser.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "new tab",
+        "open a new tab",
+        "another tab"
+      ],
+      "say": "Opening a new tab.",
+      "request": "New tab"
+    },
+    {
+      "name": "search_for",
+      "description": "Type words to search for into the browser's address bar or the search box (it is run with \"hit search\").",
+      "safety": "safe",
+      "args": {
+        "query": "The words to search for"
+      },
+      "said_as": [
+        "search for",
+        "look up",
+        "google"
+      ],
+      "echo": true,
+      "echo_after": [
+        "search for",
+        "search",
+        "look up",
+        "google"
+      ],
+      "say": "Typing your search.",
+      "request": "Search for “{query}”"
+    },
+    {
+      "name": "answer_question",
+      "description": "The person asks a QUESTION (what, who, when, where, how, why, is, will, can...), e.g. the weather, a fact, the time. Answer it; never type it.",
+      "safety": "safe",
+      "args": {
+        "question": "The question, in plain words"
+      },
+      "echo": true,
+      "said_as": [
+        "what",
+        "what is",
+        "what's",
+        "who",
+        "when",
+        "where",
+        "how",
+        "why",
+        "is it",
+        "will it",
+        "tell me"
+      ],
+      "say": "Let me think.",
+      "request": "Answer: “{question}”"
+    },
+    {
+      "name": "type_text",
+      "description": "Type words the person dictates. ONLY when they say type or write followed by the words, or when dictation is on and the cursor is in a text box. Never for a question or a command.",
+      "safety": "safe",
+      "echo": true,
+      "echo_after": [
+        "type",
+        "write",
+        "dictate"
+      ],
       "args": {
         "text": "The exact words to type"
       },
@@ -87,7 +235,7 @@
     },
     {
       "name": "quit_app",
-      "description": "Close (quit) an app by its name, e.g. close Word, quit Chrome.",
+      "description": "Close (quit) an app by its name, e.g. close Word, quit Chrome, close Mail.",
       "safety": "safe",
       "args": {
         "app": "Name of the app to close"
@@ -204,7 +352,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     },
     {
       "heard": "Well...",
@@ -212,7 +360,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     },
     {
       "heard": "You wish... to meet another horrible grandfiler.",
@@ -220,7 +368,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     },
     {
       "heard": "Up.",
@@ -228,7 +376,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     },
     {
       "heard": "Don't...",
@@ -236,7 +384,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     },
     {
       "heard": "back",
@@ -244,7 +392,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     },
     {
       "heard": "That",
@@ -252,7 +400,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     },
     {
       "heard": "Right?",
@@ -260,7 +408,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 18:34:11"
+      "time": "2026-11-14 19:12:06"
     }
   ],
   "answer_words": {
