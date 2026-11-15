@@ -397,6 +397,24 @@ table.plain td:first-child { color: var(--muted); width: 40%; padding-right: 12p
 .seg button { min-height: var(--target); padding: 0 18px; border: 0; background: transparent; font: var(--label); font-weight: 600; }
 .seg button[aria-pressed="true"] { background: var(--white); color: var(--ink); }
 
+/* ---- Results (TORGO M04) ---- */
+.modal.wide { width: min(760px, calc(100vw - 32px)); max-height: 84vh; }
+.results { padding: 6px 12px 12px; }
+.results .lead { color: var(--muted); margin: 6px 0 14px; }
+.results svg { width: 100%; height: auto; display: block; }
+.results .bar-label { fill: var(--text); font: 600 15px var(--sans); }
+.results .bar-sub { fill: var(--muted); font: 400 13px var(--sans); }
+.results .bar-value { fill: var(--text); font: 600 15px var(--sans); }
+.results .grid line { stroke: var(--line); stroke-width: 1; }
+.results .grid text { fill: var(--muted); font: 400 11px var(--sans); }
+.results .stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+.results .stat { border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.results .stat b { display: block; font: var(--display); font-size: 34px; line-height: 1.1; }
+.results .stat span { color: var(--muted); font: var(--label); }
+.results ul { margin: 0; padding-left: 20px; }
+.results li { margin: 6px 0; }
+.results h3 { font: var(--label); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 18px 0 6px; }
+.link-btn { border: 0; background: transparent; padding: 0; min-height: 0; color: var(--accent); text-decoration: underline; font: inherit; text-align: left; }
 .toast { position: fixed; left: 50%; bottom: 140px; transform: translateX(-50%); background: var(--white); color: var(--ink); padding: 12px 18px; border-radius: 12px; max-width: 640px; z-index: 50; }
 .toast[hidden] { display: none; }
 
@@ -805,10 +823,12 @@ function quickItems(s) {
   for (const p of cat.phrases || []) items.push({ kind: "Phrase", icon: "quote", text: p, say: p });
   for (const c of cat.commands || []) items.push({ kind: "Command", icon: "cmd", text: c.request, say: c.request });
   for (const a of cat.apps || []) items.push({ kind: "App", icon: "globe", text: `Open ${shortApp(a)}`, say: `Open ${a}` });
+  items.push({ kind: "View", icon: "progress", text: "Results: how well Cowork understands impaired speech", view: "results" });
   return items;
 }
 function openModal(view) {
   modalView = view; qaFilter = ""; qaSel = 0;
+  $("modal").classList.remove("wide");
   $("backdrop").hidden = false;
   if (view === "quick") post("/api/ui", { quick: true });
   renderModal();
@@ -859,6 +879,10 @@ function renderModal() {
       <div class="qa-group">About</div>
       <p>Cowork runs entirely on this Mac: speech recognition (WhisperKit), understanding (Bonsai 2 4B in LM Studio) and voice (TTSKit). Nothing is sent over the internet.</p>
       <p class="caption" id="aboutCredit">${esc((S && S.credit) || TORGO_CREDIT)}</p></div>`;
+  } else if (modalView === "results") {
+    m.classList.add("wide");
+    m.innerHTML = head("Results") + `<div class="modal-body" id="resultsBody"><p class="results lead">Loading…</p></div>`;
+    fetch("/api/results").then((r) => r.json()).then((r) => { if (modalView === "results" && $("resultsBody")) $("resultsBody").innerHTML = resultsHtml(r); }).catch(() => {});
   } else if (modalView === "help") {
     m.innerHTML = head("Help") + `<div class="modal-body"><table class="plain">
       <tr><td>Speak</td><td>Press the mic (or Space), say it your way, pause. Press it again to stop listening. Hover over any round button to see what it does.</td></tr>
@@ -868,13 +892,53 @@ function renderModal() {
       <tr><td>Stop everything</td><td>Say “stop” or “cancel”, or press Esc twice: speaking, typing and anything waiting stop at once. What was already done stays (use Undo for that).</td></tr>
       <tr><td>Demo clips</td><td>⌘1, ⌘2, ⌘3 play test clips 1 to 3.</td></tr>
       <tr><td>Quick actions</td><td>⌘K, or say “quick actions”.</td></tr>
+      <tr><td>Results</td><td><button class="link-btn" data-view="results">See how well Cowork understands impaired speech</button></td></tr>
       <tr><td>Panels</td><td>Say “show learned”, “show progress” or “show camera”.</td></tr></table></div>`;
   }
+}
+// The TORGO M04 evaluation as a chart (numbers from eval/results/torgo_M04.json via /api/results).
+function resultsHtml(r) {
+  if (!r || !r.ok) return `<p class="results lead">${esc((r && r.problem) || "The results file wasn't found.")}</p>`;
+  const pct = (x) => Math.round(x * 100);
+  const rows = [
+    { label: "WhisperKit alone", sub: "the exact sentence", value: r.whisperkit_exact, color: "rgba(255,255,255,.38)",
+      tip: `WhisperKit alone wrote the exact sentence for ${pct(r.whisperkit_exact)}% of the ${r.clips} recordings` },
+    { label: "Cowork", sub: "the right meaning", value: r.reached, color: "var(--accent)",
+      tip: `Cowork reached the right meaning for ${pct(r.reached)}% of the ${r.clips} recordings` },
+  ];
+  const left = 190, width = 380, rowH = 64, top = 20;
+  const x = (v) => left + v * width;
+  let svg = `<svg viewBox="0 0 640 ${top + rows.length * rowH + 10}" role="img" aria-label="WhisperKit alone: ${pct(r.whisperkit_exact)}% exact. Cowork: ${pct(r.reached)}% right meaning."><g class="grid">`;
+  for (const g of [0, 0.25, 0.5, 0.75, 1]) svg += `<line x1="${x(g)}" x2="${x(g)}" y1="${top - 6}" y2="${top + rows.length * rowH - 14}"/><text x="${x(g)}" y="${top - 10}" text-anchor="middle">${pct(g)}%</text>`;
+  svg += "</g>";
+  rows.forEach((row, i) => {
+    const y = top + i * rowH + 8, h = 26, end = Math.max(x(row.value), left + 4);
+    svg += `<text class="bar-label" x="${left - 14}" y="${y + 12}" text-anchor="end">${row.label}</text><text class="bar-sub" x="${left - 14}" y="${y + 30}" text-anchor="end">${row.sub}</text>`;
+    svg += `<path d="M${left} ${y} H${end - 4} Q${end} ${y} ${end} ${y + 4} V${y + h - 4} Q${end} ${y + h} ${end - 4} ${y + h} H${left} Z" fill="${row.color}" data-tip="${esc(row.tip)}" aria-label="${esc(row.tip)}"/>`;
+    svg += `<text class="bar-value" x="${end + 10}" y="${y + 18}">${pct(row.value)}%</text>`;
+  });
+  svg += "</svg>";
+  return `<div class="results">
+    <p class="lead">Recordings of TORGO speaker ${esc(r.speaker)}, a man with cerebral palsy: ${r.clips} recordings held out from everything Cowork learned. Each one says a sentence from his phrase list.</p>
+    ${svg}
+    <div class="stats"><div class="stat"><b>${pct(r.wrong)}%</b><span>confidently wrong: when Cowork was unsure, it asked</span></div>
+      <div class="stat"><b>${pct(r.outside_wrong)}%</b><span>confidently wrong on ${r.outside_clips} recordings of words outside his list</span></div></div>
+    <ul>
+      <li><b>WhisperKit alone</b> (speech to text, no help) wrote the exact sentence ${pct(r.whisperkit_exact)}% of the time; ${pct(r.wer)}% of its words were wrong.</li>
+      <li><b>Cowork</b> reached the right meaning ${pct(r.reached)}% of the time: ${pct(r.instant)}% at once, ${pct(r.one_question)}% after one yes/no question, ${pct(r.two_questions)}% after two. For the other ${pct(r.not_found)}% it found nothing and said so (the person would try again or use “Something else”).</li>
+    </ul>
+    <h3>Honest limits</h3>
+    <ul>
+      <li>One speaker, ${r.clips} held-out recordings, and a fixed set of phrases: not yet a study of many people.</li>
+      <li>The yes/no answers were simulated as a person who always answers correctly.</li>
+      <li>Recordings from the TORGO database (Rudzicz, Namasivayam &amp; Wolff, University of Toronto, 2012), run through the real WhisperKit and Bonsai on this Mac.</li>
+    </ul></div>`;
 }
 function chooseQuick(n) {
   const item = qaVisible[n];
   if (!item) return;
   closeModal();
+  if (item.view) { openModal(item.view); return; }
   post("/api/say", { text: item.say });
 }
 

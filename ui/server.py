@@ -16,6 +16,7 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
     POST /api/mode     {"mode": "computer"|"conference"}   Conference mode: speak confirmed sentences to the room
     POST /api/quick    {"index": 0}             Conference mode: say a meeting quick phrase
     GET  /api/state     everything the page shows, once
+    GET  /api/results   the TORGO M04 evaluation (from eval/results/torgo_M04.json), for the Results view
     GET  /api/stream    live updates (Server-Sent Events: the page keeps this open)
     POST /api/say       {"text": "..."}             something the person said (typed)
     POST /api/answer    {"kind": "yes"|"no"|"pick"|"none"|"text", "value": ...}
@@ -107,6 +108,23 @@ def create_server(core: App) -> FastAPI:
         except (TypeError, ValueError):
             return {"ok": False}
         return {"ok": core.quick_phrase(index)}
+
+    @server.get("/api/results")
+    def results():
+        """The TORGO M04 evaluation, read from eval/results/torgo_M04.json (never typed in by hand)."""
+        path = Path(__file__).resolve().parent.parent / "eval" / "results" / "torgo_M04.json"
+        try:
+            data = json.loads(path.read_text())
+        except Exception as error:
+            return {"ok": False, "problem": f"Couldn't read {path.name}: {error}"}
+        fresh, raw = data["second_voice_fresh"], data["raw_whisperkit"]
+        return {"ok": True, "speaker": data["speaker"], "clips": data["test_clips"],
+                "whisperkit_exact": raw["exact"], "whisperkit_nearest": raw["nearest"], "wer": raw["wer"],
+                "reached": fresh["reached"], "instant": fresh["instant"], "one_question": fresh["one question"],
+                "two_questions": fresh["two questions"], "not_found": fresh["not found"], "wrong": fresh["wrong"],
+                "outside_clips": data["outside_profile"]["clips"],
+                "outside_wrong": data["outside_profile"]["confident_wrong"],
+                "brain_ms_median": fresh["brain_ms_median"], "asr_ms_median": data["asr_ms_median"]}
 
     @server.post("/api/stop")
     def stop_everything():

@@ -199,6 +199,38 @@ def screen_scenes(core, web, out, ready, asking) -> None:
     snapshot(web, out / "17_email_box_by_box.png")
 
 
+def results_scene(web, out) -> None:
+    """The Results view (numbers read from eval/results/torgo_M04.json), and the chart for the README:
+    the same view cropped to its panel (docs/chart.png when the pictures go to docs/screenshots)."""
+    web.evaluateJavaScript_completionHandler_("closeModal(); openModal('results')", None)
+    pump(1.5)
+    path = out / "22_results.png"
+    snapshot(web, path)
+    # The README chart: only the panel (nothing behind it), from the lead line to the two headline numbers.
+    web.evaluateJavaScript_completionHandler_("document.querySelector('.app').style.visibility = 'hidden'", None)
+    pump(0.4)
+    chart_path = out / "_chart_full.png"
+    snapshot(web, chart_path)
+    web.evaluateJavaScript_completionHandler_("document.querySelector('.app').style.visibility = ''", None)
+    box = {}
+    web.evaluateJavaScript_completionHandler_(
+        "(() => { const a = document.querySelector('.results').getBoundingClientRect(), b = document.querySelector('.results .stats').getBoundingClientRect(); "
+        "return JSON.stringify({left: a.left, top: a.top, right: a.right, bottom: b.bottom + 16}); })()", lambda r, e: box.update(r=r))
+    wait(lambda: box, 3)
+    import json as _json
+    from PIL import Image
+    rect = _json.loads(box["r"])
+    full = Image.open(chart_path)
+    scale = full.width / WIDTH
+    chart = full.crop(tuple(round(v * scale) for v in (rect["left"], rect["top"], rect["right"], rect["bottom"])))
+    chart_path.unlink()
+    target = config.ROOT / "docs" / "chart.png" if out.resolve() == (config.ROOT / "docs" / "screenshots").resolve() \
+        else out / "chart.png"
+    chart.save(target)
+    print("saved", target)
+    web.evaluateJavaScript_completionHandler_("closeModal()", None)
+
+
 def conference_scenes(core, web, out, ready, asking) -> None:
     """Conference mode: quick phrases, a sentence to confirm (silent), 'Preparing voice…', then said."""
     import threading as _threading
@@ -396,6 +428,7 @@ def main() -> None:
     # ---- looking at the screen (a fake Mac whose screen the script sets) ----------------------
     screen_scenes(core, web, out, ready, asking)
     conference_scenes(core, web, out, ready, asking)
+    results_scene(web, out)
     server.should_exit = True
     shutil.rmtree(work, ignore_errors=True)
 

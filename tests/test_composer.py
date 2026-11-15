@@ -179,6 +179,17 @@ check("Cmd+1, Cmd+2, Cmd+3 play demo clips 1-3", played, ["demo1", "demo2", "dem
 js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
 pump(0.5)
 check("Esc twice stops everything", len(stopped), 1)
+import json as _json  # noqa: E402
+data = _json.loads((config.ROOT / "eval" / "results" / "torgo_M04.json").read_text())
+js("openModal('results')")
+pump(1.0)
+text = js("document.getElementById('resultsBody') ? document.getElementById('resultsBody').textContent : ''") or ""
+check("Results: WhisperKit alone, from the file", f"exact sentence {round(data['raw_whisperkit']['exact'] * 100)}% of the time" in text, True)
+check("  ...Cowork, from the file", f"right meaning {round(data['second_voice_fresh']['reached'] * 100)}% of the time" in text, True)
+check("  ...never confidently wrong, from the file", f"{round(data['second_voice_fresh']['wrong'] * 100)}%confidently wrong" in text.replace(" ", "").replace("confidentlywrong", "confidently wrong"), True)
+check("  ...with the honest limits", "Honest limits" in text and "One speaker" in text, True)
+check("  ...a chart with a label for screen readers", js("!!document.querySelector('#resultsBody svg[role=img][aria-label]')"), True)
+js("closeModal()")
 js("openModal('settings')")
 pump(0.3)
 about = js("document.getElementById('aboutCredit').textContent") or ""

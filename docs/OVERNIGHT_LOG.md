@@ -97,3 +97,13 @@
 ### F3: demo backup (done)
 - The 3 demo clips are at the top of Test clips, in order (as before). Cmd+1, Cmd+2, Cmd+3 play them directly
   (only in Cowork's own window, so Word's own Cmd+1 is never taken). Test in `tests/test_composer.py`.
+
+### F4: Results page (done)
+- In-app "Results" view (Help > Results, or Cmd+K "Results"). Numbers read from eval/results/torgo_M04.json through
+  /api/results (not typed in): WhisperKit alone wrote the exact sentence 8% of the time (78% of words wrong); Cowork
+  reached the right meaning 70% (10% at once, 54% after one yes/no, 6% after two); 0% confidently wrong; 0%
+  confidently wrong on 57 recordings of words outside the list. One sentence per bar and the honest limits (one
+  speaker, 98 held-out recordings, a fixed phrase set, yes/no answers simulated as always correct).
+- Chart: two horizontal bars on one axis, WhisperKit in quiet gray, Cowork in the app's accent, values in text colour,
+  tooltips on the bars, a screen-reader label. `docs/chart.png` made from the same view
+  (scripts/screenshots.py, results_scene). Test: `tests/test_composer.py`.
