@@ -52,12 +52,12 @@ svg { flex: none; }
 /* The one card style */
 .card { background: var(--tint); border: 1px solid var(--line); border-radius: 12px; padding: 20px; }
 
-.app { --side-w: 250px; --rail-w: 260px; display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--rail-w); gap: 10px; height: 100vh; padding: 10px; }
+.app { --side-w: 250px; --rail-w: 260px; display: grid; grid-template-columns: var(--side-w) minmax(0, 1fr) var(--rail-w); gap: 10px; height: 100vh; padding: 14px; }
 
 /* ---- sidebar: grouped, an icon on every item ---- */
-.side { display: flex; flex-direction: column; min-height: 0; padding: 16px 12px; gap: 2px; overflow-y: auto; }
-.group { font: var(--caption); font-weight: 600; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin: 10px 10px 2px; }
-.nav { display: flex; align-items: center; gap: 12px; width: 100%; min-height: var(--target); padding: 0 10px; border: 0; border-radius: 10px;
+.side { display: flex; flex-direction: column; min-height: 0; padding: 12px 12px; gap: 2px; overflow-y: auto; }
+.group { font: var(--caption); font-weight: 600; letter-spacing: .08em; color: var(--muted); text-transform: uppercase; margin: 6px 10px 2px; }
+.nav { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 42px; padding: 0 10px; border: 0; border-radius: 10px;
        background: transparent; text-align: left; color: var(--text); flex: none; }
 .nav:hover, .nav[aria-expanded="true"] { background: var(--hover); }
 .nav svg { width: 20px; height: 20px; color: var(--muted); }
@@ -90,11 +90,11 @@ svg { flex: none; }
 
 /* ---- right rail: narrower, collapsible to an icon strip ---- */
 .rail-toggle { display: flex; align-items: center; justify-content: center; width: 40px; min-height: 40px; flex: none;
-               align-self: center; border: 0; border-radius: 10px; background: transparent; color: var(--muted); }
+               align-self: flex-end; border: 0; border-radius: 10px; background: transparent; color: var(--muted); }
 .rail-toggle:hover { background: var(--hover); }
 .rail-toggle svg { width: 20px; height: 20px; transition: transform .18s; }
-.app.rail-collapsed { --rail-w: 44px; }
-.app.rail-collapsed .rail { padding: 12px 8px; }
+.app.rail-collapsed { --rail-w: 48px; }
+.app.rail-collapsed .rail { padding: 12px 4px; }
 .app.rail-collapsed .rail .row { display: none; }
 .app.rail-collapsed .rail-toggle svg { transform: scaleX(-1); }
 
@@ -357,7 +357,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
 <div class="app">
   <aside class="side card" aria-label="Navigation">
     <div class="side-top">
-      <button class="toggle-btn" id="sideToggle" aria-label="Collapse sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
+      <button type="button" class="toggle-btn" id="sideToggle" aria-label="Collapse sidebar" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg></button>
       <button class="quick-open" id="quickBtn" aria-haspopup="dialog" aria-label="Quick actions" title="Quick actions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
     </div>
     <div class="group">Tasks</div>
@@ -407,7 +407,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
   </main>
 
   <aside class="rail" aria-label="Camera, progress and learning">
-    <button class="rail-toggle" id="railToggle" title="Collapse panel" aria-label="Collapse panel" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
+    <button type="button" class="rail-toggle" id="railToggle" title="Collapse panel" aria-label="Collapse panel" aria-expanded="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg></button>
     <section class="row card cam" id="camRow">
       <button class="row-head" data-row="camera" aria-expanded="false" aria-controls="camBody"></button>
       <div class="row-body" id="camBody" hidden></div>
