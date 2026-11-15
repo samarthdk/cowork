@@ -279,6 +279,43 @@ def _select_first_message() -> str:
     return ""
 
 
+def _ax(element, name):
+    import ApplicationServices as AS
+    error, value = AS.AXUIElementCopyAttributeValue(element, name, None)
+    return value if error == 0 else None
+
+
+def _mail_send_button(pid: int):
+    """(the email window, its Send button) for the email being written in Mail: the main window if it is an
+    email being written, else the first such window. (None, None) if not found (e.g. no Accessibility)."""
+    try:
+        import ApplicationServices as AS
+        app = AS.AXUIElementCreateApplication(pid)
+        windows = list(_ax(app, "AXWindows") or [])
+        main = _ax(app, "AXMainWindow")
+        if main is not None:
+            windows.sort(key=lambda w: w != main)
+        for window in windows:
+            queue, depth = [(window, 0)], {}
+            while queue:
+                element, d = queue.pop(0)
+                if _ax(element, "AXRole") == "AXButton" and str(_ax(element, "AXTitle") or _ax(element, "AXDescription") or "") == "Send":
+                    return window, element
+                if d < 8:
+                    queue += [(c, d + 1) for c in (_ax(element, "AXChildren") or [])]
+    except Exception:
+        pass
+    return None, None
+
+
+def _ax_window_open(pid: int, window) -> bool:
+    try:
+        import ApplicationServices as AS
+        return window in list(_ax(AS.AXUIElementCreateApplication(pid), "AXWindows") or [])
+    except Exception:
+        return False
+
+
 def pid_alive(pid: int) -> bool:
     """Is this process still running? (Asked of the system directly: AppKit's
     own view of running apps goes stale in a process without an event loop.)"""
@@ -755,12 +792,29 @@ class MacActions:
         if not allowed or any(address != allowed for address in to):
             return ActionResult(False, problem="Sending to other people is turned off in this demo. "
                                                "The email is still open in Mail.")
-        pressed = self._key("d", command_key=True, shift=True)   # Mail: Message > Send
-        if not pressed.ok:
-            return pressed
-        after = self._wait_for(lambda s: s.place != "new email", 4.0)
-        if after.place == "new email":
-            return ActionResult(False, problem="Mail didn't send it (the email is still open).")
+        # Press that email window's own Send button (Accessibility). Measured: the keyboard shortcut went nowhere
+        # when another Mail window had a sheet open, and "sent" was reported because the screen had changed.
+        window, button = _mail_send_button(screen.pid)
+        if button is not None and _ax(button, "AXEnabled") is False:
+            return ActionResult(False, problem="Mail won't send it yet (its Send button is off). Check the To box; "
+                                               "the email is still open in Mail.")
+        if button is not None:
+            import ApplicationServices as AS
+            AS.AXUIElementPerformAction(button, "AXPress")
+        else:
+            pressed = self._key("d", command_key=True, shift=True)   # Mail: Message > Send
+            if not pressed.ok:
+                return pressed
+        if window is not None:   # sent = that email's window has closed
+            end = time.monotonic() + 6.0
+            while time.monotonic() < end and _ax_window_open(screen.pid, window):
+                time.sleep(0.2)
+            if _ax_window_open(screen.pid, window):
+                return ActionResult(False, problem="Mail didn't send it (the email is still open).")
+        else:
+            after = self._wait_for(lambda s: s.place != "new email", 4.0)
+            if after.place == "new email":
+                return ActionResult(False, problem="Mail didn't send it (the email is still open).")
         return ActionResult(True, say="Your email was sent.", detail="Sent the email")
 
     def _recipients(self, screen) -> list[str]:

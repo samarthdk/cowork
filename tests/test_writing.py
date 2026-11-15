@@ -91,7 +91,7 @@ def say(core, text, answer="yes"):
     return cards
 
 
-for finish in ("press send", "send it", "done"):
+for finish in ("press send", "send it", "send mail", "done"):
     core, actions, now = make()
     say(core, "open Mail")
     say(core, "open my latest email")

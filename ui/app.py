@@ -46,6 +46,12 @@ WRITING_AFTER = {"reply_email": "your reply", "reply_all_email": "your reply", "
                  "new_email": "your email", "new_document": "your document", "new_note": "your note"}
 SEND_WORDS = ("send", "press send", "send it", "send the email", "send email", "send this", "hit send", "send the reply",
               "send my reply", "send the message", "click send")
+# Any way of saying "send": "send mail", "send the mail", "send my email", "press send", "please send it now"...
+# (bug: "send mail" wasn't in the list, so it was typed into the reply instead of sending it)
+SEND_PATTERN = __import__("re").compile(
+    r"^(please |ok |okay |now |can you |could you )?(press |hit |click |tap )?(the )?send( button)?"
+    r"( it| this| that| mail| email| e mail| the mail| the email| the message| the reply| my reply| my email| my mail| my message| this email| this mail| this reply)?"
+    r"( now| please| off)?$")
 DONE_WORDS = ("done", "im done", "i am done", "stop writing", "stop dictating", "finished", "thats it", "done writing",
               "i'm done", "that's it")
 STAY_WRITING = ("next_field", "previous_field", "go_to_field", "new_line", "new_paragraph", "select_all", "make_bold",
@@ -1247,7 +1253,7 @@ class App:
                 and screen.app != writing["app"]:
             self._set(writing=None)   # the person went to another app by hand: follow the screen
             return False, heard
-        if said in [w.replace("'", "") for w in SEND_WORDS]:
+        if said in [w.replace("'", "") for w in SEND_WORDS] or SEND_PATTERN.match(said):
             self._set(writing=None)
             if writing["app"] == "Mail":
                 return False, "send the email"   # the permission card, as always
