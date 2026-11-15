@@ -1,10 +1,8 @@
-# Second Voice
+# Claude Cowork Rebuild with Second Voice
 
 Offline assistant for people with impaired speech (Parkinson's, ALS, stroke, CP).
 Speech -> repaired intent -> action on the Mac, or a spoken sentence for other people.
 
-## About the developer
-I am not an engineer. Explain what you are doing in plain language, tell me exactly how to run and test each thing, and ask before installing anything large.
 
 ## Hard constraints
 - 100% offline at runtime. No network calls except to localhost.
