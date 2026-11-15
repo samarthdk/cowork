@@ -22,6 +22,11 @@ Everything worth showing (what was heard, the Brain's answer, "Learned: ...",
 FAST PATH ...) is reported through `on_event` as small dictionaries, so each
 front-end can display it in its own way.
 
+Conference mode (`session.conference = True`, for speaking to people in a meeting):
+  - every sentence is confirmed before anything is said (even when sure, even the fast path);
+  - commands ("open Word") are recognised but not carried out (event "command_off");
+  - the options offer phrases only; a guessed question is said to the room, not answered.
+
 Rules kept from testing:
   - Risky commands (send, call, delete) are always confirmed first and have no
     correction window afterwards (they cannot be taken back).
@@ -102,6 +107,7 @@ class Session:
         self.warm = warm          # prime LM Studio in the background after the prompt changes
         self._rehear = None       # set per request when it came from audio
         self._warming: threading.Thread | None = None
+        self.conference = False   # Conference mode: phrases only, every sentence confirmed first
 
     # ---- helpers ---------------------------------------------------------
 
@@ -260,7 +266,12 @@ class Session:
         """Work out what the person meant. Risky commands are always confirmed
         first, even at high confidence."""
         profile = self.profile
-        if intent.confidence == "high" and not is_risky(profile, intent.choice):
+        if self.conference and intent.choice and find_command(profile, intent.choice):
+            if intent.confidence == "high":   # clearly a command: not carried out in Conference mode
+                self.emit("command_off", meaning=describe(intent.choice, intent.args, profile))
+                return None
+            return (yield from self._choose_from_options(heard, intent, (intent.choice,), context))
+        if intent.confidence == "high" and not is_risky(profile, intent.choice) and not self.conference:
             return Result(intent.choice, intent.args, "confident")
 
         rejected = ()
@@ -284,23 +295,26 @@ class Session:
         "Something else"."""
         profile = self.profile
         second = None
+        left_out = tuple(rejected)
+        if self.conference:   # phrases only: commands are never offered
+            left_out += tuple(c["name"] for c in profile["commands"] if c["name"] not in left_out)
         if rejected and self._rehear is not None and config.RELISTEN_AFTER_NO:
             # The guess was wrong, but there is audio: look through the phrases for
             # one that fits the sound (likeliest first). Its result is only offered.
             self.emit("relisten_start")
             order = sorted(all_choices(profile), key=lambda c: -score(heard, c, profile))
-            second, details = listen_again.scan(profile, self._rehear, order, exclude=rejected,
+            second, details = listen_again.scan(profile, self._rehear, order, exclude=left_out,
                                                 on_progress=lambda done, total: self.emit("relisten_progress", done=done, total=total))
             self.emit("relisten", meaning=second, **details)
         if rejected and second is None and config.SECOND_OPINION:
             # The first guess was wrong: ask the Brain once more with it ruled out,
             # and put its new pick in the first square.
             start = time.perf_counter()
-            again = repair(heard, profile, self.llm, context, exclude=rejected)
-            if again.choice and again.choice not in rejected:
+            again = repair(heard, profile, self.llm, context, exclude=left_out)
+            if again.choice and again.choice not in left_out:
                 second = again.choice
             self.emit("second_opinion", meaning=second, took_ms=(time.perf_counter() - start) * 1000)
-        options = rank_options(heard, profile, intent.options, exclude=rejected,
+        options = rank_options(heard, profile, intent.options, exclude=left_out,
                                first_group=group_of(intent.choice, profile), first=second)
         answer = yield Question("choice", "options", "Which one did you mean?", options=options)
         if answer is None or answer.kind != "pick":
@@ -352,7 +366,8 @@ class Session:
             if answer.kind != "yes":
                 rejected.append(guess.text)
                 continue
-            if guess.kind == "question" and find_command(profile, "answer_question") and self.actions is not None:
+            if (guess.kind == "question" and find_command(profile, "answer_question") and self.actions is not None
+                    and not self.conference):   # in Conference mode a question is said to the room
                 return Result("answer_question", {"question": guess.text}, "confident")   # answered, not learned
             phrase, added = add_phrase(profile, guess.text)
             if added:
@@ -374,6 +389,9 @@ class Session:
         profile = self.profile
         command = find_command(profile, choice)
         say = sentence_for(choice, args, profile)
+        if command is not None and self.conference:   # never carried out (or said) in Conference mode
+            self.emit("command_off", meaning=describe(choice, args, profile))
+            return None
         if command is None or self.actions is None:
             self.emit("speak", text=say, kind_of="phrase" if command is None else "command")
             self._speak(say)

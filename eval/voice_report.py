@@ -9,6 +9,9 @@ from the commands, not from the apps). The profile is a temporary copy of the Co
 profile (nothing is learned into the real one). The microphone is not used.
 
 --conference runs clips 1-3 in Conference mode and reports the time from confirm to first sound.
+  --uncached          first moves the demo sentences' ready-made audio aside (put back at the end), so
+                      TTSKit has to make it while the "Did you mean...?" card is up
+  --confirm-after S   wait S seconds after a card appears before confirming (a person reading it)
 
 Results: eval/results/voice_report.json (or voice_conference.json) and a table on screen.
 """
@@ -27,7 +30,10 @@ import config  # noqa: E402
 config.ASR, config.LLM, config.TTS, config.ACTIONS = "real", "real", "real", "fake"
 
 CONFERENCE = "--conference" in sys.argv
-OUT = config.ROOT / "eval" / "results" / ("voice_conference.json" if CONFERENCE else "voice_report.json")
+UNCACHED = "--uncached" in sys.argv
+CONFIRM_AFTER = float(sys.argv[sys.argv.index("--confirm-after") + 1]) if "--confirm-after" in sys.argv else 0.0
+NAME = "voice_conference" + ("_uncached" if UNCACHED else "") if CONFERENCE else "voice_report"
+OUT = config.ROOT / "eval" / "results" / f"{NAME}.json"
 
 
 def wait(condition, seconds=30.0) -> bool:
@@ -64,14 +70,17 @@ def main() -> None:
                warm=True, question_wait_s=120)
     core.set_clips(load_clips(), CREDIT)
     core.session.warm_up()
+    if "--trace" in sys.argv:   # print every event (to see what happened)
+        core.subscribe(lambda m: m.get("event") and True and
+                       print("   event:", m["event"].get("kind"), str({k: v for k, v in m["event"].items() if k in ("text", "meaning", "stage", "kind_of")})[:120]))
 
     log = []          # every line Cowork tried to say
     section = {"name": ""}
     plain_speak = tts.speak
 
-    def speak(line, wait=False):
+    def speak(line, wait=False, **kw):
         asked = time.perf_counter()
-        spoken = plain_speak(line, wait=wait)
+        spoken = plain_speak(line, wait=wait, **kw)
         last = dict(tts.last)
         log.append({"part": section["name"], "text": last.get("text", ""), "spoken": spoken,
                     "first_sound_ms": last.get("first_sound_ms"), "made_now": last.get("made_now", False),
@@ -97,6 +106,8 @@ def main() -> None:
                 return True
             if q is not None:
                 qid = q["id"]
+                if CONFIRM_AFTER and q["kind"] != "window":
+                    time.sleep(CONFIRM_AFTER)
                 if q["kind"] == "window":
                     core.answer("yes")   # the undo window: keep it
                 elif q["kind"] == "choice":
@@ -118,6 +129,16 @@ def main() -> None:
         wait(lambda: not core.state.get("speaking"), 20)
         time.sleep(0.5)
 
+    moved = []
+    if UNCACHED:   # the demo sentences' audio is moved aside: TTSKit must make it while the card is up
+        aside = Path(tempfile.mkdtemp())
+        for clip in load_clips()[:3]:
+            for text in (clip["said"], clip["said"].rstrip(".") + "."):
+                for path in (tts.cached_path(text),):
+                    if path.exists():
+                        shutil.move(str(path), aside / path.name)
+                        moved.append((aside / path.name, path))
+        print(f"moved {len(moved)} ready-made sentences aside")
     if CONFERENCE:
         core.set_mode("conference")   # Part 3
         for clip in ("demo1", "demo2", "demo3"):
@@ -174,6 +195,9 @@ def main() -> None:
 
     for entry in log:
         entry.pop("asked_at", None)
+    for kept, path in moved:   # put the ready-made audio back (unless TTSKit just made a new one)
+        if not path.exists():
+            shutil.move(str(kept), path)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(json.dumps(log, indent=1))
     print(f"\n{'part':28} {'line':58} {'result':26} first sound")

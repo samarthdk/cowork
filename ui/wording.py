@@ -92,6 +92,11 @@ def permission(question: dict, profile: dict, turn: dict | None) -> dict:
         card["title"] = question.get("text", "")
         card["options"] = [{"text": o if o != "Something else" else "Something else\u2026",
                             "kind": "else" if o == "Something else" else "value"} for o in question.get("options", [])]
+    elif stage == "quick":   # Conference mode: a quick phrase picked by voice (checked first: it may be misheard)
+        card["title"] = "Say this to the room?"
+        card["body"] = data.get("phrase", "")
+        card["allow"], card["deny"] = "Yes, say it", "No"
+        card["say_aloud"] = True
     elif stage == "screen_search":
         card["title"] = question.get("text", "")
         card["allow"], card["deny"] = "Type it there", "Don't type"

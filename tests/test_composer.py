@@ -83,7 +83,7 @@ load("/")
 label = lambda i: js(f"document.getElementById('{i}').getAttribute('aria-label')")  # noqa: E731
 check("composer buttons carry no visible text", js(
     "[...document.querySelectorAll('.composer-row button')].map(b => b.textContent.trim()).join('')"), "")
-check("four round icon buttons", js("document.querySelectorAll('.composer-row button.ibtn').length"), 4)
+check("five round icon buttons (mic, dictation, clips, mode, send)", js("document.querySelectorAll('.composer-row button.ibtn').length"), 5)
 check("no pills left in the composer", js("document.querySelectorAll('.composer .pill, .composer .cbtn').length"), 0)
 check("placeholder", js("document.getElementById('typed').placeholder"), "Type what was said, or press the mic…")
 check("Speak label", label("speak"), "Speak (microphone off)")   # the fakes have no microphone
@@ -108,6 +108,14 @@ check("Dictation on label", (label("dictBtn") or "").startswith("Dictation on"),
 check("  ...status dot green", js("document.getElementById('dictDot').classList.contains('on')"), True)
 check("Test clips label", label("clipBtn"), "Test clips")
 check("Send label", label("sendBtn"), "Send")
+check("Mode label", label("modeBtn"), "Computer mode")
+core.set_mode("conference")
+pump(0.4)
+check("  ...Conference mode label", label("modeBtn"), "Conference mode")
+check("  ...the dictation button is hidden (nothing is typed)", js("getComputedStyle(document.getElementById('dictBtn')).display"), "none")
+check("  ...the conference view shows the quick phrases", js("document.querySelectorAll('.conf-quick button[data-quick]').length"), 4)
+core.set_mode("computer")
+pump(0.4)
 check("Send not solid when empty", js("document.getElementById('sendBtn').classList.contains('ready')"), False)
 js("const i=document.getElementById('typed'); i.value='open notes'; i.dispatchEvent(new Event('input'))")
 check("Send solid with text", js("document.getElementById('sendBtn').classList.contains('ready')"), True)

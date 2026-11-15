@@ -239,6 +239,7 @@ button.chip { min-height: var(--target); }
    thin line icons, the state told by colour, a tooltip and the aria-label (no text on the button). */
 .ibtn { position: relative; display: inline-grid; place-items: center; width: var(--target); height: var(--target); padding: 0; border: 0;
         background: transparent; color: var(--muted); border-radius: 50%; flex: none; }
+.ibtn[hidden] { display: none; }
 .ibtn::before { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: transparent; transition: background .12s; }
 .ibtn:hover::before { background: var(--hover); }
 .ibtn svg { position: relative; width: 20px; height: 20px; }
@@ -282,6 +283,31 @@ button.chip { min-height: var(--target); }
 .clips .clip-label { display: block; font: var(--label); color: var(--muted); }
 .clips .step-n { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--white); color: var(--ink); font: var(--caption); font-weight: 700; margin-right: 4px; }
 .clips .caption { margin: 8px; }
+
+/* ---- Conference mode: a calm view, readable from across a table ---- */
+.ibtn.mode.on { color: var(--accent); }
+.ibtn.mode.on::before { background: rgba(242,163,133,.14); }
+.conf { max-width: 860px; margin: 0 auto; padding: 22px 26px 30px; display: flex; flex-direction: column; gap: 22px; min-height: 100%; }
+.conf-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font: var(--label); }
+.conf-head .badge { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 600; }
+.conf-head .badge svg { width: 18px; height: 18px; }
+.conf-head .ways { margin-left: auto; }
+.transcript { display: flex; flex-direction: column; justify-content: flex-end; gap: 14px; min-height: 160px; }
+.transcript .past { font: 400 24px/1.35 var(--serif); color: var(--muted); margin: 0; }
+.transcript .past.stopped { text-decoration: line-through; opacity: .7; }
+.transcript .now { font: 500 46px/1.2 var(--serif); margin: 0; overflow-wrap: anywhere; }
+.transcript .now.stopped { text-decoration: line-through; color: var(--muted); }
+.transcript .state { display: flex; align-items: center; gap: 10px; font: var(--title); font-weight: 500; color: var(--muted); }
+.transcript .state svg { width: 22px; height: 22px; }
+.transcript .state.preparing { color: var(--warn); }
+.transcript .state.speaking { color: var(--accent); }
+.transcript .state.said { color: var(--ok); }
+.transcript .state .loop { border-color: rgba(242,196,107,.3); border-top-color: var(--warn); }
+.transcript .empty-said { font: 400 28px/1.35 var(--serif); color: var(--muted); margin: 0; }
+.conf-quick h3 { font: var(--label); color: var(--muted); margin: 0 0 10px; }
+.conf-quick .btn { min-height: 84px; }
+.conf .working { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+.conf .working svg { width: 20px; height: 20px; }
 
 /* ---- right column: folded rows ---- */
 .rail { display: flex; flex-direction: column; gap: 10px; min-height: 0; overflow-y: auto; }
@@ -415,6 +441,9 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
           <button type="button" class="ibtn" id="clipBtn" aria-haspopup="true" aria-expanded="false" aria-label="Test clips" data-tip="Test clips">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12h1.5M7 8.5v7M10.5 5v14M14 9v6M17.5 6.5v11M21 11v2"/></svg>
           </button>
+          <button type="button" class="ibtn mode" id="modeBtn" aria-pressed="false" aria-label="Computer mode" data-tip="Computer mode">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="modeIcon"></svg>
+          </button>
           <span class="grow"></span>
           <button type="submit" class="ibtn send" id="sendBtn" aria-label="Send" data-tip="Send">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg>
@@ -524,6 +553,7 @@ function ing(sentence) {   // "Open Notes" -> "Opening Notes"
 function outcomeOf(c) {
   const dict = (S && S.dictation) || {};
   const app = shortApp(dict.app) || "the app";
+  if ((c.say_aloud || c.guess) && S && S.mode === "conference") return "Saying it to the room";
   if (c.say_aloud || c.guess) return dict.on ? `Typing into ${app}` : "Saying it aloud";
   if (c.allow === "Yes, do both") return "Doing both";
   if (c.body) return ing(c.body.replace(/[.!?]$/, ""));
@@ -635,6 +665,39 @@ function turnHtml(t, isLast) {
 function emptyHtml(s) {
   return `<div class="empty"><h1>What can I do for you?</h1><p>Say it in your own way. I'll check with you whenever I'm not sure, and you can answer by voice, hand, or keyboard.</p>
     <div class="ways"><span class="chip">Press the mic${(s.clips || []).length ? " or choose a test clip" : ""}</span><span class="chip">“Open Notes”</span><span class="chip">“Type see you at noon”</span><span class="chip">⌘K Quick actions</span></div></div>`;
+}
+
+// ---- Conference mode ------------------------------------------------------------------
+const MODE_ICON = {   // line icons drawn inside #modeIcon
+  computer: '<rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2.5 19h19"/>',
+  conference: '<circle cx="12" cy="7.5" r="2.6"/><path d="M7.5 20v-2.5a4.5 4.5 0 0 1 9 0V20"/><circle cx="4.8" cy="10" r="1.8"/><path d="M2 18.5v-1.2a2.8 2.8 0 0 1 4.3-2.4"/><circle cx="19.2" cy="10" r="1.8"/><path d="M22 18.5v-1.2a2.8 2.8 0 0 0-4.3-2.4"/>',
+};
+const SAID_STATE = { preparing: "Preparing voice…", speaking: "Speaking…", said: "Said", stopped: "Stopped (undone)" };
+function confHtml(s) {
+  const said = s.said || [];
+  const counts = s.counts || {};
+  let html = `<div class="conf"><div class="conf-head"><span class="badge">${sv(MODE_ICON.conference)}Conference mode</span><span>Speaking for you. Nothing is said until you confirm it.</span><span class="ways">${counts.examples ?? 0} ways you say things</span></div><div class="transcript">`;
+  if (!said.length) html += `<p class="empty-said">Say a sentence, choose a test clip, or pick a quick phrase below. Once you confirm it, I say it aloud to the room.</p>`;
+  const asking = !!s.question;   // a card needs the room: only the newest sentence stays above it
+  said.slice(asking ? -1 : -4, -1).forEach((e) => { html += `<p class="past ${e.status === "stopped" ? "stopped" : ""}">${esc(e.text)}</p>`; });
+  const now = said[said.length - 1];
+  if (now) {
+    const icon = now.status === "preparing" ? '<span class="loop" aria-hidden="true"></span>' : now.status === "said" ? ICON.check : now.status === "stopped" ? ICON.undo : ICON.speaker;
+    html += `<p class="now ${now.status}">${esc(now.text)}</p><div class="state ${now.status}" role="status">${icon}${SAID_STATE[now.status] || ""}</div>`;
+  }
+  html += "</div>";
+  const q = s.question;
+  if (q && q.kind === "window") {
+    html += `<div class="card inner">${undoHtml(q.closes_at)}</div>`;
+  } else if (q) {
+    html += permHtml(q);
+  } else if (s.turn && !s.turn.finished) {
+    html += `<div class="working">${ICON.ear}<span>Working out what you meant…</span></div>`;
+  } else {
+    html += `<div class="conf-quick"><h3>Quick phrases · press 1-4, show your thumb, or say the number</h3><div class="grid4">` + (s.quick_phrases || []).map((t, i) =>
+      `<button class="btn opt" data-quick="${i}" data-signal="${GRID[i]}"><span class="row"><span class="num">${i + 1}</span><span class="hint">${gest(GRID_GEST[i][0], GRID_GEST[i][1]).replace(/<small>.*?<\/small>/, "")}${GRID_HINT[i]}</span></span><span class="txt">${esc(t)}</span><span class="fill"></span></button>`).join("") + "</div></div>";
+  }
+  return html + "</div>";
 }
 
 // ---- right column ------------------------------------------------------------------
@@ -768,6 +831,7 @@ function renderModal() {
       <tr><td>Speak</td><td>Press the mic (or Space), say it your way, pause. Press it again to stop listening. Hover over any round button to see what it does.</td></tr>
       <tr><td>Answer a card</td><td>Say yes / no or a number, show your thumb, or press Enter / Esc / 1-4.</td></tr>
       <tr><td>Dictation</td><td>Confirmed sentences are typed into the app you are working in. Say “type …” to dictate anything.</td></tr>
+      <tr><td>Conference mode</td><td>The people icon in the composer. Cowork speaks for you in a meeting: each sentence is said aloud once you confirm it (never before). Commands are off until you switch back. Quick phrases: 1-4, a thumb, or say the number.</td></tr>
       <tr><td>Quick actions</td><td>⌘K, or say “quick actions”.</td></tr>
       <tr><td>Panels</td><td>Say “show learned”, “show progress” or “show camera”.</td></tr></table></div>`;
   }
@@ -787,7 +851,7 @@ function setHtml(id, html) {   // only touch the page when something really chan
 }
 function applyHold(s) {
   const hold = s.hold && s.hold.signal ? s.hold : null;
-  document.querySelectorAll(".perm button[data-signals], .perm button[data-signal]").forEach((b) => {
+  document.querySelectorAll(".perm button[data-signals], .perm button[data-signal], .conf-quick button[data-signal]").forEach((b) => {
     const signals = b.dataset.signal ? [b.dataset.signal] : b.dataset.signals === "yes" ? YES_SIGNALS : NO_SIGNALS;
     const on = !!hold && signals.includes(hold.signal);
     b.classList.toggle("holding", on);
@@ -798,7 +862,8 @@ function applyHold(s) {
 function render(s) {
   S = s;
   const turns = turnsOf(s);
-  if (setHtml("convo", turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
+  const conference = s.mode === "conference";
+  if (setHtml("convo", conference ? confHtml(s) : turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
     document.querySelectorAll(".perm[data-qid]").forEach((el) => {   // the slide-in only the first time
       const qid = Number(el.dataset.qid);
       if (shownQids.has(qid)) el.classList.remove("fresh"); else shownQids.add(qid);
@@ -810,6 +875,11 @@ function render(s) {
   renderRows(s);
   const dict = s.dictation || {};
   const where = shortApp(dict.app);
+  $("modeIcon").innerHTML = MODE_ICON[conference ? "conference" : "computer"];
+  $("modeBtn").classList.toggle("on", conference);
+  $("modeBtn").setAttribute("aria-pressed", conference ? "true" : "false");
+  setTip($("modeBtn"), conference ? "Conference mode" : "Computer mode");
+  $("dictBtn").hidden = conference;   // nothing is typed in Conference mode
   $("dictBtn").setAttribute("aria-pressed", dict.on ? "true" : "false");
   $("dictDot").classList.toggle("on", !!dict.on);
   setTip($("dictBtn"), dict.on ? (where ? `Dictation on · ${where}` : "Dictation on") : "Dictation off");
@@ -886,6 +956,7 @@ document.addEventListener("click", (e) => {
   if (b.dataset.qa !== undefined) { chooseQuick(+b.dataset.qa); return; }
   if (b.dataset.app) { post("/api/say", { text: `Open ${b.dataset.app}` }); return; }
   if (b.dataset.row) { rowsOpen[b.dataset.row] = b.getAttribute("aria-expanded") !== "true"; renderRows(S); return; }
+  if (b.dataset.quick !== undefined) { post("/api/quick", { index: +b.dataset.quick }); return; }
   if (b.dataset.answer) post("/api/answer", { kind: b.dataset.answer });
   else if (b.dataset.pick !== undefined) post("/api/answer", { kind: "pick", value: +b.dataset.pick });
   else if (b.dataset.text !== undefined) post("/api/answer", { kind: "text", value: b.dataset.text });
@@ -943,6 +1014,7 @@ $("railToggle").addEventListener("click", () => {
   $("railToggle").setAttribute("title", collapsed ? "Expand panel" : "Collapse panel");
 });
 $("newTask").addEventListener("click", () => post("/api/new"));
+$("modeBtn").addEventListener("click", () => post("/api/mode", { mode: S && S.mode === "conference" ? "computer" : "conference" }));
 $("dictBtn").addEventListener("click", () => post("/api/dictation", { on: !(S && S.dictation && S.dictation.on) }));
 $("clipBtn").addEventListener("click", () => ($("clips").hidden ? showClips() : hideClips()));
 function showClips() {
@@ -973,6 +1045,7 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && !$("clips").hidden) { hideClips(); return; }
   if (!q) {
     if (e.key === " " && !typing && document.activeElement === document.body) { e.preventDefault(); post("/api/listen", { toggle: true }); }
+    else if (S.mode === "conference" && !typing && /^[1-4]$/.test(e.key) && !(S.turn && !S.turn.finished)) { e.preventDefault(); post("/api/quick", { index: +e.key - 1 }); }
     return;
   }
   if (q.kind === "window") { if (e.key === "Escape") { e.preventDefault(); post("/api/answer", { kind: "no" }); } return; }

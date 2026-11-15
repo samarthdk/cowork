@@ -199,6 +199,50 @@ def screen_scenes(core, web, out, ready, asking) -> None:
     snapshot(web, out / "17_email_box_by_box.png")
 
 
+def conference_scenes(core, web, out, ready, asking) -> None:
+    """Conference mode: quick phrases, a sentence to confirm (silent), 'Preparing voice…', then said."""
+    import threading as _threading
+    core.new_task()
+    core.set_mode("conference")
+    tts = core.voice.tts
+    now = time.time()
+    with core._lock:   # what was said earlier in the meeting (shown smaller, above the newest)
+        core.state["said"] = [{"text": t, "status": "said", "quick": q, "time": now - 60 + i}
+                              for i, (t, q) in enumerate([("Good morning, everyone.", False),
+                                                          ("I agree.", True),
+                                                          ("I feel I can play this weekend.", False)])]
+    core._set()
+    pump(0.6)
+    snapshot(web, out / "18_conference_quick_phrases.png")
+
+    gate = _threading.Event()   # the voice waits here, as TTSKit does while making a new sentence
+    plain = tts.speak
+
+    def slow(line, wait=False, on_sound=None):
+        gate.wait(30)
+        return plain(line, wait=wait, on_sound=on_sound)
+
+    tts.speak = slow
+    core.play_clip("demo1", play_sound=False)
+    wait(lambda: core.state["question"] is not None and core.state["question"]["stage"] == "did_you_mean", 10)
+    pump(0.6)
+    snapshot(web, out / "19_conference_did_you_mean.png")
+    core.answer("yes")
+    wait(lambda: core.state["question"] is not None and core.state["question"]["kind"] == "window", 10)
+    with core._lock:
+        core.state["said"][-1]["status"] = "preparing"
+    core._set()
+    pump(0.6)
+    snapshot(web, out / "20_conference_preparing_voice.png")
+    gate.set()
+    core.answer("yes")
+    wait(ready)
+    pump(0.6)
+    snapshot(web, out / "21_conference_said.png")
+    tts.speak = plain
+    core.set_mode("computer")
+
+
 def main() -> None:
     out = Path(sys.argv[1] if len(sys.argv) > 1 else config.ROOT / "docs" / "screenshots")
     out.mkdir(parents=True, exist_ok=True)
@@ -351,6 +395,7 @@ def main() -> None:
 
     # ---- looking at the screen (a fake Mac whose screen the script sets) ----------------------
     screen_scenes(core, web, out, ready, asking)
+    conference_scenes(core, web, out, ready, asking)
     server.should_exit = True
     shutil.rmtree(work, ignore_errors=True)
 

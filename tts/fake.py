@@ -26,7 +26,7 @@ class FakeTTS:
     def which_voice(self, line) -> str:
         return "TTSKit" if self.ready(line) else "not ready"
 
-    def speak(self, line, wait: bool = False) -> bool:
+    def speak(self, line, wait: bool = False, on_sound=None) -> bool:
         start = time.perf_counter()
         text = text_of(line)
         if not text:
@@ -37,6 +37,8 @@ class FakeTTS:
             return False
         if wait:
             self.waited.append(text)
+        if on_sound is not None:
+            on_sound()
         self.said.append(text)
         if not self.quiet:
             print(f"[would say] {text}")

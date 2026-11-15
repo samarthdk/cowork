@@ -49,6 +49,11 @@ FEED_KINDS = {"learned", "fast_path", "undone", "cancelled", "forgot", "new_phra
               "sound_check", "relisten"}
 
 
+from tts.lines import MEETING as QUICK_PHRASES   # Conference mode's quick phrases (made in advance)
+
+SAID_MAX = 30               # Conference mode: sentences kept in the transcript
+NUMBER_WORDS = {"one": 0, "1": 0, "two": 1, "2": 1, "three": 2, "3": 2, "four": 3, "4": 3}   # a spoken quick phrase
+                                                                                        # is confirmed first
 CHIME = "/System/Library/Sounds/Tink.aiff"   # one short soft sound (not a voice)
 CHIME_VOLUME = "0.35"
 
@@ -65,6 +70,7 @@ class _Voice:
         self.tts, self.app = tts, app
         self.next_in_background = False
         self.enabled = True    # "Speaking" in Settings (on by default)
+        self.conference = False   # Conference mode: a confirmed sentence is always said (waits for TTSKit)
         self._queue: queue.Queue = queue.Queue()
         self._idle = threading.Event()
         self._idle.set()
@@ -80,6 +86,11 @@ class _Voice:
             return None
         self._idle.wait(VOICE_WAIT_S)
         return self._say(text, wait=wait)
+
+    def later(self, line):
+        """Say a line in the background (queued in order); returns at once."""
+        self._idle.clear()
+        self._queue.put(line)
 
     def prefetch(self, line):
         """Start making a line now (TTSKit), so it can be said the moment it is needed."""
@@ -123,28 +134,38 @@ class _Voice:
         text = text_of(line)
         ready = self.ready(line)
         self.app._mark_voice(text, "TTSKit" if ready else "preparing voice…")
+        conference = self.conference
+        if conference:   # said to the room: always, however long TTSKit takes ("Preparing voice…" meanwhile)
+            self.app._said_status(text, "speaking" if ready else "preparing")
         self.app._set(status="speaking", speaking=text)
         if self.app.listener:
             self.app.listener.mute()   # never hear itself (also while waiting for TTSKit)
         spoken = False
         try:
-            spoken = self.tts.speak(line, wait=wait) is not False
+            if conference:
+                spoken = self.tts.speak(line, wait=True, on_sound=lambda: self.app._said_status(text, "speaking")) is not False
+            else:
+                spoken = self.tts.speak(line, wait=wait) is not False
         finally:
             if self.app.listener:
                 self.app.listener.unmute()
             self.app._set(speaking=None)
-        self.app._mark_voice(text, "TTSKit" if spoken else "not spoken (voice not ready)")
+        self.app._mark_voice(text, "TTSKit" if spoken else ("stopped" if conference else "not spoken (voice not ready)"))
+        if conference:
+            self.app._said_status(text, "said" if spoken else "stopped")
         return spoken
 
     def wait(self, timeout=VOICE_WAIT_S) -> bool:
         return self._idle.wait(timeout)
 
     def stop(self):
+        from tts.lines import text_of
         while not self._queue.empty():
             try:
-                self._queue.get_nowait()
+                dropped = self._queue.get_nowait()
             except queue.Empty:
                 break
+            self.app._said_status(text_of(dropped), "stopped")
         stop = getattr(self.tts, "stop", None)
         if stop:
             stop()
@@ -252,6 +273,9 @@ class App:
             "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
             "voice": {"on": True},    # "Speaking" in Settings: say confirmations and read replies aloud (TTSKit)
             "attention": False,       # mini window: a question couldn't be said aloud (soft chime + glow until answered)
+            "mode": "computer",       # "computer": act on the Mac; "conference": speak confirmed sentences to the room
+            "said": [],               # Conference mode: what the person said to the room, oldest first
+            "quick_phrases": list(QUICK_PHRASES),   # Conference mode: meeting phrases (1-4, thumbs, voice)
             "screen": None,             # what is on screen in the app being worked in (actions/screen.py)
             "window": {"mode": "full", "hands_free": False},   # "mini": the small window in the corner
             "catalog": {"phrases": [], "commands": [], "apps": []},   # everything Quick Actions can do
@@ -466,6 +490,10 @@ class App:
             return "answer"
         if self.ui_command(text, spoken=source == "speech"):
             return "ui"
+        number = " ".join(text.lower().strip(" .!?").replace("number ", "").split())
+        if self.session.conference and number in NUMBER_WORDS:   # "two": quick phrase 2, confirmed first
+            self._requests.put(("quick", {"index": NUMBER_WORDS[number], "source": source}))
+            return "request"
         lowered = text.lower()
         if lowered in ("undo", "undo last"):
             self.undo()
@@ -500,6 +528,10 @@ class App:
                 return False
             self._ui("pick", square)
             return True
+        if question is None and self.session.conference:   # thumbs pick a quick phrase (hold to confirm)
+            square = {"LEFT_UP": 0, "RIGHT_UP": 1, "LEFT_DOWN": 2, "RIGHT_DOWN": 3}.get(name)
+            if square is not None:
+                return self.quick_phrase(square)
         if question is None:
             if name in ("RIGHT", "LEFT") and self.listener and not self.busy:
                 self.listen_now()
@@ -705,6 +737,84 @@ class App:
         threading.Thread(target=run, daemon=True, name="clip").start()
         return ""
 
+    # ---- Conference mode (speaking for the person in a meeting) ------------------------
+
+    def set_mode(self, mode: str) -> None:
+        """"conference": a confirmed sentence is said aloud to the room (TTSKit, always), commands are
+        ignored, speaking is always on. "computer": back to acting on the Mac, speaking as it was."""
+        if mode not in ("computer", "conference") or mode == self.state["mode"]:
+            return
+        conference = mode == "conference"
+        if conference:
+            self._voice_before = self.state["voice"]["on"]
+            self.voice.enabled = True
+            self.set_window("full")
+            self._set(voice={"on": True})
+        self.session.conference = self.voice.conference = conference
+        self._set(mode=mode)
+        if not conference:
+            self.set_voice(getattr(self, "_voice_before", self.state["voice"]["on"]))
+        if self.camera is not None:
+            self.camera.want(conference)   # thumbs pick quick phrases while in Conference mode
+        if conference:   # the meeting phrases: make sure TTSKit has them (normally made at start-up)
+            prepare = getattr(self.voice.tts, "prepare", None)
+            if prepare is not None:
+                prepare(list(QUICK_PHRASES))
+
+    def quick_phrase(self, index: int) -> bool:
+        """Conference mode: say a meeting phrase now (a key or a held thumb is a deliberate choice)."""
+        if not self.session.conference or self._question is not None or not 0 <= index < len(QUICK_PHRASES):
+            return False
+        text = QUICK_PHRASES[index]
+        self._said_add(text, quick=True)
+        self.voice.later(text)
+        return True
+
+    def _quick_by_voice(self, index: int, source: str) -> None:
+        """A spoken number ("two") picks a quick phrase, but it is checked first (it may be misheard)."""
+        from engine.session import Question
+        if not 0 <= index < len(QUICK_PHRASES):
+            return
+        text = QUICK_PHRASES[index]
+        answer = self._ask(Question("yes_no", "quick", "Say this?", data={"phrase": text}))
+        if answer is not None and answer.kind == "yes":
+            self.quick_phrase(index)
+
+    @staticmethod
+    def _top_guess(card: dict) -> str:
+        """The sentence most likely to be confirmed on a card (to make its audio early)."""
+        if card.get("say_aloud") and card.get("body"):
+            return card["body"]
+        for option in card.get("options") or []:
+            if option.get("kind") == "phrase":
+                return option["text"]
+        return ""
+
+    def _said_add(self, text: str, quick: bool = False) -> None:
+        with self._lock:
+            ready = self.voice.ready(text)
+            self.state["said"].append({"text": text, "status": "speaking" if ready else "preparing",
+                                       "quick": quick, "time": time.time()})
+            del self.state["said"][:-SAID_MAX]
+        self._set()
+
+    def _said_status(self, text: str, status: str) -> None:
+        """preparing -> speaking -> said (or stopped): the newest unfinished entry with this text."""
+        with self._lock:
+            entry = next((e for e in reversed(self.state["said"])
+                          if e["text"] == text and e["status"] in ("preparing", "speaking")), None)
+            if entry is None:
+                return
+            entry["status"] = status
+            if status == "speaking":
+                entry["sound_at"] = time.time()
+            turn = self.state["turn"]
+            for item in reversed((turn or {}).get("items", [])):
+                if item["type"] == "spoken" and item["text"] == text:
+                    item["status"] = {"said": "done", "stopped": "undone"}.get(status, "running")
+                    break
+        self._set()
+
     # ---- dictation ----------------------------------------------------------
 
     def set_dictation(self, on: bool) -> None:
@@ -714,6 +824,11 @@ class App:
     def set_voice(self, on: bool) -> None:
         """On (default): Cowork speaks as it works (confirmations, replies read aloud), TTSKit only. Off: silent."""
         on = bool(on)
+        if self.state.get("mode") == "conference":   # always on in Conference mode; this is kept for afterwards
+            self._voice_before = on
+            if not on:
+                self._notice("Speaking is always on in Conference mode. Your choice is kept for Computer mode.")
+            return
         self.voice.enabled = on
         if not on:
             self.voice.stop()
@@ -903,12 +1018,16 @@ class App:
             try:
                 if kind == "undo":
                     self.session.undo()
+                elif kind == "quick":
+                    self._quick_by_voice(payload["index"], payload["source"])
                 else:
                     self._run_turn(payload)
             except Exception as error:   # never crash in front of judges
                 self._question = None
                 self._notice(f"Something went wrong: {type(error).__name__}: {error}")
             self._set(status="ready", question=None, hold=None, attention=False, counts=self._counts())
+            if self.session.conference and self.camera is not None:
+                self.camera.want(True)   # Conference mode: thumbs can pick a quick phrase at any time
             if self._requests.empty():
                 self._listen_on()   # mini window: hands-free, listen for the next request
 
@@ -1085,7 +1204,11 @@ class App:
         if self.camera is not None and question.kind in ("yes_no", "choice"):
             self.camera.want(True)
         self._set(event={"kind": "question", "stage": question.stage}, status="asking", question=shown, attention=False)
-        if self.state["window"]["mode"] == "mini" and question.kind in ("yes_no", "choice"):
+        if self.session.conference and question.kind in ("yes_no", "choice"):
+            top = self._top_guess(shown.get("card") or {})
+            if top:   # made by TTSKit while the card is up, so it plays the instant it is confirmed
+                self.voice.prefetch(top)
+        elif self.state["window"]["mode"] == "mini" and question.kind in ("yes_no", "choice"):
             try:   # in the corner it is easy to miss: say the question (the microphone is paused meanwhile)
                 spoken = self.voice.speak(self.spoken_question(shown.get("card") or {}))
             except Exception:
@@ -1199,12 +1322,17 @@ class App:
                 items.append({"type": "spoken", "text": event["text"], "status": "running"})
         elif kind == "speak" and event.get("kind_of") == "result":
             items.append({"type": "reply", "text": event["text"], "read_aloud": True})
+        elif kind == "spoke" and self.session.conference:
+            pass   # said in the background: _said_status() marks it when the sound really starts and ends
         elif kind == "spoke":
             spoken = next((i for i in reversed(items) if i["type"] == "spoken" and i["status"] == "running"), None)
             if spoken is None:
                 self.state["dictation"]["app"] = self._typing_app() or self.state["dictation"]["app"]
             if spoken:
                 spoken["status"] = "done"
+        elif kind == "command_off":
+            items.append({"type": "reply", "text": f"“{wording.from_meaning(event.get('meaning'), profile)}” is a command. "
+                                                   "Commands are off in Conference mode."})
         elif kind == "learned":
             meant = wording.request_text(*self._final(turn, event), profile)
             items.append({"type": "note", "icon": "learn", "learned_from": event["heard"],
@@ -1237,9 +1365,14 @@ class App:
     def _on_event(self, event: dict) -> None:
         kind = event["kind"]
         typed = None
-        if (kind == "speak" and event.get("kind_of") == "phrase" and self.state["dictation"]["on"]
+        if kind == "speak" and event.get("kind_of") == "phrase" and self.session.conference:
+            self._said_add(event["text"])        # the transcript shows it at once ("Preparing voice…")
+            self.voice.next_in_background = True   # said while the 3 s undo window is open, so Undo can stop it
+        elif (kind == "speak" and event.get("kind_of") == "phrase" and self.state["dictation"]["on"]
                 and self.session.actions is not None):
             typed = self._type_sentence(event["text"])   # typed first, then read back
+        if kind == "command_off":
+            self._notice("Commands are off in Conference mode. Switch to Computer to use them.")
         if kind == "cancelled":
             turn = self.state["turn"]
             last = next((i for i in reversed(turn["items"]) if i["type"] in ("typed", "step", "spoken")), None) if turn else None

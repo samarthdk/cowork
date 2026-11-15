@@ -1,0 +1,41 @@
+[
+ {
+  "part": "demo1",
+  "text": "The humidity is overwhelming there.",
+  "spoken": true,
+  "first_sound_ms": 11,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "The humidity is overwhelming there."
+  ],
+  "since_confirm_ms": 17
+ },
+ {
+  "part": "demo2",
+  "text": "We gathered shells on the beach.",
+  "spoken": true,
+  "first_sound_ms": 8,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "We gathered shells on the beach."
+  ],
+  "since_confirm_ms": 14
+ },
+ {
+  "part": "demo3",
+  "text": "We gathered shells on the beach.",
+  "spoken": true,
+  "first_sound_ms": 5,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "We gathered shells on the beach."
+  ],
+  "since_confirm_ms": 16
+ }
+]

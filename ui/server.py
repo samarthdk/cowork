@@ -11,7 +11,9 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
     POST /api/new       clear the conversation on screen (nothing learned is forgotten)
     POST /api/ui        {"quick": true}  Quick Actions is open (speech filters it, thumbs pick from it)
     POST /api/dictation {"on": true}            type confirmed sentences into the app you were using
-    POST /api/voice    {"on": true}             speak confirmations and read replies aloud (off by default)
+    POST /api/voice    {"on": true}             speak confirmations and read replies aloud (on by default)
+    POST /api/mode     {"mode": "computer"|"conference"}   Conference mode: speak confirmed sentences to the room
+    POST /api/quick    {"index": 0}             Conference mode: say a meeting quick phrase
     GET  /api/state     everything the page shows, once
     GET  /api/stream    live updates (Server-Sent Events: the page keeps this open)
     POST /api/say       {"text": "..."}             something the person said (typed)
@@ -90,6 +92,19 @@ def create_server(core: App) -> FastAPI:
     def voice(body: dict = Body(...)):
         core.set_voice(bool(body.get("on")))
         return {"ok": True, "voice": core.state["voice"]}
+
+    @server.post("/api/mode")
+    def mode(body: dict = Body(...)):
+        core.set_mode(str(body.get("mode", "")))
+        return {"ok": True, "mode": core.state["mode"]}
+
+    @server.post("/api/quick")
+    def quick(body: dict = Body(...)):
+        try:
+            index = int(body.get("index"))
+        except (TypeError, ValueError):
+            return {"ok": False}
+        return {"ok": core.quick_phrase(index)}
 
     @server.post("/api/ui")
     def ui(body: dict = Body(...)):

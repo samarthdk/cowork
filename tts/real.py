@@ -90,8 +90,9 @@ class RealTTS:
         if problem:
             raise RuntimeError(problem)
         path = self.cached_path(text)
+        making = path.with_name(path.stem + "-making")   # TTSKit writes here; the cache only ever sees finished files
         command = ["whisperkit-cli", "tts", "--text", lines.clean(text), "--model", config.TTS_MODEL,
-                   "--speaker", config.TTS_VOICE, "--output-path", str(path.with_suffix("")),
+                   "--speaker", config.TTS_VOICE, "--output-path", str(making),
                    "--output-format", "wav", "--models-path", str(config.TTSKIT_MODELS_PATH)]
         if config.TTSKIT_TOKENIZER_PATH.exists():
             command += ["--tokenizer", str(config.TTSKIT_TOKENIZER_PATH)]
@@ -99,7 +100,7 @@ class RealTTS:
             command += ["--speech-decoder-mode", "throughputOptimized", "--multi-code-decoder-mode", "fused"]
         with self._lock:
             subprocess.run(command, check=True, capture_output=True, timeout=config.TTS_TIMEOUT_S)
-        to_16_bit(path)
+        to_16_bit(making.with_suffix(".wav"), path)
 
     def prepare(self, texts: list[str], urgent: bool = False) -> None:
         """Make these pieces in the background (urgent ones go to the front of the queue)."""
@@ -147,9 +148,10 @@ class RealTTS:
 
     # ---- speaking --------------------------------------------------------------
 
-    def speak(self, line, wait: bool = False) -> bool:
+    def speak(self, line, wait: bool = False, on_sound=None) -> bool:
         """Say a line (a sentence, or a list of parts). Returns True if it was spoken.
-        wait=False: only if it is ready now, or within LATE_S. wait=True: however long TTSKit takes."""
+        wait=False: only if it is ready now, or within LATE_S. wait=True: however long TTSKit takes.
+        on_sound(): called the moment the sound starts."""
         text = lines.text_of(line)
         if not text:
             return False
@@ -170,17 +172,26 @@ class RealTTS:
             self.last = {"text": text, "spoken": False, "why": why, "waited_ms": round((time.perf_counter() - start) * 1000)}
             log_call("tts", "silent", (time.perf_counter() - start) * 1000, chars=len(text), why=why)
             return False
-        first_ms = self._play(pieces, start)
+        first_ms = self._play(pieces, start, on_sound)
+        if seq != self._stop_seq:   # cut off part-way (Undo): it does not count as said
+            self.last = {"text": text, "spoken": False, "why": "stopped", "first_sound_ms": first_ms}
+            log_call("tts", "stopped", (time.perf_counter() - start) * 1000, chars=len(text))
+            return False
         self.last = {"text": text, "spoken": True, "pieces": pieces, "made_now": made_now, "first_sound_ms": first_ms}
         log_call("tts", "ttskit-made-now" if made_now else "ttskit-ready", (time.perf_counter() - start) * 1000,
                  chars=len(text), pieces=len(pieces), first_sound_ms=first_ms)
         return True
 
-    def _play(self, pieces: list[str], start: float) -> float:
+    def _play(self, pieces: list[str], start: float, on_sound=None) -> float:
         """Play the pieces as one sound; returns ms from the request to the player starting."""
         path = self._join(pieces)   # also for one piece: trims TTSKit's click and the quiet before the words
         self._player = subprocess.Popen(["afplay", str(path)])
         first_ms = round((time.perf_counter() - start) * 1000)
+        if on_sound is not None:
+            try:
+                on_sound()
+            except Exception:
+                pass
         try:
             self._player.wait(timeout=config.TTS_TIMEOUT_S)
         except subprocess.TimeoutExpired:
@@ -212,18 +223,25 @@ class RealTTS:
             self._player.terminate()
 
 
-def to_16_bit(path: Path) -> None:
+def to_16_bit(source: Path, target: Path | None = None) -> None:
     """TTSKit writes 32-bit float wav; pieces are kept as 16-bit wav so they can be joined
-    (macOS afconvert, on this Mac). Already 16-bit files are left alone."""
+    (macOS afconvert, on this Mac). The finished file appears at `target` in one step (a file
+    still being written or converted is never seen as ready). Already 16-bit files are just moved."""
+    target = target or source
     try:
-        with wave.open(str(path), "rb"):
-            return
+        with wave.open(str(source), "rb"):
+            pass
+        if source != target:
+            source.replace(target)
+        return
     except wave.Error:
         pass
-    temp = path.with_suffix(".tmp.wav")
-    subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16", str(path), str(temp)], check=True,
+    temp = target.with_name(target.stem + "-16bit.wav")
+    subprocess.run(["afconvert", "-f", "WAVE", "-d", "LEI16", str(source), str(temp)], check=True,
                    capture_output=True, timeout=30)
-    temp.replace(path)
+    temp.replace(target)
+    if source != target:
+        source.unlink(missing_ok=True)
 
 
 def _trim(data: bytes, width: int, channels: int, rate: int) -> bytes:
