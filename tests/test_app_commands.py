@@ -70,7 +70,16 @@ check("'make it bigger' finds Zoom In", "View > Zoom In" in [i["label"] for i in
 check("'mark it as unread' finds the submenu item", [i["label"] for i in candidates("mark it as unread", MENU)][:1],
       ["Message > Mark > As Unread"])
 check("nothing shares a word: no shortlist", candidates("fly me to the moon", MENU), [])
-check("  ...but the closest are offered", len(closest("fly me to the moon", MENU)), 3)
+check("  ...and nothing unrelated is offered as 'closest'", closest("fly me to the moon", MENU), [])
+check("something alike is offered ('sidebar' vs 'Show Side Bar')",
+      [i["label"] for i in closest("sidebar", [{"label": "View > Show Side Bar", "kind": "menu"}])], ["View > Show Side Bar"])
+check("a word only in the menu's path is not enough ('find a word' vs Edit > Find > Select Line)",
+      candidates("find a word", [{"label": "Edit > Find > Select Line", "kind": "menu"}]), [])
+check("a match only through a similar word is marked as a guess (asked first)",
+      [i["literal"] for i in candidates("make it bigger", [{"label": "View > Zoom In", "kind": "menu"}])], [0])
+check("the item's own name beats the menu path ('open a new window')",
+      [i["label"] for i in candidates("open a new window", [{"label": "Window > Bring All to Front", "kind": "menu"},
+                                                             {"label": "File > New", "kind": "menu"}])][:1], ["File > New"])
 for label in ("Mailbox > Erase Deleted Items", "Message > Delete", "File > Quit", "Send", "Account > Sign Out", "Buy Now"):
     check(f"risky: {label}", is_risky(label), True)
 for label in ("File > Print…", "View > Zoom In", "Message > Flag", "Format > Bold"):
@@ -116,16 +125,28 @@ wait_for(lambda: "r" in result)
 check("  ...declined: nothing clicked", [c for c, _ in actions.done if c == "press_item"], [])
 check("  ...and it says so (not silent)", result["r"].detail, "Nothing was clicked in the app (you said no).")
 core, actions = make()
-result = {}
 core.session.actions._actions.menu_items = lambda: [{"label": "View > Zoom In", "kind": "menu", "element": None}]
+r = core.do_in_app("fly me to the moon")
+check("nothing fits and nothing alike: says so, no card", (r.ok, r.problem), (False, "I couldn't find a way to do that in the app."))
+core, actions = make()
+result = {}
+core.session.actions._actions.menu_items = lambda: [{"label": "View > Show Side Bar", "kind": "menu", "element": None}]
 import threading  # noqa: E402
-threading.Thread(target=lambda: result.update(r=core.do_in_app("fly me to the moon"))).start()
+threading.Thread(target=lambda: result.update(r=core.do_in_app("sidebar"))).start()
 q = wait_for(lambda: core.state["question"] is not None) and core.state["question"]
 check("nothing fits: the closest items are offered", bool(q) and q["stage"], "menu_closest")
 check("  ...and it says so", bool(q) and q["card"]["title"].startswith("I couldn't find a way to do that"), True)
 core.answer("none")
 wait_for(lambda: "r" in result)
 check("  ...'none': nothing clicked, and the reason is shown", (result["r"].ok, result["r"].problem.startswith("I couldn't find")), (False, True))
+
+# ---- a sure, risky request declined: nothing done, and no grid of other options ----------------------
+core, actions = make()
+seen = run(core, "delete this email", answer="no")
+check("'delete this email': the permission card, declined", [s for s, _ in seen], ["did_you_mean"])
+check("  ...nothing done", actions.done, [])
+last = core.state["history"][-1]["items"] if core.state["history"] else []
+check("  ...and it says so", any(i.get("text") == "Okay, not allowed. Nothing was done." for i in last), True)
 
 print(f"\n{sum(results)}/{len(results)} passed  {'ALL PASS' if all(results) else 'SOME FAILED'}")
 sys.stdout.flush()

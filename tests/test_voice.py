@@ -196,11 +196,6 @@ check("  ...nothing was said", core.voice.tts.said, [])
 qid = core.state["question"]["id"]
 core.answer("no")
 end = time.monotonic() + 5
-while (core.state["question"] is None or core.state["question"]["id"] == qid) and time.monotonic() < end:
-    time.sleep(0.02)
-time.sleep(0.2)
-check("  ...the next question (the grid) chimes and glows too", (len(chimes), core.state["attention"]), (2, True))
-core.answer("none")
 end = time.monotonic() + 5
 while core.state["attention"] and time.monotonic() < end:
     time.sleep(0.02)

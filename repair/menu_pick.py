@@ -44,34 +44,60 @@ def _stem(word: str) -> str:
     return word
 
 
-def _overlap(request: list[str], label: str) -> float:
-    label_words = [_stem(w) for w in _words(label)]
-    score = 0.0
+def _matches(word: str, words: list[str]) -> bool:
+    return any(fuzz.ratio(_stem(word), w) >= 85 for w in words)
+
+
+def score(request: list[str], label: str) -> tuple[float, int]:
+    """(how well the request's words fit this item, how many of them are literally in the item's own name).
+    The item's own name counts most ("Find..." under Edit > Find); its menu path ("Window > ...") much less,
+    and a word only matched through SAME ("bigger" -> zoom) less than the word itself."""
+    parts = label.split(" > ")
+    leaf = [_stem(w) for w in _words(parts[-1])]
+    path = [_stem(w) for w in _words(" ".join(parts[:-1]))]
+    total, literal = 0.0, 0
     for word in request:
-        options = [_stem(w) for w in SAME.get(word, [word])] + [_stem(word)]
-        if any(fuzz.ratio(o, l) >= 85 for o in options for l in label_words):
-            score += 1.0
-    return score
+        alike = [w for w in SAME.get(word, []) if w != word]
+        if _matches(word, leaf):
+            total, literal = total + 1.0, literal + 1
+        elif any(_matches(w, leaf) for w in alike):
+            total += 0.7
+        elif _matches(word, path):
+            total += 0.3
+        elif any(_matches(w, path) for w in alike):
+            total += 0.2
+    return total, literal
+
+
+def _overlap(request: list[str], label: str) -> float:   # (kept for the fake Brain)
+    return score(request, label)[0]
 
 
 def candidates(request: str, items: list[dict], limit: int = SHORTLIST) -> list[dict]:
-    """The items sharing words with the request, best first (menu items before buttons on ties)."""
+    """The items sharing words with the request, best first (menu items before buttons on ties).
+    Each gets "literal": how many request words are in its own name (0: only a guess, ask first)."""
     words = _words(request)
     if not words:
         return []
-    scored = [(_overlap(words, item["label"]), item) for item in items]
-    scored = [(score, item) for score, item in scored if score > 0]
+    scored = []
+    for item in items:
+        total, literal = score(words, item["label"])
+        if total >= 0.5:
+            scored.append((total, dict(item, literal=literal)))
     scored.sort(key=lambda pair: (-pair[0], pair[1].get("kind") != "menu", len(pair[1]["label"])))
     return [item for _, item in scored[:limit]]
 
 
 def closest(request: str, items: list[dict], limit: int = 3) -> list[dict]:
-    """When nothing shares a word: the items that look most alike anyway (offered, never done)."""
+    """When nothing shares a word: items whose names look alike anyway (offered, never done). Only
+    clearly alike ones: an unrelated list would only confuse."""
     text = " ".join(_words(request))
     if not text:
         return []
-    scored = sorted(items, key=lambda item: -fuzz.partial_ratio(text, " ".join(_words(item["label"]))))
-    return scored[:limit]
+    scored = [(fuzz.partial_ratio(text, " ".join(_words(item["label"].split(" > ")[-1]))), item) for item in items]
+    scored = [(value, item) for value, item in scored if value >= 75]
+    scored.sort(key=lambda pair: -pair[0])
+    return [item for _, item in scored[:limit]]
 
 
 def is_risky(label: str) -> bool:

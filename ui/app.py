@@ -1006,8 +1006,8 @@ class App:
             index, confidence, problem = pick(request, app, [i["label"] for i in shortlist], self.session.llm)
             if problem:
                 self._notice(f"The Brain couldn't choose: {problem}")
-            if index is not None:
-                chosen, sure = shortlist[index], confidence == "high"
+            if index is not None:   # only a guess (no request word in the item's own name): ask first
+                chosen, sure = shortlist[index], confidence == "high" and shortlist[index].get("literal", 1) > 0
         if chosen is None:   # nothing fits: say so, and offer the closest items
             near = shortlist[:3] or closest(request, items)
             if not near:
@@ -1493,6 +1493,8 @@ class App:
                 self.state["dictation"]["app"] = self._typing_app() or self.state["dictation"]["app"]
             if spoken:
                 spoken["status"] = "done"
+        elif kind == "denied":
+            items.append({"type": "reply", "text": "Okay, not allowed. Nothing was done."})
         elif kind == "command_off":
             items.append({"type": "reply", "text": f"“{wording.from_meaning(event.get('meaning'), profile)}” is a command. "
                                                    "Commands are off in Conference mode."})

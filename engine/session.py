@@ -286,6 +286,11 @@ class Session:
             if answer.kind == "yes":
                 args = yield from self._fill_missing(intent.choice, intent.args, context)
                 return Result(intent.choice, args, "confirmed")
+            if risky and intent.confidence == "high":
+                # Sure what was meant, and the person said "Don't allow": that is the answer. Nothing is
+                # done, and no other options are offered (they would look like a way round the "no").
+                self.emit("denied", meaning=describe(intent.choice, intent.args, profile))
+                return None
             rejected = (intent.choice,)
         return (yield from self._choose_from_options(heard, intent, rejected, context))
 

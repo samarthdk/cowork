@@ -356,10 +356,10 @@ check("sending always asks", asking(core, "yes_no"), True)
 card = core.state["question"]["card"]
 check("  ...as a risky permission card", (card["risky"], card["allow"], card["deny"]), (True, "Allow", "Don't allow"))
 core.answer("no", source="speech")
-check("  ...'Don't allow' then offers other options", asking(core, "choice"), True)
-check("  ...the card says how it was answered",
-      next(i for i in core.state["turn"]["items"] if i["type"] == "permission")["by"], "by voice")
-core.answer("none")
+check("  ...'Don't allow' (Cowork was sure): it stops, no other options", finished(core, 1) and core.state["question"], None)
+last = core.state["history"][-1]["items"]
+check("  ...the card says how it was answered", next(i for i in last if i["type"] == "permission")["by"], "by voice")
+check("  ...nothing sent", actions.done, [])
 check("  ...and nothing was done", finished(core, 1) and actions.done, [])
 
 # ---- "write an email": one new email, by any wording -----------------------------

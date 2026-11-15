@@ -54,3 +54,26 @@
   light gray 6.1, green 5.5, red 4.5, amber 5.4. The clay accent fell to 4.3, so instead of keeping one area more
   opaque (accent text is used in many places) the accent was made 8% lighter (#F2A385 -> #F3AA8F, 4.6:1, looks the
   same). The red-orange "listening" colour is only used for icons and dots (3.4:1; 3:1 is the rule for those).
+
+### Bug 4: requests inside the app in front (fixed; live testing limited, see below)
+- New commands (keyboard shortcuts, only in the right app, else a clear message): Mail: reply, reply all, forward,
+  mark unread, delete and archive (risky: always the permission card). Word/Notes/TextEdit: undo that, select all,
+  bold, new line, new paragraph. Chrome/Safari: reload, close tab. "Undo" alone stays Cowork's own undo.
+- Fallback for anything else (`repair/menu_pick.py`, `do_in_app`): the front app's menu bar and buttons are read
+  with Accessibility (36 items in TextEdit in 0.3 s), up to 15 sharing words with the request are shortlisted,
+  Bonsai picks one or none (about 1 s). Words in the item's own name count most; a match only through the menu
+  path or a similar word ("bigger" -> Zoom) is only a guess and asks "Did you mean...?" first. Risky items
+  (send, delete, quit, erase, buy, pay, sign out...) always get the permission card. Nothing fits: "I couldn't
+  find a way to do that in <app>", with alike items offered only when they really look alike.
+- Real Bonsai on TextEdit's real menus: "show me the fonts" -> Format > Font > Show Fonts (click); "check the
+  spelling" -> Show Spelling and Grammar (click); "close everything" -> File > Close All (permission card);
+  "make the text bigger" -> Window > Zoom All (asks first, it is only a guess); "fly me to the moon" -> says so.
+  Before the fix, "find a word" clicked Edit > Find > Select Line and "make the text bigger" clicked Zoom All
+  without asking: fixed and tested.
+- Also fixed: after "Don't allow" on a risky request Cowork was sure about, it no longer offers a grid of other
+  options (that looked like a way round the "no"). It stops and says "Okay, not allowed. Nothing was done."
+- Tests: `tests/test_app_commands.py` (51 checks).
+- LIVE TESTING BLOCKED: the screen locked during the night (CGSSessionScreenIsLocked = true). While locked, macOS
+  lets no app come to the front and key presses go nowhere, so reply / forward / mark unread / print could not be
+  tried live tonight (they failed with "There is no app to send the key to", which is the lock, not the code).
+  Opening the latest email (AppleScript) did work while locked. These are on the morning checklist.
