@@ -368,8 +368,13 @@ class App:
         return True
 
     def hold(self, signal: str | None, progress: float) -> None:
-        """Hand hold-to-confirm progress, for the ring on the screen."""
-        self._set(hold={"signal": signal, "progress": round(progress, 2)} if signal else None)
+        """Hand hold-to-confirm progress, for the ring on the screen. The camera reports this on
+        every frame (15-30 a second), even when nothing is held: only a change is sent on
+        (measured: sending every frame redrew the question card constantly, so it flickered)."""
+        hold = {"signal": signal, "progress": round(round(progress * 20) / 20, 2)} if signal else None
+        if hold == self.state.get("hold"):
+            return
+        self._set(hold=hold)
 
     def undo(self) -> None:
         self._requests.put(("undo", None))

@@ -151,7 +151,8 @@ button.chip { min-height: var(--target); }
 .resolved .by { font: var(--caption); }
 
 /* ---- question cards (the only card with a shadow) ---- */
-.perm { background: var(--tint-strong); box-shadow: 0 10px 30px rgba(0,0,0,.35); animation: rise .2s ease-out; }
+.perm { background: var(--tint-strong); box-shadow: 0 10px 30px rgba(0,0,0,.35); }
+.perm.fresh { animation: rise .2s ease-out; }   /* only the first time a question is shown (else it flickers) */
 .perm-head { display: flex; align-items: center; gap: 8px; font: var(--label); color: var(--muted); }
 .perm.risky .perm-head { color: var(--bad); }
 .perm-head svg { width: 18px; height: 18px; }
@@ -535,16 +536,19 @@ function resolvedHtml(item) {
   const q = c.body ? `${esc(c.title)} <b>${esc(c.body)}</b>` : esc(c.title);
   return `<div class="resolved ${item.status}"><span class="q">${q}</span><span class="a">${esc(item.answer || "")}</span>${item.by ? `<span class="by">${esc(item.by)}</span>` : ""}</div>`;
 }
+// Hand hold-to-confirm progress is NOT part of the card's HTML: it changes many times a second, and redrawing
+// the card for it made the card flicker. applyHold() updates the buttons that are already there.
+const shownQids = new Set();
 function permHtml(q) {
   const c = q.card || {};
-  const hold = S.hold && S.hold.signal ? S.hold : null;
-  const holding = (signals) => hold && signals.includes(hold.signal);
-  const fill = (signals) => (holding(signals) ? ` style="--p:${hold.progress}"` : "");
+  const holding = () => false;
+  const fill = () => "";
+  const fresh = !document.documentElement.classList.contains("still");   // render() removes it from cards already seen
   let head;
   if (c.risky) head = `${ICON.warn}Needs your permission`;
   else if (c.guess) head = `${ICON.learn}A guess`;
   else head = `${ICON.shield}Checking with you`;
-  let html = `<div class="card perm${c.risky ? " risky" : ""}${c.guess ? " guess" : ""}" role="dialog" aria-label="${esc(c.title)}"><div class="perm-head">${head}</div>`;
+  let html = `<div class="card perm${fresh ? " fresh" : ""}${c.risky ? " risky" : ""}${c.guess ? " guess" : ""}" data-qid="${q.id}" role="dialog" aria-label="${esc(c.title)}"><div class="perm-head">${head}</div>`;
   html += `<div class="perm-title">${esc(c.title)}</div>`;
   if (c.guess) html += '<span class="tagline">Not from your list — only ever spoken or typed, never done on the Mac</span>';
   if (c.body) html += `<div class="perm-body">${c.say_aloud ? "“" + esc(c.body) + "”" : esc(c.body)}</div>`;
@@ -553,15 +557,15 @@ function permHtml(q) {
     const outcome = outcomeOf(c);
     const yes = c.allow && !["Yes", "Allow"].includes(c.allow) && !c.guess ? c.allow : (c.risky ? "Allow" : "Yes");
     html += `<div class="buttons">
-      <button class="btn deny${holding(NO_SIGNALS) ? " holding" : ""}" data-answer="no"${fill(NO_SIGNALS)}><span class="labels"><span>${esc(c.deny)}</span></span><span class="how"><span class="key">Esc</span>${gest("hand", "left")}${gest("down", "")}</span><span class="fill"></span></button>
-      <button class="btn primary allow${holding(YES_SIGNALS) ? " holding" : ""}" data-answer="yes"${fill(YES_SIGNALS)}><span class="labels"><span class="now">${esc(yes)}</span><span class="doing"><span class="loop" aria-hidden="true"></span>${esc(outcome)}</span><span class="outcome">${esc(outcome)}</span></span><span class="how"><span class="key">Enter</span>${gest("hand", "right")}${gest("up", "")}</span><span class="fill"></span></button>
+      <button class="btn deny${holding(NO_SIGNALS) ? " holding" : ""}" data-answer="no" data-signals="no"${fill(NO_SIGNALS)}><span class="labels"><span>${esc(c.deny)}</span></span><span class="how"><span class="key">Esc</span>${gest("hand", "left")}${gest("down", "")}</span><span class="fill"></span></button>
+      <button class="btn primary allow${holding(YES_SIGNALS) ? " holding" : ""}" data-answer="yes" data-signals="yes"${fill(YES_SIGNALS)}><span class="labels"><span class="now">${esc(yes)}</span><span class="doing"><span class="loop" aria-hidden="true"></span>${esc(outcome)}</span><span class="outcome">${esc(outcome)}</span></span><span class="how"><span class="key">Enter</span>${gest("hand", "right")}${gest("up", "")}</span><span class="fill"></span></button>
     </div>`;
     html += `<div class="answer-hint">Say yes or no, show your thumb, or press Enter/Esc.</div>`;
   } else if (q.kind === "choice") {
     const opts = c.options || [];
     html += `<div class="${opts.length > 2 ? "grid4" : "grid2"}">` + opts.map((o, i) => {
       const chosen = holding([GRID[i]]);
-      return `<button class="btn opt${o.kind === "else" ? " else" : ""}${chosen ? " primary holding" : ""}" data-pick="${i}"${fill([GRID[i]])}><span class="row"><span class="num">${i + 1}</span><span class="hint">${gest(GRID_GEST[i][0], GRID_GEST[i][1]).replace(/<small>.*?<\/small>/, "")}${GRID_HINT[i]}</span></span><span class="txt">${esc(o.text)}</span><span class="fill"></span></button>`;
+      return `<button class="btn opt${o.kind === "else" ? " else" : ""}${chosen ? " primary holding" : ""}" data-pick="${i}" data-signal="${GRID[i]}"${fill([GRID[i]])}><span class="row"><span class="num">${i + 1}</span><span class="hint">${gest(GRID_GEST[i][0], GRID_GEST[i][1]).replace(/<small>.*?<\/small>/, "")}${GRID_HINT[i]}</span></span><span class="txt">${esc(o.text)}</span><span class="fill"></span></button>`;
     }).join("") + "</div>";
     html += `<div class="none-row"><button class="none-btn" data-answer="none">None of these <span class="key">Esc</span></button></div>`;
     html += `<div class="answer-hint">Say the number, show your thumb, or press 1-4.</div>`;
@@ -750,11 +754,32 @@ function setLook(look) {
 try { if (localStorage.getItem("cowork-look") === "plain") setLook("plain"); } catch (e) {}
 
 // ---- render ---------------------------------------------------------------------------
+const lastHtml = {};
+function setHtml(id, html) {   // only touch the page when something really changed (no needless redraws)
+  if (lastHtml[id] === html) return false;
+  lastHtml[id] = html; $(id).innerHTML = html; return true;
+}
+function applyHold(s) {
+  const hold = s.hold && s.hold.signal ? s.hold : null;
+  document.querySelectorAll(".perm button[data-signals], .perm button[data-signal]").forEach((b) => {
+    const signals = b.dataset.signal ? [b.dataset.signal] : b.dataset.signals === "yes" ? YES_SIGNALS : NO_SIGNALS;
+    const on = !!hold && signals.includes(hold.signal);
+    b.classList.toggle("holding", on);
+    if (b.dataset.signal) b.classList.toggle("primary", on);
+    if (on) b.style.setProperty("--p", hold.progress); else b.style.removeProperty("--p");
+  });
+}
 function render(s) {
   S = s;
-  $("strip").innerHTML = stripHtml(s);
+  setHtml("strip", stripHtml(s));
   const turns = turnsOf(s);
-  $("convo").innerHTML = turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s);
+  if (setHtml("convo", turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
+    document.querySelectorAll(".perm[data-qid]").forEach((el) => {   // the slide-in only the first time
+      const qid = Number(el.dataset.qid);
+      if (shownQids.has(qid)) el.classList.remove("fresh"); else shownQids.add(qid);
+    });
+  }
+  applyHold(s);
   $("recent").innerHTML = turns.slice().reverse().map((t, i) => `<li class="${i === 0 ? "now" : ""}">${esc(t.request || "“" + t.heard + "”")}</li>`).join("") || "<li>No tasks yet</li>";
   $("recentCount").textContent = turns.length || "";
   renderRows(s);
@@ -826,7 +851,7 @@ document.addEventListener("click", (e) => {
   const b = e.target.closest("button");
   if (e.target === $("backdrop")) { closeModal(); return; }
   if (!b) { if (!e.target.closest("#clips") && !e.target.closest("#clipBtn")) hideClips(); return; }
-  if (b.id === "localBtn") { detailsOpen = !detailsOpen; $("strip").innerHTML = stripHtml(S); return; }
+  if (b.id === "localBtn") { detailsOpen = !detailsOpen; setHtml("strip", stripHtml(S)); return; }
   if (b.id === "quickBtn") { openModal("quick"); return; }
   if (b.id === "recentBtn") { const open = $("recent").hidden; $("recent").hidden = !open; b.setAttribute("aria-expanded", open ? "true" : "false"); return; }
   if (b.dataset.close) { closeModal(); return; }
