@@ -38,6 +38,11 @@ HINT_MIN_LOGPROB = -0.5   # ...whose answer is kept only if WhisperKit was this 
                           # clips + 2 real requests: invented answers scored -0.62 or lower, real ones -0.37 or higher
 HISTORY_MAX = 20           # finished requests kept on screen
 VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
+HANDS_FREE_WAIT_S = 30.0   # mini window: listen this long for the next request, then listen again
+MINI_AFTER = ("open_app", "new_email", "new_document", "new_tab")   # these bring another app forward
+OPENS = {"new_email": "Mail", "new_document": "Microsoft Word"}       # the app such a command works in
+KEY_RETURN, KEY_ENTER, KEY_ESC, KEY_Y, KEY_N = 36, 76, 53, 16, 45
+KEY_DIGITS = {18: 0, 19: 1, 20: 2, 21: 3}                             # 1-4 above the letters
 
 FEED_KINDS = {"learned", "fast_path", "undone", "cancelled", "forgot", "new_phrase", "new_words",
               "sound_check", "relisten"}
@@ -171,6 +176,7 @@ class _Targeted:
                     return ActionResult(False, problem=how or "Nothing was typed.")
         outcome = actions.run(command, args)
         app.saw(app.look())
+        app._after_action(command, args, outcome, screen)
         return outcome
 
 
@@ -207,6 +213,7 @@ class App:
             "credit": "",               # where the test clips come from
             "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
             "screen": None,             # what is on screen in the app being worked in (actions/screen.py)
+            "window": {"mode": "full", "hands_free": False},   # "mini": the small window in the corner
             "catalog": {"phrases": [], "commands": [], "apps": []},   # everything Quick Actions can do
             "ui": {"seq": 0, "action": None, "value": None, "quick": False},   # screen-only commands
             "question": None,
@@ -216,6 +223,8 @@ class App:
             "notice": None,             # the last problem, in plain words
             "counts": self._counts(),
         }
+        self.window_hook = None       # set by ui/window.py: window_hook("mini" | "full") switches the real windows
+        self._opened: list[str] = []  # apps Cowork opened by voice, oldest first (closing the last one: full size)
         self.refresh_catalog()
         self._worker = threading.Thread(target=self._work, daemon=True, name="conversation")
         self._worker.start()
@@ -274,10 +283,17 @@ class App:
         said = " ".join((text or "").lower().replace(".", " ").replace("!", " ").split())
         commands = {"show learned": ("open", "learned"), "show progress": ("open", "progress"),
                     "show camera": ("open", "camera"), "quick actions": ("quick", True),
-                    "close quick actions": ("quick", False)}
+                    "close quick actions": ("quick", False), "show cowork": ("window", "full"),
+                    "open cowork": ("window", "full"), "stop listening": ("hands_free", False)}
         best = max(commands, key=lambda c: fuzz.ratio(said, c))
         if fuzz.ratio(said, best) >= 85:
             action, value = commands[best]
+            if action == "window":
+                self.set_window("full")
+                return True
+            if action == "hands_free":
+                self.set_hands_free(False)
+                return True
         elif spoken and self.state["ui"].get("quick") and said:   # only speech filters (typed/clicked requests never do)
             action, value = "filter", text.strip()
         else:
@@ -298,6 +314,97 @@ class App:
     def _counts(self) -> dict:
         profile = self.session.profile
         return {"phrases": len(profile["phrases"]), "examples": len(profile.get("examples", []))}
+
+    # ---- the mini window (Cowork shrinks to a corner while another app is used) ----------
+
+    def set_window(self, mode: str) -> None:
+        """"mini": the small always-on-top window in the top right corner (it never takes the keyboard
+        from the app being used), listening hands-free. "full": the whole window, with the history."""
+        if mode not in ("mini", "full") or mode == self.state["window"]["mode"]:
+            return
+        hands_free = mode == "mini" and bool(self.listener and self.listener.running)
+        self._set(window={"mode": mode, "hands_free": hands_free})
+        if self.window_hook is not None:
+            try:
+                self.window_hook(mode)
+            except Exception as error:
+                self._notice(f"Couldn't switch the window: {error}")
+        if hands_free and not self.busy:
+            self._listen_on()
+        if mode == "full" and self.listener:
+            self.listener.cancel()
+            self._set(mic=dict(self.state["mic"], listening=False))
+
+    def set_hands_free(self, on: bool) -> None:
+        """Listen for the next request after each one (mini window). Off: "stop listening", Esc, a click."""
+        on = bool(on) and bool(self.listener and self.listener.running)
+        self._set(window=dict(self.state["window"], hands_free=on))
+        if on:
+            self._listen_on()
+        elif self.listener and self._question is None:
+            self.listener.cancel()
+            self._set(mic=dict(self.state["mic"], listening=False, partial=""))
+
+    def _listen_on(self) -> None:
+        """Hands-free: listen for the next request (the microphone is muted while Cowork speaks)."""
+        window = self.state["window"]
+        if (window["mode"] == "mini" and window["hands_free"] and self.listener and self.listener.running
+                and self._question is None and not self.listener.listening):
+            self.listener.trigger(wait_s=HANDS_FREE_WAIT_S)
+            self._set(mic=dict(self.state["mic"], listening=True))
+
+    def mini_key(self, code: int) -> bool:
+        """A key pressed in any app while the mini window shows. Returns True if Cowork used it (it then
+        doesn't reach the app). Only while a question is open: Enter/Y yes, Esc/N no, 1-4 a square.
+        With no question, Esc stops hands-free listening (and still reaches the app)."""
+        if self.state["window"]["mode"] != "mini":
+            return False
+        question = self._question
+        if question is None:
+            if code == KEY_ESC and self.state["window"]["hands_free"]:
+                self.set_hands_free(False)
+            return False
+        if question.kind == "yes_no":
+            if code in (KEY_RETURN, KEY_ENTER, KEY_Y):
+                return self.answer("yes", source="keyboard")
+            if code in (KEY_ESC, KEY_N):
+                return self.answer("no", source="keyboard")
+        elif question.kind == "choice":
+            if code in KEY_DIGITS and KEY_DIGITS[code] < len(question.options):
+                return self.answer("pick", KEY_DIGITS[code], source="keyboard")
+            if code == KEY_ESC:
+                return self.answer("none", source="keyboard")
+        return False
+
+    def _after_action(self, command: str, args: dict, outcome, before) -> None:
+        """Another app was brought forward: shrink to the corner. The last app Cowork opened was
+        closed: back to full size."""
+        if not outcome.ok:
+            return
+        if command in MINI_AFTER:
+            app = args.get("app") or OPENS.get(command) or (self.state.get("screen") or {}).get("app", "")
+            if app:
+                if app in self._opened:
+                    self._opened.remove(app)
+                self._opened.append(app)
+            self.set_window("mini")
+        elif command in ("quit_app", "close_app"):
+            closed = args.get("app") or (before.app if before is not None else "")
+            last = self._opened[-1] if self._opened else None
+            if closed in self._opened:
+                self._opened.remove(closed)
+            if closed and (closed == last or not self._opened):
+                self.set_window("full")
+
+    @staticmethod
+    def spoken_question(card: dict, options: list) -> str:
+        """What the mini window says aloud for a question: "Did you mean: Open Mail?"."""
+        title = (card.get("title") or "").replace("\u2026", "").rstrip(" .?")
+        body = card.get("body") or ""
+        if options:
+            listed = ", ".join(f"{i + 1}: {o['text'].rstrip(chr(8230))}" for i, o in enumerate(options[:4]))
+            return f"{title}? {listed}."
+        return f"{title}: {body}?" if body else f"{title}?"
 
     # ---- inputs (any thread) ------------------------------------------------
 
@@ -466,6 +573,8 @@ class App:
 
     def mic_timeout(self) -> None:
         self._set(mic=dict(self.state["mic"], listening=False, partial=""))
+        if not self.busy:
+            self._listen_on()
 
     def heard_audio(self, path: str, segment=None, known=None, source: str = "microphone") -> None:
         """A finished request from the microphone (called on the microphone's thread).
@@ -746,6 +855,8 @@ class App:
                 self._question = None
                 self._notice(f"Something went wrong: {type(error).__name__}: {error}")
             self._set(status="ready", question=None, hold=None, counts=self._counts())
+            if self._requests.empty():
+                self._listen_on()   # mini window: hands-free, listen for the next request
 
     def _run_turn(self, request: dict) -> None:
         with self._lock:
@@ -774,7 +885,7 @@ class App:
                 sure = answer is not None and answer.kind == "yes"
             if sure:
                 heard, then_type = first, rest
-        address = None if parts else email_address(heard)
+        address = None if parts else (email_address(heard) or self._contact_address(heard))
         if address and self.session.actions is not None:
             try:
                 self._type_address(address)
@@ -798,6 +909,22 @@ class App:
         if pending:   # a sentence said during the correction window: the next request
             self._requests.put(("hear", {"text": pending, "source": request["source"], "rehear": None,
                                          "asr_ms": None}))
+
+    def _contact_address(self, heard: str) -> str | None:
+        """With the cursor in To or Cc, a contact's name ("me", "Anna") means their address."""
+        from rapidfuzz import fuzz
+        screen = self.state.get("screen") or {}
+        contacts = getattr(self.session.actions, "contacts", None)
+        if screen.get("field") not in ("to", "cc") or not isinstance(contacts, dict):
+            return None
+        said = " ".join(heard.lower().replace(".", " ").replace(",", " ").split())
+        for prefix in ("to ", "send it to ", "it's for ", "for "):
+            if said.startswith(prefix):
+                said = said[len(prefix):]
+        name = max(contacts, key=lambda n: fuzz.ratio(said, n.lower()), default=None)
+        if name and fuzz.ratio(said, name.lower()) >= 90 and "@" in str(contacts[name]):
+            return str(contacts[name])
+        return None
 
     def _type_address(self, address: str) -> None:
         """A spoken email address ("sam at gmail dot com"): easy to mishear, so always checked first."""
@@ -869,7 +996,11 @@ class App:
     def _card(self, shown: dict) -> dict:
         with self._lock:
             turn = self.state["turn"]
-        return wording.permission(shown, self.session.profile, turn)
+        card = wording.permission(shown, self.session.profile, turn)
+        app = (self.state.get("screen") or {}).get("app")
+        if app and (shown.get("data") or {}).get("choice") == "close_app":
+            card["body"] = f"Close the app ({app})"   # say which app "the app" is
+        return card
 
     def _ask(self, question):
         """Show a question and wait for an answer from any input."""
@@ -900,6 +1031,11 @@ class App:
         if self.camera is not None and question.kind in ("yes_no", "choice"):
             self.camera.want(True)
         self._set(event={"kind": "question", "stage": question.stage}, status="asking", question=shown)
+        if self.state["window"]["mode"] == "mini" and question.kind in ("yes_no", "choice"):
+            try:   # in the corner it is easy to miss: say the question (the microphone is muted meanwhile)
+                self.voice.speak(self.spoken_question(shown.get("card") or {}, (shown.get("card") or {}).get("options") or []))
+            except Exception:
+                pass
         if self.listener and self.listener.running and question.kind in ("yes_no", "choice", "window"):
             self.listener.trigger(wait_s=wait)   # a spoken "yes"/"no"/"two" can answer
         deadline = time.monotonic() + wait

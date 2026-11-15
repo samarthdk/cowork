@@ -11,7 +11,16 @@ desktop wallpaper, usually), exactly like Apple's own apps (NSVisualEffectView,
 a dark tint so text stays readable. Settings > "Glass / Plain" turns the blur off
 (the page tells the window through a small message handler, "cowork").
 
-    run_window("http://localhost:8765")      # blocks until the window is closed
+    run_window("http://localhost:8765", core)   # blocks until the window is closed
+
+The mini window (like your own video shrinking to a corner while you share your
+screen in a call): when a command brings another app forward, the full window is
+hidden and a small floating panel shows in the top right corner instead
+(ui/static/mini.html). It is a "non-activating" panel: clicking it, or it
+appearing, never takes the keyboard from the app being used, so typing still
+lands in Mail or Word. While a question is open in it, Enter/Esc/Y/N/1-4 answer
+it (caught before they reach the app; see App.mini_key); at other times keys
+pass straight through, and Esc also stops hands-free listening.
 """
 
 import os
@@ -19,7 +28,7 @@ import signal
 
 import objc
 from AppKit import (NSAppearance, NSApplication, NSApplicationActivationPolicyRegular, NSBackingStoreBuffered,
-                    NSColor, NSMakeRect, NSMenu, NSMenuItem, NSObject, NSVisualEffectView, NSWindow)
+                    NSColor, NSMakeRect, NSMenu, NSMenuItem, NSObject, NSPanel, NSScreen, NSVisualEffectView, NSWindow)
 from Foundation import NSURL, NSURLRequest
 from PyObjCTools import AppHelper
 from WebKit import WKUserContentController, WKWebView, WKWebViewConfiguration
@@ -28,6 +37,10 @@ STYLE = 1 | 2 | 4 | 8 | (1 << 15)   # titled, closable, miniaturizable, resizabl
 TITLEBAR = 28                        # the window's own (draggable) title bar, above the page
 MATERIAL_UNDER_WINDOW = 21           # NSVisualEffectMaterialUnderWindowBackground
 BEHIND_WINDOW, ACTIVE = 0, 1
+MINI_WIDTH, MINI_HEIGHT, MINI_MARGIN = 360, 96, 16
+NONACTIVATING_PANEL = 1 << 7          # NSWindowStyleMaskNonactivatingPanel: never takes the keyboard
+FLOATING_LEVEL = 3                    # NSFloatingWindowLevel: above ordinary windows
+ALL_SPACES = (1 << 0) | (1 << 8)      # every desktop, and over full-screen apps
 
 
 def _quit(*_):
@@ -38,19 +51,97 @@ WKScriptMessageHandler = objc.protocolNamed("WKScriptMessageHandler")
 
 
 class _Bridge(NSObject, protocols=[WKScriptMessageHandler]):
-    """Messages from the page: {"glass": true/false}."""
+    """Messages from the pages: {"glass": true/false} (full window), {"mini_height": n} (mini window)."""
     def initWithWindow_effect_(self, window, effect):
         self = objc.super(_Bridge, self).init()
-        self.window, self.effect = window, effect
+        self.window, self.effect, self.mini = window, effect, None
         return self
 
     def userContentController_didReceiveScriptMessage_(self, controller, message):
         body = message.body()
         try:
+            if "mini_height" in body:
+                if self.mini is not None:
+                    place_mini(self.mini, float(body["mini_height"]))
+                return
             glass = bool(body["glass"])
         except Exception:
             return
         set_glass(self.window, self.effect, glass)
+
+
+class _FirstClickWebView(WKWebView):
+    """A click on the mini window works the first time, without making Cowork the active app."""
+    def acceptsFirstMouse_(self, event):
+        return True
+
+
+def place_mini(panel, height: float | None = None) -> None:
+    """Keep the mini window in the top right corner of the main screen, as tall as its content."""
+    area = NSScreen.mainScreen().visibleFrame()
+    height = max(MINI_HEIGHT, min(height or panel.frame().size.height, 520))
+    x = area.origin.x + area.size.width - MINI_WIDTH - MINI_MARGIN
+    y = area.origin.y + area.size.height - height - MINI_MARGIN
+    panel.setFrame_display_(NSMakeRect(x, y, MINI_WIDTH, height), True)
+
+
+def make_mini(url: str, controller):
+    """The small floating window: non-activating, on every desktop, see-through."""
+    config = WKWebViewConfiguration.alloc().init()
+    config.setUserContentController_(controller)
+    panel = NSPanel.alloc().initWithContentRect_styleMask_backing_defer_(
+        NSMakeRect(0, 0, MINI_WIDTH, MINI_HEIGHT), NONACTIVATING_PANEL, NSBackingStoreBuffered, False)
+    panel.setLevel_(FLOATING_LEVEL)
+    panel.setCollectionBehavior_(ALL_SPACES)
+    panel.setFloatingPanel_(True)
+    panel.setHidesOnDeactivate_(False)      # stays while another app is in front (that is the point)
+    panel.setBecomesKeyOnlyIfNeeded_(True)
+    panel.setOpaque_(False)
+    panel.setBackgroundColor_(NSColor.clearColor())
+    panel.setHasShadow_(True)
+    panel.setAppearance_(NSAppearance.appearanceNamed_("NSAppearanceNameDarkAqua"))
+    web = _FirstClickWebView.alloc().initWithFrame_configuration_(NSMakeRect(0, 0, MINI_WIDTH, MINI_HEIGHT), config)
+    web.setAutoresizingMask_(2 | 16)
+    web.setValue_forKey_(False, "drawsBackground")
+    panel.setContentView_(web)
+    web.loadRequest_(NSURLRequest.requestWithURL_(NSURL.URLWithString_(url + "/mini")))
+    place_mini(panel)
+    return panel
+
+
+def watch_keys(core):
+    """Keys pressed in any app while the mini window shows go to core.mini_key first; a key it
+    uses (answering an open question) is kept from the app. Needs the Accessibility permission
+    (already needed for typing). Returns the tap, or None if macOS doesn't allow it."""
+    import Quartz
+    own = os.getpid()
+    holder = {}
+
+    def on_key(proxy, kind, event, refcon):
+        if kind in (Quartz.kCGEventTapDisabledByTimeout, Quartz.kCGEventTapDisabledByUserInput):
+            Quartz.CGEventTapEnable(holder["tap"], True)
+            return event
+        try:
+            if Quartz.CGEventGetIntegerValueField(event, Quartz.kCGEventSourceUnixProcessID) == own:
+                return event   # Cowork's own typing
+            flags = Quartz.CGEventGetFlags(event) & (Quartz.kCGEventFlagMaskCommand | Quartz.kCGEventFlagMaskControl
+                                                     | Quartz.kCGEventFlagMaskAlternate)
+            if not flags and core.mini_key(int(Quartz.CGEventGetIntegerValueField(event, Quartz.kCGKeyboardEventKeycode))):
+                return None    # it answered the question: the app doesn't get it
+        except Exception:
+            pass
+        return event
+
+    tap = Quartz.CGEventTapCreate(Quartz.kCGSessionEventTap, Quartz.kCGHeadInsertEventTap,
+                                  Quartz.kCGEventTapOptionDefault, Quartz.CGEventMaskBit(Quartz.kCGEventKeyDown),
+                                  on_key, None)
+    if tap is None:
+        return None
+    holder["tap"] = tap
+    source = Quartz.CFMachPortCreateRunLoopSource(None, tap, 0)
+    Quartz.CFRunLoopAddSource(Quartz.CFRunLoopGetMain(), source, Quartz.kCFRunLoopCommonModes)
+    Quartz.CGEventTapEnable(tap, True)
+    return tap, source, on_key
 
 
 class _Closer(NSObject):
@@ -87,7 +178,8 @@ def _menus(app) -> None:
     app.setMainMenu_(bar)
 
 
-def run_window(url: str, title: str = "Cowork", width: int = 1380, height: int = 880, glass: bool = True) -> None:
+def run_window(url: str, core=None, title: str = "Cowork", width: int = 1380, height: int = 880,
+               glass: bool = True) -> None:
     app = NSApplication.sharedApplication()
     app.setActivationPolicy_(NSApplicationActivationPolicyRegular)
     _menus(app)
@@ -130,6 +222,29 @@ def run_window(url: str, title: str = "Cowork", width: int = 1380, height: int =
         AppHelper.callLater(8.0, report)
     bridge = _Bridge.alloc().initWithWindow_effect_(window, effect)
     controller.addScriptMessageHandler_name_(bridge, "cowork")
+    keys = None
+    if core is not None:   # the mini window, and the switch between the two
+        mini_controller = WKUserContentController.alloc().init()
+        mini_controller.addScriptMessageHandler_name_(bridge, "cowork")
+        bridge.mini = make_mini(url, mini_controller)
+
+        def switch(mode):
+            def apply():
+                if mode == "mini":
+                    window.orderOut_(None)                  # hidden, not closed (closing quits Cowork)
+                    place_mini(bridge.mini)
+                    bridge.mini.orderFrontRegardless()      # shown without taking the keyboard
+                else:
+                    bridge.mini.orderOut_(None)
+                    window.makeKeyAndOrderFront_(None)
+                    app.activateIgnoringOtherApps_(True)
+            AppHelper.callAfter(apply)
+
+        core.window_hook = switch
+        keys = watch_keys(core)
+        if keys is None:
+            print("Mini window: keys can't answer its questions (macOS didn't allow listening to keys); "
+                  "thumbs, voice and clicks still work.")
     set_glass(window, effect, glass)
     web.loadRequest_(NSURLRequest.requestWithURL_(NSURL.URLWithString_(url)))
 
@@ -142,5 +257,5 @@ def run_window(url: str, title: str = "Cowork", width: int = 1380, height: int =
     from Foundation import NSTimer
     signal.signal(signal.SIGINT, _quit)   # Ctrl+C in Terminal stops it
     NSTimer.scheduledTimerWithTimeInterval_target_selector_userInfo_repeats_(0.25, closer, "tick:", None, True)
-    run_window.keep = (bridge, closer)    # keep the Objective-C helpers alive
+    run_window.keep = (bridge, closer, keys)    # keep the Objective-C helpers alive
     AppHelper.runEventLoop()

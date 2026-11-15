@@ -42,6 +42,7 @@ MIN_SPEECH_RMS = 0.0015     # ...and at least this loud (about -56 dBFS: very qu
 NOISE_WINDOW_S = 5.0        # the room level is the quietest moments of the last few seconds
 NOISE_PERCENTILE = 15       # ...measured all the time, even during speech (speech has gaps)
 WARM_UP_FRAMES = 25         # no request can start before the room has been measured (0.5 s)
+SILENT = bool(__import__("os").environ.get("COWORK_TEST_SILENT_MIC"))   # tests: hear nothing from the room
 PARTIAL_EVERY_S = 1.0       # while someone speaks, hand on the audio so far this often (for partial words)
 
 
@@ -210,6 +211,9 @@ class Listener:
     # ---- audio ----------------------------------------------------------
 
     def _on_audio(self, indata, frames, time_info, status) -> None:
+        if SILENT:   # tests only: the microphone runs, but the room is not heard
+            self.frames.put(np.zeros(len(indata), dtype=indata.dtype))
+            return
         self.frames.put(indata[:, 0].copy())
 
     def _work(self) -> None:

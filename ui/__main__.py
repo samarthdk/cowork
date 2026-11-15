@@ -76,6 +76,8 @@ def main(argv=None) -> None:
     parser.add_argument("--dictation", action="store_true",
                         help="start with dictation on: confirmed sentences are typed into the app you were using")
     parser.add_argument("--profile", choices=sorted(PROFILES), default="cowork")
+    parser.add_argument("--work-profile", type=Path, default=None,
+                        help="learn into this file instead (for tests: the person's own profile is not touched)")
     parser.add_argument("--port", type=int, default=config.UI_PORT)
     parser.add_argument("--browser", action="store_true", help="open the page in Safari instead of a window")
     parser.add_argument("--no-window", "--no-browser", dest="no_window", action="store_true")
@@ -88,7 +90,7 @@ def main(argv=None) -> None:
     if options.real:
         config.ASR = config.LLM = config.TTS = config.ACTIONS = "real"
     base, working, fake_working = PROFILES[options.profile]
-    profile_path = fake_working if options.fake else working
+    profile_path = options.work_profile or (fake_working if options.fake else working)
 
     from actions import get_actions
     from asr import get_asr
@@ -183,7 +185,7 @@ def main(argv=None) -> None:
         sys.exit("The local server did not start. Is another copy of Cowork already running?")
     print("Close the Cowork window (or press Ctrl+C here) to stop.")
     from ui.window import run_window
-    run_window(url)
+    run_window(url, core)
 
 
 if __name__ == "__main__":

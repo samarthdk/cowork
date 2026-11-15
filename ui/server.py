@@ -3,6 +3,9 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
 
     GET  /              the Cowork page (ui/static/cowork.html)
     GET  /classic       the earlier Second Voice page (ui/static/index.html)
+    GET  /mini          the small window in the corner (ui/static/mini.html)
+    POST /api/window    {"mode": "mini"|"full"}      shrink to the corner / back to the full window
+    POST /api/handsfree {"on": false}                 stop (or start) listening hands-free
     GET  /api/camera.jpg the newest camera preview frame (only while a question is open)
     POST /api/clip      {"id": "M04_2_0015"}    play a TORGO test clip as if it were said
     POST /api/new       clear the conversation on screen (nothing learned is forgotten)
@@ -19,6 +22,7 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
 
 import asyncio
 import json
+import os
 from pathlib import Path
 
 from fastapi import Body, FastAPI
@@ -28,6 +32,7 @@ from ui.app import App
 
 PAGE = Path(__file__).parent / "static" / "cowork.html"
 CLASSIC = Path(__file__).parent / "static" / "index.html"
+MINI = Path(__file__).parent / "static" / "mini.html"
 KEEP_ALIVE_S = 15
 
 
@@ -41,6 +46,27 @@ def create_server(core: App) -> FastAPI:
     @server.get("/classic")
     def classic():
         return FileResponse(CLASSIC, headers={"Cache-Control": "no-store"})
+
+    if os.environ.get("COWORK_TEST_AUDIO"):   # tests only (off unless set): feed a recording as if the microphone heard it
+        @server.post("/api/test_audio")
+        def test_audio(body: dict = Body(...)):
+            import threading
+            threading.Thread(target=core.heard_audio, args=(str(body.get("path", "")),), daemon=True).start()
+            return {"ok": True}
+
+    @server.get("/mini")
+    def mini():
+        return FileResponse(MINI, headers={"Cache-Control": "no-store"})
+
+    @server.post("/api/window")
+    def window(body: dict = Body(...)):
+        core.set_window(str(body.get("mode", "")))
+        return {"ok": True, "window": core.state["window"]}
+
+    @server.post("/api/handsfree")
+    def hands_free(body: dict = Body(...)):
+        core.set_hands_free(bool(body.get("on")))
+        return {"ok": True, "window": core.state["window"]}
 
     @server.get("/api/camera.jpg")
     def camera_frame():

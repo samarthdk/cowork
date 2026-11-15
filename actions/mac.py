@@ -127,6 +127,21 @@ def front_windows() -> list[dict]:
     return found
 
 
+def focused_pid() -> int | None:
+    """The app that has the keyboard right now, asked of the system directly (None if it can't say).
+    Measured: an app's window can be on top while another app still has the keyboard; a Command+Q
+    for Mail then reached Word (which offered to save its document)."""
+    try:
+        import ApplicationServices as AS
+        error, app = AS.AXUIElementCopyAttributeValue(AS.AXUIElementCreateSystemWide(), "AXFocusedApplication", None)
+        if error != 0 or app is None:
+            return None
+        error, pid = AS.AXUIElementGetPid(app, None)
+        return int(pid) if error == 0 else None
+    except Exception:
+        return None
+
+
 class FrontApp:
     """Remembers the app the person was last using that is not Second Voice
     (this process). Checked a few times a second in the background."""
@@ -191,15 +206,14 @@ class FrontApp:
         app = NSRunningApplication.runningApplicationWithProcessIdentifier_(self.pid)
         if app is None or not pid_alive(self.pid):
             return False
-        if front_windows()[:1] and front_windows()[0]["pid"] == self.pid:
+        if self.in_front():
             return True
         # Activate it directly first. ("open -b" sends a "reopen" event: measured, Chrome then shows
         # its "Who's using Chrome?" window, which takes the keystrokes.) "open" only as a fallback.
         app.activateWithOptions_(2)   # NSApplicationActivateIgnoringOtherApps
         end = time.monotonic() + 0.8
         while time.monotonic() < end:
-            windows = front_windows()
-            if windows and windows[0]["pid"] == self.pid:
+            if self.in_front():
                 time.sleep(0.15)
                 return True
             time.sleep(0.05)
@@ -208,12 +222,19 @@ class FrontApp:
             subprocess.run(["open", "-b", bundle], capture_output=True, timeout=config.ACTION_TIMEOUT_S)
         end = time.monotonic() + 2.0
         while time.monotonic() < end:
-            windows = front_windows()
-            if windows and windows[0]["pid"] == self.pid:
+            if self.in_front():
                 time.sleep(0.15)   # let it settle before keys arrive
                 return True
             time.sleep(0.05)
         return False
+
+    def in_front(self) -> bool:
+        """Its window is on top AND it has the keyboard (keys go to the app with the keyboard)."""
+        windows = front_windows()
+        if not windows or windows[0]["pid"] != self.pid:
+            return False
+        focused = focused_pid()
+        return focused is None or focused == self.pid
 
     def stop(self):
         self._stop.set()
@@ -367,7 +388,16 @@ class MacActions:
                 return ActionResult(False, problem=done.stderr.strip() or f"Could not open {app}.")
         detail = f"Opened {app}"
         # It becomes the app being worked in (and typed into). Nothing else is done to it.
-        if app not in NOT_A_TARGET and self.front.wait_until_front(app, LAUNCH_WAIT_S):
+        if app not in NOT_A_TARGET:
+            in_front = self.front.wait_until_front(app, LAUNCH_WAIT_S if not windows else 2.0)
+            if not in_front:   # measured: Mail, still starting up, took the front back from Word
+                windows = self.front.windows_of(app)
+                if windows:
+                    self.front._remember(windows[0]["pid"], app)
+                in_front = self.front.bring_forward() and self.front.wait_until_front(app, 3.0)
+            if not in_front:
+                return ActionResult(False, problem=f"{app} is open but didn't come to the front. "
+                                                   f"Click its window, or say \u201copen {app}\u201d again.")
             detail += " · typing goes here"
 
         def undo():
@@ -514,9 +544,7 @@ class MacActions:
         screen = self.screen()
         if screen.app != "Mail" or screen.place != "new email":
             return ActionResult(False, problem="There's no email open to send. Say \u201cwrite an email\u201d first.")
-        fields = mail_fields(screen.pid)
-        to = " ".join(value_of(fields[k]) for k in ("to", "cc", "bcc") if k in fields)
-        to = [w.strip(" ,;<>").lower() for w in to.replace(",", " ").split() if "@" in w]
+        to = self._recipients(screen)
         allowed = self.contacts.get(config.SEND_ONLY_TO, "").lower()
         if not to:
             return ActionResult(False, problem="The email has no address in To yet. The email is still open in Mail.")
@@ -533,6 +561,32 @@ class MacActions:
         if after.place == "new email":
             return ActionResult(False, problem="Mail didn't send it (the email is still open).")
         return ActionResult(True, say="Your email was sent.", detail="Sent the email")
+
+    def _recipients(self, screen) -> list[str]:
+        """Every address in To, Cc and Bcc of the email on screen. Mail shows a known person as their
+        name (measured: the chip says "Samarth Skywards", not the address), so then the draft is saved
+        and the addresses are read from Mail itself; every saved draft with this subject counts, so a
+        stray address anywhere means no."""
+        from actions.screen import _attr
+        fields = mail_fields(screen.pid)
+        shown = []
+        for key in ("to", "cc", "bcc"):
+            if key in fields:
+                shown += [part.strip(" ,;<>").lower() for part in value_of(fields[key]).split(",") if part.strip(" ,;<>")]
+        if all("@" in part for part in shown):
+            return shown
+        subject = value_of(fields["subject"]) if "subject" in fields else ""
+        if not self._key("s", command_key=True).ok:   # save the draft, so Mail can say who it is for
+            return []
+        time.sleep(1.2)
+        ok, output = run_applescript([
+            "on run argv", 'tell application "Mail"', 'set found to ""',
+            "repeat with m in (messages of drafts mailbox whose subject is (item 1 of argv))",
+            "repeat with r in ((to recipients of m) & (cc recipients of m) & (bcc recipients of m))",
+            'set found to found & (address of r) & linefeed', "end repeat", "end repeat",
+            "return found", "end tell", "end run"], subject)
+        found = [line.strip().lower() for line in output.splitlines() if line.strip()] if ok else []
+        return found if len(found) >= len(shown) else []   # every chip must have an address
 
     def _do_type_text(self, args: dict) -> ActionResult:
         text = args.get("text", "")
@@ -735,9 +789,11 @@ class MacActions:
             return ActionResult(False, problem="There is nothing to search for.")
         screen = self.screen()
         if screen.app in BROWSERS:
-            if screen.field != "address":
+            for _ in range(2):   # measured: Chrome builds what Accessibility sees only when first asked
+                if screen.field == "address":
+                    break
                 self._key("l", command_key=True)   # the address bar of the page on screen
-                screen = self._wait_for(lambda s: s.field == "address", 1.5, 0.1)
+                screen = self._wait_for(lambda s: s.field == "address", 2.5, 0.15)
             if screen.field != "address":
                 return ActionResult(False, problem="Couldn't put the cursor in the address bar.")
         elif not screen.search:
