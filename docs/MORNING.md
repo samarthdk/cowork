@@ -74,7 +74,7 @@ Script with timings, what to say and what to click: `docs/video_script.md`.
 
 4. Final check that nothing personal is included (this should print nothing):
 
-       git ls-files | grep -E "contacts.json|/profile.json|cowork_profile|tasks.json|datasets/|cache/|logs/|\.wav|\.m4a"
+       git ls-files | grep -E "contacts.json|/profile.json|cowork_profile.json|tasks.json|datasets/|cache/|logs/|\.wav|\.m4a"
 
 **Please decide:** every commit lists your email address (samarthkambli.sk@gmail.com) as its author, and GitHub
 will show it. It is never inside a file. History was not rewritten (as asked). If you'd rather hide it in future
