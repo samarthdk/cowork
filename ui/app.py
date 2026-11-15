@@ -1308,6 +1308,19 @@ class App:
         if self.dictation_edit(heard):   # "delete that", "period"... while dictating
             self._finish_turn()
             return
+        from ui.screen_rules import cannot_do, mumble
+        if mumble(heard):   # only "mm", "uh": nothing to guess from
+            with self._lock:
+                self.state["turn"]["items"].append({"type": "reply", "text": "I couldn't make out any words. Try again."})
+            self._finish_turn()
+            return
+        refusal = cannot_do(heard)
+        if refusal:   # never attempted: said kindly, no question
+            with self._lock:
+                self.state["turn"]["request"] = heard.strip()
+                self.state["turn"]["items"].append({"type": "reply", "text": refusal})
+            self._finish_turn()
+            return
         parts = split_compound(heard)
         if parts:
             first, rest, sure = parts

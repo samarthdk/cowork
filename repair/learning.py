@@ -112,3 +112,34 @@ def prompt_examples(profile: dict, count: int | None = None) -> list[tuple[str, 
     count = config.PROMPT_EXAMPLES if count is None else count
     usable = [e for e in profile.get("examples", []) if _usable(e, profile)]
     return [(e["heard"], meaning_label(e["meant"], e["args"], profile)) for e in usable[-count:]] if count else []
+
+
+OPEN_WORDS = ("open", "launch", "start", "can you open", "please open", "open up")
+
+
+def open_app_match(heard: str, profile: dict, apps: list[str]) -> FastMatch | None:
+    """"open Safari", "launch Microsoft Word", "open word": an app on this Mac named clearly. Recognised
+    without the model (measured: Bonsai sometimes took "open Safari" for "new tab")."""
+    from rapidfuzz import fuzz
+    start = time.perf_counter()
+    if not apps or not any(c["name"] == "open_app" for c in profile["commands"]):
+        return None
+    text = normalize(heard)
+    rest = next((text[len(w) + 1:] for w in sorted(OPEN_WORDS, key=len, reverse=True) if text.startswith(w + " ")), "")
+    rest = rest.removeprefix("the ").removesuffix(" app").strip()
+    if not rest or len(rest.split()) > 3:
+        return None
+    scored = []
+    for app in apps:
+        short = app.replace("Microsoft ", "").replace("Google ", "")
+        scored.append((max(fuzz.ratio(rest, normalize(app)), fuzz.ratio(rest, normalize(short))), app))
+    scored.sort(reverse=True)
+    if not scored or scored[0][0] < 90 or (len(scored) > 1 and scored[1][0] >= 90 and scored[1][1] != scored[0][1]):
+        return None   # not clearly one app: the Brain decides (and asks if unsure)
+    app = scored[0][1]
+    intent = Intent("open_app", "command", {name: "" for name in all_arg_names(profile)}, "high",
+                    fill_options("open_app", [], all_choices(profile)))
+    intent.args["app"] = app
+    latency = (time.perf_counter() - start) * 1000
+    log_call("repair", "fast_path", latency, similarity=round(scored[0][0]), matched="open <app>", meant=f"open_app {app}")
+    return FastMatch(intent, scored[0][0], {"heard": heard, "meant": "open_app", "args": {"app": app}, "builtin": True}, latency)

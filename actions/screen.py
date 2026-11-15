@@ -84,7 +84,8 @@ class Screen:
         if self.choices:
             text += f" (choices: {', '.join(self.choices)})"
         if self.focus:
-            text += f"; cursor in {self.focus}" + ("" if self.typeable or self.search else " (nothing to type into)")
+            focus = self.focus if len(self.focus) <= 40 else self.focus[:40].rsplit(" ", 1)[0] + "..."   # a label, not content
+            text += f"; cursor in {focus}" + ("" if self.typeable or self.search else " (nothing to type into)")
         else:
             text += "; nothing to type into"
         return text + "."

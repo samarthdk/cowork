@@ -73,3 +73,33 @@ def remap(command: str, screen) -> str:
     if screen is not None and screen.place == "new email":
         return {"go_back": "previous_field", "go_forward": "next_field"}.get(command, command)
     return command
+
+
+FILLER_SOUNDS = {"mm", "mmm", "hm", "hmm", "uh", "um", "umm", "uhm", "ah", "er", "erm", "eh", "huh", "oh", "ehm"}
+CANNOT = [   # (pattern, what Cowork says): things it never attempts, said kindly instead of asking about them
+    (r"\b(wi ?fi|wireless|bluetooth|shut ?down|restart|reboot|log ?out|sign out of the mac|turn off the (computer|mac)|"
+     r"system settings|settings app|install|uninstall|update (the )?(mac|macos|system))\b",
+     "I can't change the Mac's settings or install things. That is done in System Settings."),
+    (r"\b(delete|erase|wipe|remove|format|trash)\b.*\b(all my|everything|files|folders?|disk|drive|my computer|the mac)\b",
+     "I won't delete files or erase things. I only work in the app in front of you, and I ask before anything that "
+     "can't be undone."),
+    (r"^(please |can you |could you )?(book|buy|order|purchase|pay|transfer|send money)\b",
+     "I can't book or buy things: I work offline, without the internet."),
+    (r"\bignore (your|all|the|previous|my) (instructions|rules)\b",
+     "I can't do that. I only do what you ask for, from my list of actions, and I check first."),
+]
+
+
+def mumble(text: str) -> bool:
+    """Only sounds like "mm", "uh": nothing to understand (no guess is offered)."""
+    words = words_of(text)
+    return bool(words) and all(w in FILLER_SOUNDS for w in words)
+
+
+def cannot_do(text: str) -> str:
+    """'' or a kind sentence saying why Cowork won't attempt this (system settings, deleting files, buying...)."""
+    said = " ".join(words_of(text))
+    for pattern, reply in CANNOT:
+        if re.search(pattern, said):
+            return reply
+    return ""
