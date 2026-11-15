@@ -47,25 +47,19 @@ check("the `say` command is never run", bool(re.search(r"""(Popen|run|call|check
 check("no Mac voice (AVSpeechSynthesizer) anywhere", "AVSpeech" in code or "MacVoice" in code, False)
 check("tts/mac_voice.py removed", (config.ROOT / "tts" / "mac_voice.py").exists(), False)
 
-# ---- lines from pieces ---------------------------------------------------------------------
-check("a command's sentence: whole, or split by its template",
-      lines.ways("Opening Microsoft Word.", BASE), [["Opening Microsoft Word."], ["Opening", "Microsoft Word"]])
-check("a request: 'Open Mail' -> 'Open' + 'Mail'", lines.ways("Open Mail", BASE)[-1], ["Open", "Mail"])
-check("a yes/no question", lines.question_line({"title": "Did you mean…?", "body": "Open Mail"}), ["Did you mean", "Open Mail"])
-check("a grid question: numbers and options",
-      lines.question_line({"title": "Which one did you mean?", "options": [{"text": "Open Mail"}, {"text": "Something else…"}]}),
-      ["Which one did you mean?", "One.", "Open Mail", "Two.", "Something else…"])
-ready = {"Did you mean", "Open", "Mail", "Which one did you mean?", "One.", "Two.", "Something else"}
-check("chosen pieces: each part its first ready way",
-      lines.choose(["Did you mean", "Open Mail"], BASE, ready.__contains__), ["Did you mean", "Open", "Mail"])
-check("one part not ready: nothing (never half a line)",
-      lines.choose(["Did you mean", "Open Safari"], BASE, ready.__contains__), None)
-check("ellipsis and quotes are not spoken", lines.clean("“Something else…”"), "Something else")
+# ---- whole sentences only (never stitched) ---------------------------------------------------
+check("no stitching code left", any(name in code for name in ("_join(", "gap_after", "lines.choose", "parts_of")), False)
+check("a yes/no question is one sentence", lines.question_line({"title": "Did you mean\u2026?", "body": "Open Mail"}),
+      "Did you mean: Open Mail?")
+check("a grid question is one sentence",
+      lines.question_line({"title": "Which one did you mean?", "options": [{"text": "Open Mail"}, {"text": "Something else\u2026"}]}),
+      "Which one did you mean? 1: Open Mail, 2: Something else.")
+check("ellipsis and quotes are not spoken", lines.clean("\u201cSomething else\u2026\u201d"), "Something else")
 everything = lines.to_prepare(BASE, ["Mail"])
-check("prepared: prompt pieces", all(p in everything for p in ("Did you mean", "Which one did you mean?", "Yes.", "Done.", "Opening")), True)
-check("prepared: every phrase", all(lines.clean(p) in everything for p in BASE["phrases"]), True)
-check("prepared: the meeting quick phrases", all(p in everything for p in lines.MEETING), True)
-check("prepared: numbers and demo apps", all(p in everything for p in ("One.", "Four.", "Microsoft Word", "Mail")), True)
+check("prepared whole: every phrase", all(lines.clean(p) in everything for p in BASE["phrases"]), True)
+check("prepared whole: the meeting quick phrases", all(p in everything for p in lines.MEETING), True)
+check("prepared whole: commands' steps and 'Opening <app>.'", all(p in everything for p in ("Scrolling down.", "Opening Mail.", "Opening Microsoft Word.")), True)
+check("no short pieces prepared", any(p in everything for p in ("Did you mean", "Open", "One.", "Mail")), False)
 
 # ---- the real voice, with TTSKit and the player stood in for -------------------------------------
 cache = Path(tempfile.mkdtemp())
@@ -115,36 +109,33 @@ def synth(text):
 
 voice._synthesize = synth
 voice.available = lambda: ""
-for piece in ("Did you mean", "Open", "Mail"):
-    tone(voice.cached_path(piece))
+tone(voice.cached_path("Opening Mail."))
 
-check("ready line", voice.ready(["Did you mean", "Open Mail"]), True)
+check("ready sentence", voice.ready("Opening Mail."), True)
 start = time.perf_counter()
-check("  ...is spoken", voice.speak(["Did you mean", "Open Mail"]), True)
+check("  ...is spoken", voice.speak("Opening Mail."), True)
 took = (time.perf_counter() - start) * 1000
-check("  ...as one sound file (pieces joined)", played[-1].endswith("secondvoice_line.wav"), True)
 check("  ...first sound quickly (under 100 ms here)", took < 100, True)
 with wave.open(played[-1], "rb") as w:
-    joined_s = w.getnframes() / w.getframerate()
-check("  ...quiet edges trimmed, short gaps added (3 x 0.46 s + 2 gaps)",
-      round(joined_s, 1), round(3 * (0.4 + 2 * real.EDGE_S) + 2 * lines.GAP_S, 1))
+    played_s = w.getnframes() / w.getframerate()
+check("  ...the click and quiet edges trimmed (one whole sentence, 0.4 s + edges)", round(played_s, 2), round(0.4 + 2 * real.EDGE_S, 2))
 check("  ...no TTSKit needed", made, [])
 
 delay["s"] = 0.5
 check("not ready, made within 2 s: still spoken", voice.speak("Opening Safari."), True)
-check("  ...made by TTSKit just now (whole part, urgently)", (made, voice.last.get("made_now")), (["Opening Safari."], True))
+check("  ...made by TTSKit just now, whole", (made, voice.last.get("made_now")), (["Opening Safari."], True))
 check("  ...and cached for next time", voice.ready("Opening Safari."), True)
 
 delay["s"] = 3.0
 made.clear()
 before = len(played)
 start = time.perf_counter()
-check("not ready within 2 s: silent", voice.speak(["Did you mean", "Search for cats"]), False)
+check("not ready within 2 s: silent", voice.speak("Searching for cats."), False)
 check("  ...after about 2 s", round(time.perf_counter() - start), 2)
-check("  ...nothing played (never half a line)", len(played), before)
-check("  ...but it is being made for next time", made, ["Search for cats"])
+check("  ...nothing played", len(played), before)
+check("  ...but it is being made, whole, for next time", made, ["Searching for cats."])
 time.sleep(1.2)
-check("  ...and is ready afterwards", voice.ready(["Did you mean", "Search for cats"]), True)
+check("  ...and is ready afterwards", voice.ready("Searching for cats."), True)
 
 delay["s"] = 0.3
 check("wait=True (Conference mode): waits however long", voice.speak("A brand new sentence for the room.", wait=True), True)
@@ -160,7 +151,9 @@ time.sleep(1.0)
 
 # ---- the app: speaking on by default, mic paused while anything plays -----------------------
 core = App(copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions())
-check("speaking is on by default", (core.state["voice"]["on"], core.voice.enabled), (True, True))
+check("speaking is off by default (Computer mode)", (core.state["voice"]["on"], core.voice.enabled), (False, False))
+check("  ...a line is then not said, and the screen is told so", core.voice.speak("Hello."), False)
+core.set_voice(True)
 
 
 class Listener:
@@ -200,7 +193,14 @@ time.sleep(0.2)
 check("mini: question not ready to say -> one chime", len(chimes), 1)
 check("  ...and the window glows", core.state["attention"], True)
 check("  ...nothing was said", core.voice.tts.said, [])
+qid = core.state["question"]["id"]
 core.answer("no")
+end = time.monotonic() + 5
+while (core.state["question"] is None or core.state["question"]["id"] == qid) and time.monotonic() < end:
+    time.sleep(0.02)
+time.sleep(0.2)
+check("  ...the next question (the grid) chimes and glows too", (len(chimes), core.state["attention"]), (2, True))
+core.answer("none")
 end = time.monotonic() + 5
 while core.state["attention"] and time.monotonic() < end:
     time.sleep(0.02)

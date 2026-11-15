@@ -47,6 +47,18 @@ def _upgrade(profile: dict, base: dict) -> None:
     for command in profile["commands"]:
         if "safety" not in command and base_safety.get(command["name"]):
             command["safety"] = base_safety[command["name"]]
+    # Commands added to the base later (e.g. open_latest_email) join the working copy, and the
+    # base's wording of a command (description, how people say it) is kept up to date.
+    # What was learned (examples, phrases, vocabulary) is never touched.
+    have = {c["name"]: c for c in profile["commands"]}
+    for command in base.get("commands", []):
+        mine = have.get(command["name"])
+        if mine is None:
+            profile["commands"].append(json.loads(json.dumps(command)))
+        else:
+            for key in ("description", "said_as"):
+                if key in command:
+                    mine[key] = command[key]
 
 
 def save_profile(profile: dict, path=None) -> None:

@@ -267,10 +267,9 @@ class Session:
         first, even at high confidence."""
         profile = self.profile
         if self.conference and intent.choice and find_command(profile, intent.choice):
-            if intent.confidence == "high":   # clearly a command: not carried out in Conference mode
-                self.emit("command_off", meaning=describe(intent.choice, intent.args, profile))
-                return None
-            return (yield from self._choose_from_options(heard, intent, (intent.choice,), context))
+            # A command: not carried out in Conference mode (sure or not), and nothing is said.
+            self.emit("command_off", meaning=describe(intent.choice, intent.args, profile))
+            return None
         if intent.confidence == "high" and not is_risky(profile, intent.choice) and not self.conference:
             return Result(intent.choice, intent.args, "confident")
 

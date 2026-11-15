@@ -112,13 +112,34 @@
       "request": "Send the email"
     },
     {
+      "name": "open_latest_email",
+      "description": "Open the newest email in the inbox in its own window (Mail), to look at it. Any wording: open my latest email, open the newest email, show my last email.",
+      "safety": "safe",
+      "args": {},
+      "said_as": [
+        "open my latest email",
+        "open the newest email",
+        "show my last email",
+        "open my last email",
+        "show my latest email",
+        "open the latest email",
+        "show the newest email",
+        "open my newest email"
+      ],
+      "say": "Opening your latest email.",
+      "request": "Open my latest email"
+    },
+    {
       "name": "read_latest_email",
-      "description": "Read the newest email out loud.",
+      "description": "Read the newest email OUT LOUD (only when the person asks to hear it: read out, read aloud).",
       "safety": "safe",
       "args": {},
       "said_as": [
         "read email",
-        "read my mail"
+        "read my mail",
+        "read out my latest email",
+        "read my latest email aloud",
+        "read out my email"
       ],
       "say": "Reading your latest email.",
       "request": "Read my latest email"
@@ -352,7 +373,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     },
     {
       "heard": "Well...",
@@ -360,7 +381,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     },
     {
       "heard": "You wish... to meet another horrible grandfiler.",
@@ -368,7 +389,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     },
     {
       "heard": "Up.",
@@ -376,7 +397,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     },
     {
       "heard": "Don't...",
@@ -384,7 +405,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     },
     {
       "heard": "back",
@@ -392,7 +413,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     },
     {
       "heard": "That",
@@ -400,7 +421,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     },
     {
       "heard": "Right?",
@@ -408,7 +429,7 @@
       "args": {},
       "new_phrase": false,
       "new_words": [],
-      "time": "2026-11-14 19:12:06"
+      "time": "2026-11-14 22:25:48"
     }
   ],
   "answer_words": {

@@ -144,10 +144,13 @@ check("  ...marked stopped", wait_for(lambda: core.state["said"][-1]["status"] =
 # ---- the grid: phrases only, top one made in advance --------------------------------------
 core, tts, actions = make()
 core.set_mode("conference")
-core.say("open microsoft word")   # the fake Brain is unsure: a command is not offered in the grid
+core.say("blah blah")   # unclear: "Did you mean...?", then after "no" the grid
+q = question(core)
+if q and q["kind"] == "yes_no":
+    core.answer("no")
 q = question(core, "choice")
 check("unsure: a grid of phrases (no commands)", bool(q) and all(o["kind"] in ("phrase", "else") for o in q["card"]["options"]), True)
-check("  ...its top phrase is being made in advance", tts.prefetched[:1], [q["card"]["options"][0]["text"]] if q else [])
+check("  ...its top phrase is being made in advance", tts.prefetched[-1:], [q["card"]["options"][0]["text"]] if q else [])
 core.answer("none")
 idle(core)
 

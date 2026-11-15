@@ -85,6 +85,8 @@ check("composer buttons carry no visible text", js(
     "[...document.querySelectorAll('.composer-row button')].map(b => b.textContent.trim()).join('')"), "")
 check("five round icon buttons (mic, dictation, clips, mode, send)", js("document.querySelectorAll('.composer-row button.ibtn').length"), 5)
 check("no pills left in the composer", js("document.querySelectorAll('.composer .pill, .composer .cbtn').length"), 0)
+check("dictation icon is a keyboard (with its status dot)", js("!!document.querySelector('#dictBtn svg rect') && !!document.getElementById('dictDot')"), True)
+check("no 'Press the mic' chip on the start screen", js("document.querySelector('.empty') ? document.querySelector('.empty').textContent.includes('Press the mic') : 'no start screen'"), False)
 check("placeholder", js("document.getElementById('typed').placeholder"), "Type what was said, or press the mic…")
 check("Speak label", label("speak"), "Speak (microphone off)")   # the fakes have no microphone
 core._set(mic=dict(core.state["mic"], on=True))

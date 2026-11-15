@@ -22,7 +22,8 @@ What is in it:
       new_document, save_document        Word's "Blank Document", Command+S
       new_tab, search_for {query}        browsers (search_for types the words; "hit search" runs it)
       answer_question {question}         a question: answered from the Brain's own knowledge, spoken
-      read_latest_email
+      open_latest_email                  opens the newest email in its own window (Mail)
+      read_latest_email                  reads it aloud (with speaking off: opens it instead)
       type_text      {text}              typed into the app you were using
       scroll_up / scroll_down, go_back / go_forward, press_left / press_right / press_return
       quit_app       {app}               quits that app (close Word)
@@ -83,8 +84,17 @@ COMMANDS = [
     {"name": "send_email", "description": "Send the email that is open on screen.", "safety": "risky",
      "args": {}, "said_as": ["send", "send it", "send the email", "send email"],
      "say": "Sending your email.", "request": "Send the email"},
-    {"name": "read_latest_email", "description": "Read the newest email out loud.", "safety": "safe",
-     "args": {}, "said_as": ["read email", "read my mail"],
+    {"name": "open_latest_email", "description": "Open the newest email in the inbox in its own window (Mail), "
+                                                 "to look at it. Any wording: open my latest email, open the newest "
+                                                 "email, show my last email.", "safety": "safe",
+     "args": {}, "said_as": ["open my latest email", "open the newest email", "show my last email",
+                             "open my last email", "show my latest email", "open the latest email",
+                             "show the newest email", "open my newest email"],
+     "say": "Opening your latest email.", "request": "Open my latest email"},
+    {"name": "read_latest_email", "description": "Read the newest email OUT LOUD (only when the person asks to "
+                                                 "hear it: read out, read aloud).", "safety": "safe",
+     "args": {}, "said_as": ["read email", "read my mail", "read out my latest email", "read my latest email aloud",
+                             "read out my email"],
      "say": "Reading your latest email.", "request": "Read my latest email"},
     {"name": "new_document", "description": "Create a new blank document (Word, TextEdit, Pages). "
                                             "Any wording: new document, blank document, new page.", "safety": "safe",

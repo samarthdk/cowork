@@ -299,8 +299,8 @@ core.set_window("mini")
 core._opened = ["Mail"]
 core._after_action("quit_app", {"app": "Mail"}, ActionResult(True), INBOX)
 check("closing the last app Cowork opened brings back the full window", core.state["window"]["mode"], "full")
-check("the question is said in a few ready pieces",
-      App.spoken_question({"title": "Did you mean\u2026?", "body": "Open Mail"}, []), ["Did you mean", "Open Mail"])
+check("the question is said as one whole sentence",
+      App.spoken_question({"title": "Did you mean\u2026?", "body": "Open Mail"}, []), "Did you mean: Open Mail?")
 
 print(f"\n{sum(results)}/{len(results)} passed  {'ALL PASS' if all(results) else 'SOME FAILED'}")
 sys.exit(0 if all(results) else 1)

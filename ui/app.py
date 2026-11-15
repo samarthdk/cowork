@@ -40,8 +40,8 @@ HINT_MIN_LOGPROB = -0.5   # ...whose answer is kept only if WhisperKit was this 
 HISTORY_MAX = 20           # finished requests kept on screen
 VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
 HANDS_FREE_WAIT_S = 30.0   # mini window: listen this long for the next request, then listen again
-MINI_AFTER = ("open_app", "new_email", "new_document", "new_tab")   # these bring another app forward
-OPENS = {"new_email": "Mail", "new_document": "Microsoft Word"}       # the app such a command works in
+MINI_AFTER = ("open_app", "new_email", "new_document", "new_tab", "open_latest_email")   # these bring another app forward
+OPENS = {"new_email": "Mail", "new_document": "Microsoft Word", "open_latest_email": "Mail"}   # the app it works in
 KEY_RETURN, KEY_ENTER, KEY_ESC, KEY_Y, KEY_N = 36, 76, 53, 16, 45
 KEY_DIGITS = {18: 0, 19: 1, 20: 2, 21: 3}                             # 1-4 above the letters
 
@@ -69,7 +69,7 @@ class _Voice:
     def __init__(self, tts, app):
         self.tts, self.app = tts, app
         self.next_in_background = False
-        self.enabled = True    # "Speaking" in Settings (on by default)
+        self.enabled = False   # "Speaking" in Settings: off by default in Computer mode (always on in Conference mode)
         self.conference = False   # Conference mode: a confirmed sentence is always said (waits for TTSKit)
         self._queue: queue.Queue = queue.Queue()
         self._idle = threading.Event()
@@ -128,10 +128,11 @@ class _Voice:
                 self._idle.set()
 
     def _say(self, line, wait=False):
-        if not self.enabled:
-            return False
         from tts.lines import text_of
         text = text_of(line)
+        if not self.enabled:
+            self.app._mark_voice(text, "off")   # the screen says it was not said aloud (never a silent "Said")
+            return False
         ready = self.ready(line)
         self.app._mark_voice(text, "TTSKit" if ready else "preparing voice…")
         conference = self.conference
@@ -217,6 +218,11 @@ class _Targeted:
             app.retitle(command)
         if command == "answer_question":
             return app.answer_question(args.get("question", ""), screen)
+        if command == "read_latest_email" and not app.voice.enabled:
+            # Never confirm something and then silently do nothing: with speaking off it can't be read
+            # aloud, so the email is opened on screen instead, and the person is told.
+            command = "open_latest_email"
+            app.instead(command, "Speaking is off, opened it instead.")
         if command in NEEDS_TARGET and not app.ensure_target():
             return ActionResult(False, problem="No app was chosen to type into.")
         if command == "type_text" and not args.get("anyway"):
@@ -271,7 +277,7 @@ class App:
             "clips": [],                # TORGO test clips (see ui/clips.py)
             "credit": "",               # where the test clips come from
             "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
-            "voice": {"on": True},    # "Speaking" in Settings: say confirmations and read replies aloud (TTSKit)
+            "voice": {"on": False},   # "Speaking" in Settings (off by default): say steps and read replies aloud (TTSKit)
             "attention": False,       # mini window: a question couldn't be said aloud (soft chime + glow until answered)
             "mode": "computer",       # "computer": act on the Mac; "conference": speak confirmed sentences to the room
             "said": [],               # Conference mode: what the person said to the room, oldest first
@@ -461,9 +467,9 @@ class App:
                 self.set_window("full")
 
     @staticmethod
-    def spoken_question(card: dict, options: list | None = None) -> list[str]:
-        """What the mini window says aloud for a question, as parts made of ready pieces:
-        ["Did you mean", "Open Mail"], or ["Which one did you mean?", "One.", "Open Mail", "Two.", ...]."""
+    def spoken_question(card: dict, options: list | None = None) -> str:
+        """What the mini window says aloud for a question, as one whole sentence:
+        "Did you mean: Open Mail?" or "Which one did you mean? 1: Open Mail, 2: ...". """
         from tts.lines import question_line
         return question_line(dict(card, options=options if options is not None else card.get("options") or []))
 
@@ -822,7 +828,8 @@ class App:
         self._set(dictation={"on": bool(on), "app": self._typing_app()})
 
     def set_voice(self, on: bool) -> None:
-        """On (default): Cowork speaks as it works (confirmations, replies read aloud), TTSKit only. Off: silent."""
+        """On: Cowork speaks as it works (steps, replies read aloud), TTSKit only, one whole sentence at a time.
+        Off (default in Computer mode): silent; everything is on screen."""
         on = bool(on)
         if self.state.get("mode") == "conference":   # always on in Conference mode; this is kept for afterwards
             self._voice_before = on
@@ -946,6 +953,20 @@ class App:
                 step["title"] = wording.step_title(sentence_for(command, {}, self.session.profile))
                 step["command"] = command
                 turn["request"] = wording.request_text(command, {}, self.session.profile)
+
+    def instead(self, command: str, why: str) -> None:
+        """Something else is done than what was confirmed (e.g. opened, because speaking is off):
+        the step card says what is really done, with a short note why."""
+        from engine.session import sentence_for
+        with self._lock:
+            turn = self.state["turn"]
+            step = next((i for i in reversed(turn["items"]) if i["type"] == "step"), None) if turn else None
+            if step is not None:
+                step["title"] = wording.step_title(sentence_for(command, {}, self.session.profile))
+                step["command"] = command
+            if turn is not None:
+                turn["items"].append({"type": "note", "icon": "speaker", "text": why})
+        self._notice(why)
 
     def ask_where_to_type(self, screen) -> str:
         """Nothing typeable has the cursor: ask what to do. Returns "anyway", "new_document",
@@ -1215,8 +1236,7 @@ class App:
                 spoken = False
             if not spoken:   # can't be said (voice not ready, or Speaking off): a soft chime + glow until answered
                 self._set(attention=True)
-                if self.voice.enabled:
-                    self.voice.chime()
+                self.voice.chime()
         if self.listener and self.listener.running and question.kind in ("yes_no", "choice", "window"):
             self.listener.trigger(wait_s=wait)   # a spoken "yes"/"no"/"two" can answer
         deadline = time.monotonic() + wait

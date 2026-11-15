@@ -1,18 +1,17 @@
 """Real TTS: Argmax TTSKit (0.6B) only, through whisperkit-cli, with a cache of wav files.
-The Mac voice and the `say` command are never used.
+The Mac voice and the `say` command are never used. A line is always ONE whole TTSKit
+generation: never stitched together from separate pieces.
 
 Measured on this Mac: TTSKit cannot stay loaded between sentences (whisperkit-cli has
 no speech server); every run spends about 2 s starting up, and a sentence takes
 about 3-7 s in all. So:
 
-  - everything Cowork expects to say is made in advance, as short pieces
-    (tts/lines.py: "Did you mean", "Open", "Mail", every phrase...), saved as wav files;
-  - a line is played from its pieces, back to back with a short natural gap, as one
-    sound (first sound in a few tens of ms);
-  - a line is spoken only if EVERY piece of it is ready. Otherwise generation starts
-    at once in the background (and is cached for next time); if it is ready within
-    LATE_S of when it should have played, it plays, else nothing is said (the text is
-    on screen as usual). Never half a line;
+  - the sentences Cowork expects to say are made in advance, whole (tts/lines.py:
+    every phrase, the meeting quick phrases, the commands' spoken steps), as wav files;
+  - a sentence that is ready plays at once (first sound in a few ms);
+  - otherwise it is made whole in the background (and cached for next time); if it is
+    ready within LATE_S of when it should have played, it plays, else nothing is said
+    (the text is on screen as usual);
   - `speak(..., wait=True)` (Conference mode) waits for TTSKit however long it takes.
 
 TTSKit's model is always read from this Mac (config.TTSKIT_MODELS_PATH): if it isn't
@@ -34,7 +33,7 @@ from metrics import log_call
 from tts import lines
 
 LATE_S = 2.0          # a line made after it was due is still played if it is ready within this long
-SILENCE_LEVEL = 300   # 16-bit samples below this at the start and end of a piece are trimmed
+SILENCE_LEVEL = 300   # 16-bit samples below this at the start and end of a sentence are trimmed
 EDGE_S = 0.03         # ...keeping this much of the quiet edge
 
 
@@ -49,7 +48,7 @@ class RealTTS:
         self._failed: dict[str, str] = {}       # text -> why TTSKit could not make it
         self._stop_seq = 0
         self.on_ready = on_ready or (lambda text, took_ms: None)
-        self.profile = profile or {}            # for splitting lines by the commands' templates
+        self.profile = profile or {}
         self.last = {}                          # what happened to the last line (for the report and the screen)
         config.TTS_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -63,12 +62,9 @@ class RealTTS:
         path = self.cached_path(text)
         return path.exists() and path.stat().st_size > 1000
 
-    def pieces(self, line) -> list[str] | None:
-        """The ready pieces that say this line, or None if it can't be said yet."""
-        return lines.choose(line, self.profile, self.is_cached)
-
     def ready(self, line) -> bool:
-        return self.pieces(line) is not None
+        """The whole sentence is made and can play at once."""
+        return self.is_cached(lines.text_of(line))
 
     def which_voice(self, line) -> str:
         return "TTSKit" if self.ready(line) else "not ready"
@@ -103,7 +99,7 @@ class RealTTS:
         to_16_bit(making.with_suffix(".wav"), path)
 
     def prepare(self, texts: list[str], urgent: bool = False) -> None:
-        """Make these pieces in the background (urgent ones go to the front of the queue)."""
+        """Make these sentences in the background (urgent ones go to the front of the queue)."""
         with self._queue_lock:
             new = [lines.clean(t) for t in texts if lines.clean(t) and not self.is_cached(t)]
             new = [t for t in dict.fromkeys(new) if t != self._making]
@@ -137,11 +133,10 @@ class RealTTS:
                          chars=len(text), problem=str(error)[:200])
 
     def prefetch(self, line) -> None:
-        """Start making a line now, so it is ready by the time it is said. Each part
-        that isn't ready is made whole (urgently): one TTSKit run per part."""
-        missing = [p for p in lines.parts_of(line) if self.pieces([p]) is None]
-        if missing:
-            self.prepare(missing, urgent=True)
+        """Start making a sentence now (whole, urgently), so it is ready by the time it is said."""
+        text = lines.text_of(line)
+        if text and not self.is_cached(text):
+            self.prepare([text], urgent=True)
 
     def waiting(self) -> int:
         return len(self._queue)
@@ -149,7 +144,7 @@ class RealTTS:
     # ---- speaking --------------------------------------------------------------
 
     def speak(self, line, wait: bool = False, on_sound=None) -> bool:
-        """Say a line (a sentence, or a list of parts). Returns True if it was spoken.
+        """Say one whole sentence. Returns True if it was spoken.
         wait=False: only if it is ready now, or within LATE_S. wait=True: however long TTSKit takes.
         on_sound(): called the moment the sound starts."""
         text = lines.text_of(line)
@@ -157,34 +152,34 @@ class RealTTS:
             return False
         start = time.perf_counter()
         seq = self._stop_seq
-        pieces = self.pieces(line)
-        made_now = pieces is None
+        ready = self.is_cached(text)
+        made_now = not ready
         if made_now:
-            self.prefetch(line)
+            self.prefetch(text)
             limit = config.TTS_TIMEOUT_S if wait else LATE_S
-            while pieces is None and time.perf_counter() - start < limit and seq == self._stop_seq:
-                if all(p in self._failed for p in lines.parts_of(line) if self.pieces([p]) is None):
+            while not ready and time.perf_counter() - start < limit and seq == self._stop_seq:
+                if text in self._failed:
                     break
                 time.sleep(0.05)
-                pieces = self.pieces(line)
-        if pieces is None or seq != self._stop_seq:
+                ready = self.is_cached(text)
+        if not ready or seq != self._stop_seq:
             why = "stopped" if seq != self._stop_seq else "voice not ready"
             self.last = {"text": text, "spoken": False, "why": why, "waited_ms": round((time.perf_counter() - start) * 1000)}
             log_call("tts", "silent", (time.perf_counter() - start) * 1000, chars=len(text), why=why)
             return False
-        first_ms = self._play(pieces, start, on_sound)
+        first_ms = self._play(text, start, on_sound)
         if seq != self._stop_seq:   # cut off part-way (Undo): it does not count as said
             self.last = {"text": text, "spoken": False, "why": "stopped", "first_sound_ms": first_ms}
             log_call("tts", "stopped", (time.perf_counter() - start) * 1000, chars=len(text))
             return False
-        self.last = {"text": text, "spoken": True, "pieces": pieces, "made_now": made_now, "first_sound_ms": first_ms}
+        self.last = {"text": text, "spoken": True, "made_now": made_now, "first_sound_ms": first_ms}
         log_call("tts", "ttskit-made-now" if made_now else "ttskit-ready", (time.perf_counter() - start) * 1000,
-                 chars=len(text), pieces=len(pieces), first_sound_ms=first_ms)
+                 chars=len(text), first_sound_ms=first_ms)
         return True
 
-    def _play(self, pieces: list[str], start: float, on_sound=None) -> float:
-        """Play the pieces as one sound; returns ms from the request to the player starting."""
-        path = self._join(pieces)   # also for one piece: trims TTSKit's click and the quiet before the words
+    def _play(self, text: str, start: float, on_sound=None) -> float:
+        """Play one whole sentence; returns ms from the request to the player starting."""
+        path = self._trimmed(text)   # without TTSKit's click and the quiet before the words
         self._player = subprocess.Popen(["afplay", str(path)])
         first_ms = round((time.perf_counter() - start) * 1000)
         if on_sound is not None:
@@ -198,22 +193,15 @@ class RealTTS:
             self._player.terminate()
         return first_ms
 
-    def _join(self, pieces: list[str]) -> Path:
-        """One wav file: each piece trimmed of its quiet edges, with a short gap between pieces."""
-        frames, params = [], None
-        for n, piece in enumerate(pieces):
-            with wave.open(str(self.cached_path(piece)), "rb") as w:
-                params = params or w.getparams()
-                data = w.readframes(w.getnframes())
-            data = _trim(data, params.sampwidth, params.nchannels, params.framerate)
-            frames.append(data)
-            if n < len(pieces) - 1:
-                gap = int(params.framerate * lines.gap_after(piece)) * params.sampwidth * params.nchannels
-                frames.append(b"\0" * gap)
+    def _trimmed(self, text: str) -> Path:
+        """The sentence's audio without the click and quiet TTSKit leaves at the start and end."""
+        with wave.open(str(self.cached_path(text)), "rb") as w:
+            params = w.getparams()
+            data = w.readframes(w.getnframes())
         out = Path(tempfile.gettempdir()) / "secondvoice_line.wav"
         with wave.open(str(out), "wb") as w:
             w.setparams(params)
-            w.writeframes(b"".join(frames))
+            w.writeframes(_trim(data, params.sampwidth, params.nchannels, params.framerate))
         return out
 
     def stop(self) -> None:
@@ -224,7 +212,7 @@ class RealTTS:
 
 
 def to_16_bit(source: Path, target: Path | None = None) -> None:
-    """TTSKit writes 32-bit float wav; pieces are kept as 16-bit wav so they can be joined
+    """TTSKit writes 32-bit float wav; sentences are kept as 16-bit wav so they can be trimmed
     (macOS afconvert, on this Mac). The finished file appears at `target` in one step (a file
     still being written or converted is never seen as ready). Already 16-bit files are just moved."""
     target = target or source
@@ -245,7 +233,7 @@ def to_16_bit(source: Path, target: Path | None = None) -> None:
 
 
 def _trim(data: bytes, width: int, channels: int, rate: int) -> bytes:
-    """Remove quiet audio (and the click TTSKit leaves) at the start and end of a piece, keeping EDGE_S."""
+    """Remove quiet audio (and the click TTSKit leaves) at the start and end of a sentence, keeping EDGE_S."""
     if width != 2 or not data:
         return data
     import numpy as np

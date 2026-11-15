@@ -436,7 +436,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"/></svg>
           </button>
           <button type="button" class="ibtn" id="dictBtn" aria-pressed="false" aria-label="Dictation off" data-tip="Dictation off">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h1.5a1.5 1.5 0 0 1 1.5 1.5v13a1.5 1.5 0 0 1-1.5 1.5H9M15 4h-1.5A1.5 1.5 0 0 0 12 5.5M15 20h-1.5a1.5 1.5 0 0 1-1.5-1.5M10 12h4"/></svg><span class="sdot" id="dictDot" aria-hidden="true"></span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="12" rx="2"/><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M6.5 13.5h.01M17 13.5h.01M9.5 14h5"/></svg><span class="sdot" id="dictDot" aria-hidden="true"></span>
           </button>
           <button type="button" class="ibtn" id="clipBtn" aria-haspopup="true" aria-expanded="false" aria-label="Test clips" data-tip="Test clips">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12h1.5M7 8.5v7M10.5 5v14M14 9v6M17.5 6.5v11M21 11v2"/></svg>
@@ -565,7 +565,12 @@ function turnsOf(s) {
   return turns;
 }
 function lastTurn(s) { const t = turnsOf(s); return t[t.length - 1]; }
-function voiceTag(item) { return item.voice ? `<span class="voice" title="Which voice spoke this">voice: ${esc(item.voice)}</span>` : ""; }
+function voiceTag(item) { return item.voice && item.voice !== "off" ? `<span class="voice" title="Which voice spoke this">voice: ${esc(item.voice)}</span>` : ""; }
+function unsaid(item) {   // a line that was not said aloud says so (never a silent "Said out loud")
+  if (item.voice === "off") return "Not said aloud · speaking is off (Settings)";
+  if ((item.voice || "").startsWith("not spoken")) return "Not said aloud · the voice wasn't ready";
+  return "";
+}
 
 
 
@@ -584,7 +589,7 @@ function undoHtml(until) {
   return `<div class="undo"><span>Not what you wanted?</span><button data-undo="1">Undo <span class="key">Esc</span></button>${gest("hand", "left")}<span>or say “no”</span><span class="bar"><i data-until="${until}"></i></span></div>`;
 }
 function spokenHtml(item, open) {
-  const label = item.status === "running" ? "Saying out loud…" : item.status === "undone" ? "Stopped" : "Said out loud";
+  const label = item.status === "undone" ? "Stopped" : unsaid(item) || (item.status === "running" ? "Saying out loud…" : "Said out loud");
   return `<div class="card inner said-card ${item.status}"><div class="kicker">${ICON.speaker}${label}${voiceTag(item)}</div><div class="words">${esc(item.text)}</div>${item.undo_until && open ? undoHtml(item.undo_until) : ""}</div>`;
 }
 function typedHtml(item, open) {
@@ -651,7 +656,7 @@ function turnHtml(t, isLast) {
     else if (item.type === "step") html += stepHtml(item, open);
     else if (item.type === "spoken") html += spokenHtml(item, open);
     else if (item.type === "typed") html += typedHtml(item, open);
-    else if (item.type === "reply") html += `<div class="reply${item.error ? " error" : ""}">${item.read_aloud ? `<div class="kicker">${ICON.speaker}Read aloud${voiceTag(item)}</div>` : ""}${esc(item.text)}</div>`;
+    else if (item.type === "reply") html += `<div class="reply${item.error ? " error" : ""}">${item.read_aloud ? `<div class="kicker">${ICON.speaker}${unsaid(item) || "Read aloud"}${voiceTag(item)}</div>` : ""}${esc(item.text)}</div>`;
     else if (item.type === "permission") {
       if (item.status === "open" && open && S.question && S.question.id === item.qid) html += permHtml(S.question);
       else if (item.status !== "open") html += resolvedHtml(item);
@@ -664,7 +669,7 @@ function turnHtml(t, isLast) {
 }
 function emptyHtml(s) {
   return `<div class="empty"><h1>What can I do for you?</h1><p>Say it in your own way. I'll check with you whenever I'm not sure, and you can answer by voice, hand, or keyboard.</p>
-    <div class="ways"><span class="chip">Press the mic${(s.clips || []).length ? " or choose a test clip" : ""}</span><span class="chip">“Open Notes”</span><span class="chip">“Type see you at noon”</span><span class="chip">⌘K Quick actions</span></div></div>`;
+    <div class="ways"><span class="chip">“Open Notes”</span><span class="chip">“Type see you at noon”</span><span class="chip">⌘K Quick actions</span></div></div>`;
 }
 
 // ---- Conference mode ------------------------------------------------------------------
@@ -821,7 +826,7 @@ function renderModal() {
   } else if (modalView === "settings") {
     const voice = (S && S.voice) || {};
     m.innerHTML = head("Settings") + `<div class="modal-body">
-      <div class="setting"><div class="what"><div>Speaking</div><div class="caption">Cowork talks as it works — says “Opening Mail” and reads replies aloud. Off keeps it silent.</div></div>
+      <div class="setting"><div class="what"><div>Speaking</div><div class="caption">Cowork talks as it works: says “Opening Mail.” and reads replies aloud, with its own voice (TTSKit), one whole sentence at a time. Off (the default) keeps it silent; Conference mode always speaks.</div></div>
         <div class="seg" role="group" aria-label="Speaking"><button data-voice="off" aria-pressed="${!voice.on}">Off</button><button data-voice="on" aria-pressed="${voice.on}">On</button></div></div>
       <div class="qa-group">About</div>
       <p>Cowork runs entirely on this Mac: speech recognition (WhisperKit), understanding (Bonsai 2 4B in LM Studio) and voice (TTSKit). Nothing is sent over the internet.</p>

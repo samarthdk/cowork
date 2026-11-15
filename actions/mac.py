@@ -240,6 +240,42 @@ class FrontApp:
         self._stop.set()
 
 
+def _select_first_message() -> str:
+    """Select the first message in Mail's message list (Inbox window) through Accessibility.
+    Returns the selected row's text, or "" if it couldn't (e.g. no Accessibility permission)."""
+    try:
+        import ApplicationServices as AS
+        found = subprocess.run(["pgrep", "-x", "Mail"], capture_output=True, text=True).stdout.split()
+        if not found or not accessibility_allowed():
+            return ""
+        app = AS.AXUIElementCreateApplication(int(found[0]))
+
+        def attr(element, name):
+            error, value = AS.AXUIElementCopyAttributeValue(element, name, None)
+            return value if error == 0 else None
+
+        def table_in(element, depth=0):
+            if attr(element, "AXRole") == "AXTable" and attr(element, "AXDescription") == "messages":
+                return element
+            for child in (attr(element, "AXChildren") or []) if depth < 8 else []:
+                hit = table_in(child, depth + 1)
+                if hit is not None:
+                    return hit
+            return None
+
+        for window in attr(app, "AXWindows") or []:
+            if not str(attr(window, "AXTitle") or "").startswith("Inbox"):
+                continue
+            table = table_in(window)
+            rows = attr(table, "AXRows") if table is not None else None
+            if rows:
+                AS.AXUIElementSetAttributeValue(table, "AXSelectedRows", [rows[0]])
+                return "selected"
+    except Exception:
+        pass
+    return ""
+
+
 def pid_alive(pid: int) -> bool:
     """Is this process still running? (Asked of the system directly: AppKit's
     own view of running apps goes stale in a process without an event loop.)"""
@@ -858,6 +894,54 @@ class MacActions:
             return ActionResult(True, detail=f"Asked {name} to close (it may be asking about unsaved work)")
         self.front.update()
         return ActionResult(True, detail=f"Closed {name}", undo=undo)
+
+    def _do_open_latest_email(self, args: dict) -> ActionResult:
+        """Open the newest email in the inbox in its own window. Nothing is read aloud.
+        1. Mail's main window shows the Inbox, and its first message (the newest: the list is
+           sorted by date) is selected, through Accessibility. Measured: Mail's own scripting
+           ("set selected messages") selects the wrong message with a Gmail account.
+        2. That email is opened in its own window. Undo closes that window."""
+        ok, output = run_applescript([
+            'tell application "Mail"',
+            "activate",
+            "if (count of message viewers) = 0 then make new message viewer",
+            "try",
+            "set selected mailboxes of message viewer 1 to {inbox}",
+            "end try",
+            "end tell"])
+        if not ok:
+            return ActionResult(False, problem=output)
+        time.sleep(0.4)
+        selected = _select_first_message()   # "" if Accessibility isn't allowed (then it is only opened)
+        ok, output = run_applescript([
+            'tell application "Mail"',
+            "set n to count of messages of inbox",
+            'if n = 0 then error "Can\'t get a message" number -1728',
+            "set k to 10",
+            "if n < k then set k to n",
+            "set m to message 1 of inbox",   # the newest, checked over the first few
+            "repeat with i from 2 to k",
+            "if (date received of message i of inbox) > (date received of m) then set m to message i of inbox",
+            "end repeat",
+            "open m",
+            "activate",
+            "return (subject of m) & linefeed & (sender of m)",
+            "end tell"])
+        if not ok:
+            return ActionResult(False, problem=output)
+        subject, _, sender = output.partition("\n")
+        name = sender.split("<")[0].strip().strip('"') or "an unknown sender"   # the name, never the address
+        subject = subject.strip() or "(no subject)"
+        self.front.update()
+
+        def undo():   # close the email's own window (Mail titles it "<subject> — <account>")
+            run_applescript(["on run argv", 'tell application "Mail"',
+                             "repeat with w in windows",
+                             "if (name of w) starts with (item 1 of argv) and (name of w) does not start with \"Inbox\" then",
+                             "close w", "exit repeat", "end if", "end repeat", "end tell", "end run"], subject)
+
+        where = "selected in the Inbox and " if selected else ""
+        return ActionResult(True, detail=f"Latest email {where}opened: \u201c{subject}\u201d from {name}", undo=undo)
 
     def _do_read_latest_email(self, args: dict) -> ActionResult:
         ok, output = run_applescript([

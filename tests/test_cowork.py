@@ -8,6 +8,7 @@ actions. Run:
 import json
 import socket
 import sys
+import tempfile
 import threading
 import time
 import urllib.request
@@ -65,11 +66,11 @@ def finished(core, n):
 # ---- speaking is off by default (turned on in Settings) ----------------------
 import copy
 silent = App(copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions())
-check("a fresh app speaks (speaking on by default, TTSKit only)", silent.state["voice"]["on"], True)
-silent.set_voice(False)
-check("  ...the Settings toggle turns speaking off", silent.state["voice"]["on"], False)
+check("a fresh app starts silent (speaking off by default in Computer mode)", silent.state["voice"]["on"], False)
 silent.set_voice(True)
-check("  ...and back on", silent.state["voice"]["on"], True)
+check("  ...the Settings toggle turns speaking on", silent.state["voice"]["on"], True)
+silent.set_voice(False)
+check("  ...and back off", silent.state["voice"]["on"], False)
 
 
 # ---- the profile ----------------------------------------------------------
@@ -424,5 +425,40 @@ for _ in range(6):   # finish the clip's request, answering whatever it asks
         time.sleep(0.2)
 check("new task clears the screen", post("/api/new", {})["ok"] and core.state["history"], [])
 server.should_exit = True
+
+# ---- "open my latest email"; "read" with speaking off opens it instead ----------------------------
+from repair import repair as brain  # noqa: E402
+for wording_ in ("open my latest email", "open the newest email", "show my last email"):
+    check(f"'{wording_}' -> open_latest_email", brain(wording_, BASE, FakeLLM(), None).choice, "open_latest_email")
+core, tts, actions = make()
+core.set_voice(False)
+core.say("read out my latest email")
+if asking(core, "yes_no"):
+    core.answer("yes")
+wait_for(lambda: actions.done)
+check("speaking off: 'read my latest email' opens it instead", [c for c, _ in actions.done][:1], ["open_latest_email"])
+wait_for(lambda: (core.state["notice"] or {}).get("text") == "Speaking is off, opened it instead.")
+check("  ...with a short note", (core.state["notice"] or {}).get("text"), "Speaking is off, opened it instead.")
+turn = core.state["turn"] or (core.state["history"] or [{}])[-1]
+check("  ...the step says what was really done",
+      [i["title"] for i in turn.get("items", []) if i["type"] == "step"][:1], ["Opening your latest email"])
+core, tts, actions = make()   # make() turns speaking on: then it is read aloud as before
+core.say("read out my latest email")
+if asking(core, "yes_no"):
+    core.answer("yes")
+wait_for(lambda: actions.done)
+check("speaking on: it is read (not opened)", [c for c, _ in actions.done][:1], ["read_latest_email"])
+
+# ---- a working profile made before a command existed gets it (learning kept) ----------------------
+import json as _json  # noqa: E402
+from repair.store import open_profile as _open  # noqa: E402
+old = copy.deepcopy(BASE)
+old["commands"] = [c for c in old["commands"] if c["name"] != "open_latest_email"]
+old["examples"].append({"heard": "my own words", "meant": BASE["phrases"][0], "args": {}})
+folder = Path(tempfile.mkdtemp())
+(folder / "work.json").write_text(_json.dumps(old))
+upgraded = _open(folder / "work.json", config.ROOT / "profiles" / "cowork_base.json")
+check("an older working profile gets the new command", any(c["name"] == "open_latest_email" for c in upgraded["commands"]), True)
+check("  ...and keeps what it learned", upgraded["examples"][-1]["heard"], "my own words")
 
 print(f"\n{sum(results)}/{len(results)} passed  {'ALL PASS' if all(results) else 'SOME FAILED'}")

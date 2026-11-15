@@ -2,11 +2,10 @@
 
     .venv/bin/python scripts/prepare_voice.py
 
-The same list Cowork prepares in the background when it starts (tts/lines.py):
-prompt pieces ("Did you mean", "Which one did you mean?", "One."...), the meeting
-quick phrases, every phrase and command, app names, and the commands' spoken steps.
-Saved as wav files in cache/tts. Already-made pieces are skipped. Anything not
-ready when it should be said is not spoken (the text is on screen as usual).
+The same list Cowork prepares in the background when it starts (tts/lines.py), each
+as one whole sentence: every phrase, the meeting quick phrases, the commands' spoken
+steps and "Opening <app>." for the likely apps. Saved as wav files in cache/tts.
+Already-made sentences are skipped.
 """
 
 import sys
@@ -29,7 +28,7 @@ if __name__ == "__main__":
     if tts.available():
         sys.exit(f"TTSKit can't run: {tts.available()}")
     missing = [s for s in todo if not tts.is_cached(s)]
-    print(f"{len(todo)} pieces, {len(missing)} still to make (about 3-4 s each)")
+    print(f"{len(todo)} sentences, {len(missing)} still to make (about 3-7 s each)")
     start = time.perf_counter()
     for n, text in enumerate(missing, 1):
         t = time.perf_counter()
