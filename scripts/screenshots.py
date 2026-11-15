@@ -185,7 +185,7 @@ def screen_scenes(core, web, out, ready, asking) -> None:
     import repair.answer   # the answer the real Bonsai gave in the live test (2026-11-14), not the fake's placeholder
     repair.answer.answer_question = lambda *a, **k: (
         "Boston in late November is usually cold and rainy. I'm offline, so I can't check today's forecast.", "")
-    core.voice.tts.which_voice = lambda text: "Mac voice (Reed)" if "Boston" in text else "TTSKit"   # a new sentence
+    core.voice.tts.not_ready = {"Boston"}   # a new sentence: not ready in time, so it is not spoken (on screen only)
     core.new_task()
     say_and_confirm("what's the weather in Boston")
     pump(0.6)
@@ -208,7 +208,6 @@ def main() -> None:
     profile = open_profile(profile_path, profile_path)
 
     tts = FakeTTS(quiet=True)
-    tts.which_voice = lambda text: "TTSKit"   # every sentence in the demo is a prepared one
     core = App(profile, FakeLLM(), tts, actions=FakeActions(), profile_path=profile_path,
                backends={"Speech in": "real", "Brain": "real", "Voice": "real", "Mac actions": "fake"},
                question_wait_s=600)

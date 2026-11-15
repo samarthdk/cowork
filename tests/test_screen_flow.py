@@ -264,7 +264,8 @@ core.attach_listener(listener)
 switched = []
 core.window_hook = switched.append
 spoken = []
-core.voice.tts.speak = spoken.append
+from tts.lines import text_of  # noqa: E402
+core.voice.tts.speak = lambda line, wait=False: spoken.append(text_of(line)) or True
 core.say("open microsoft word")
 past_did_you_mean(core)
 finished(core)
@@ -298,8 +299,8 @@ core.set_window("mini")
 core._opened = ["Mail"]
 core._after_action("quit_app", {"app": "Mail"}, ActionResult(True), INBOX)
 check("closing the last app Cowork opened brings back the full window", core.state["window"]["mode"], "full")
-check("the question is said in a few words",
-      App.spoken_question({"title": "Did you mean\u2026?", "body": "Open Mail"}, []), "Did you mean: Open Mail?")
+check("the question is said in a few ready pieces",
+      App.spoken_question({"title": "Did you mean\u2026?", "body": "Open Mail"}, []), ["Did you mean", "Open Mail"])
 
 print(f"\n{sum(results)}/{len(results)} passed  {'ALL PASS' if all(results) else 'SOME FAILED'}")
 sys.exit(0 if all(results) else 1)

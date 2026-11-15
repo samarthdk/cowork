@@ -113,6 +113,8 @@ def main(argv=None) -> None:
     profile = open_profile(profile_path, base)
 
     tts = get_tts()
+    if hasattr(tts, "profile"):
+        tts.profile = profile     # lines are split by the commands' own wording ("Opening" + "Mail")
     if config.TTS == "fake":
         tts.quiet = True
     actions = get_actions()
@@ -125,15 +127,16 @@ def main(argv=None) -> None:
         core.set_dictation(True)
     core.start_metrics()
 
-    if hasattr(tts, "prepare"):   # make the TTSKit voice ready in the background (real voice only)
-        from tts.plan import sentences
+    if hasattr(tts, "prepare"):   # make the TTSKit pieces ready in the background (real voice only)
+        from tts.lines import to_prepare
         try:
             apps = actions.context().get("app", [])
         except Exception:
             apps = []
-        threading.Thread(target=tts.prepare, args=(sentences(profile, apps),), daemon=True).start()
-    if hasattr(tts, "mac_voice") and config.TTS_NEW_SENTENCES == "mac":
-        threading.Thread(target=tts.mac_voice, daemon=True).start()   # load the Mac voice now (0.4 s)
+        threading.Thread(target=tts.prepare, args=(to_prepare(profile, apps),), daemon=True).start()
+        problem = tts.available() if hasattr(tts, "available") else ""
+        if problem:
+            print(f"Voice: TTSKit can't run ({problem}); Cowork will stay silent and show everything on screen.")
     if config.LLM == "real":
         core.session.warm_up()    # LM Studio reads the instructions now, so the first request is fast
 

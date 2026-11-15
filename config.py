@@ -90,13 +90,11 @@ SITES = {
 # Speech synthesis (TTSKit; see tts/real.py)
 TTS_MODEL = "0.6b"          # Argmax TTSKit preset (the 1.7b model does not fit in 8 GB)
 TTS_VOICE = "aiden"         # aiden, ryan, serena, vivian, ...
-TTS_NEW_SENTENCES = "mac"   # a sentence with no TTSKit audio ready yet: "mac" (the Mac voice, kept loaded:
-                            # first sound in about 25 ms; TTSKit's version is then made for next time),
-                            # "ttskit" (same voice but about 4-7 s) or "say" (the say command, about 1 s)
-MAC_VOICE = ""              # "" = best US English male voice installed (now "Reed"); or a name, e.g. "Evan"
+# Only TTSKit ever speaks (never the Mac voice): a line is said only if its pieces are ready
+# (tts/real.py, tts/lines.py); otherwise it stays silent and the text is on screen.
 TTSKIT_FAST = True          # TTSKit's faster settings (throughput mode, fused decoder): about 1.8x faster
 TTS_TIMEOUT_S = 120
-TTS_CACHE_DIR = ROOT / "cache" / "tts"   # ready-made audio for known phrases
+TTS_CACHE_DIR = ROOT / "cache" / "tts"   # ready-made wav pieces (scripts/prepare_voice.py)
 TTSKIT_MODELS_PATH = HF_MODELS / "argmaxinc" / "ttskit-coreml"
 TTSKIT_TOKENIZER_PATH = HF_MODELS / "Qwen" / "Qwen3-0.6B"
 

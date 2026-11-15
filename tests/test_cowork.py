@@ -65,11 +65,11 @@ def finished(core, n):
 # ---- speaking is off by default (turned on in Settings) ----------------------
 import copy
 silent = App(copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions())
-check("a fresh app starts silent (speaking off)", silent.state["voice"]["on"], False)
-silent.set_voice(True)
-check("  ...the Settings toggle turns speaking on", silent.state["voice"]["on"], True)
+check("a fresh app speaks (speaking on by default, TTSKit only)", silent.state["voice"]["on"], True)
 silent.set_voice(False)
-check("  ...and back off", silent.state["voice"]["on"], False)
+check("  ...the Settings toggle turns speaking off", silent.state["voice"]["on"], False)
+silent.set_voice(True)
+check("  ...and back on", silent.state["voice"]["on"], True)
 
 
 # ---- the profile ----------------------------------------------------------
@@ -164,18 +164,7 @@ core.camera_state({"on": False, "problem": "The built-in camera was not found."}
 check("  ...the screen shows the message", (core.state["camera"]["problem"], core.state["notice"]["text"]),
       ("The built-in camera was not found.", "The built-in camera was not found."))
 
-# ---- which voice: TTSKit when prepared, otherwise the Mac voice ---------------
-import tempfile  # noqa: E402
-from tts.real import RealTTS  # noqa: E402
-saved_cache, saved_mode = config.TTS_CACHE_DIR, config.TTS_NEW_SENTENCES
-config.TTS_CACHE_DIR = Path(tempfile.mkdtemp())
-config.TTS_NEW_SENTENCES = "mac"
-voice = RealTTS()
-voice._mac = types.SimpleNamespace(name="Reed", stop=lambda: None)
-voice.cached_path("Opening Mail.").write_bytes(b"x" * 2000)   # pretend TTSKit prepared it
-check("prepared sentence: TTSKit", voice.which_voice("Opening Mail."), "TTSKit")
-check("unexpected sentence: the Mac voice", voice.which_voice("Searching for cats."), "Mac voice (Reed)")
-config.TTS_CACHE_DIR, config.TTS_NEW_SENTENCES = saved_cache, saved_mode
+# (which voice speaks, and when a line stays silent: tests/test_voice.py)
 
 # ---- sending only ever to "Me" -----------------------------------------------
 import actions.mac as mac_module  # noqa: E402

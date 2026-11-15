@@ -23,6 +23,10 @@ html.plain { --tint: #141416; }
 html, body { margin: 0; background: transparent; color: var(--text); font: 400 15px/1.4 var(--sans); -webkit-font-smoothing: antialiased;
   -webkit-user-select: none; user-select: none; overflow: hidden; }
 #box { position: relative; margin: 0; padding: 12px 14px 12px; background: var(--tint); border: 1px solid var(--line); border-radius: 14px; }
+/* A question that couldn't be said aloud: a gentle glow until it is answered (inside the box: the
+   native window is exactly the box's size, so nothing outside it would show) */
+#box.attention { border-color: var(--accent); animation: glow 2.4s ease-in-out infinite; }
+@keyframes glow { 0%, 100% { box-shadow: inset 0 0 14px rgba(242,163,133,.28); } 50% { box-shadow: inset 0 0 26px rgba(242,163,133,.55); } }
 .top { display: flex; align-items: center; gap: 10px; min-height: 40px; cursor: pointer; }
 .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--muted); flex: none; }
 .listening .dot { background: var(--ok); animation: pulse 1.2s ease-in-out infinite; }
@@ -130,6 +134,7 @@ function render(s) {
   S = s;
   const [cls, what, sub] = statusOf(s);
   $("top").className = "top " + cls;
+  $("box").classList.toggle("attention", !!(s.attention && s.question));
   $("what").textContent = what;
   $("sub").textContent = sub;
   $("meter").hidden = cls !== "listening";

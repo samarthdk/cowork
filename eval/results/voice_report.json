@@ -1,0 +1,194 @@
+[
+ {
+  "part": "demo1",
+  "text": "The humidity is overwhelming there.",
+  "spoken": true,
+  "first_sound_ms": 6,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "The humidity is overwhelming there."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "demo2",
+  "text": "We gathered shells on the beach.",
+  "spoken": true,
+  "first_sound_ms": 18,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "We gathered shells on the beach."
+  ],
+  "since_confirm_ms": 36
+ },
+ {
+  "part": "demo3",
+  "text": "We gathered shells on the beach.",
+  "spoken": true,
+  "first_sound_ms": 12,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "We gathered shells on the beach."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: open Mail",
+  "text": "Opening Mail.",
+  "spoken": true,
+  "first_sound_ms": 6,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Opening Mail."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: write an email",
+  "text": "Starting a new email.",
+  "spoken": true,
+  "first_sound_ms": 7,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Starting a new email."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: me",
+  "text": "Did you mean me@example.org",
+  "spoken": false,
+  "first_sound_ms": null,
+  "made_now": false,
+  "why": "voice not ready",
+  "waited_ms": 2012,
+  "pieces": [],
+  "since_confirm_ms": -56
+ },
+ {
+  "part": "Mail: next box",
+  "text": "Next box.",
+  "spoken": true,
+  "first_sound_ms": 7,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Next box."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: next box",
+  "text": "Next box.",
+  "spoken": true,
+  "first_sound_ms": 6,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Next box."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: type hello from cowork",
+  "text": "Typing.",
+  "spoken": true,
+  "first_sound_ms": 4,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Typing."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: next box",
+  "text": "Next box.",
+  "spoken": true,
+  "first_sound_ms": 6,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Next box."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: type see you at noon",
+  "text": "Typing.",
+  "spoken": true,
+  "first_sound_ms": 4,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Typing."
+  ],
+  "since_confirm_ms": null
+ },
+ {
+  "part": "Mail: send the email",
+  "text": "This can't be undone. Allow it? Send the email",
+  "spoken": true,
+  "first_sound_ms": 8,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "This can't be undone. Allow it?",
+   "Send the email"
+  ],
+  "since_confirm_ms": -41
+ },
+ {
+  "part": "Mail: send the email",
+  "text": "Sending your email.",
+  "spoken": true,
+  "first_sound_ms": 4,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Sending your email."
+  ],
+  "since_confirm_ms": 3656
+ },
+ {
+  "part": "Mail: close Mail",
+  "text": "Did you mean Close the app (Mail)",
+  "spoken": false,
+  "first_sound_ms": null,
+  "made_now": false,
+  "why": "voice not ready",
+  "waited_ms": 2019,
+  "pieces": [],
+  "since_confirm_ms": -37
+ },
+ {
+  "part": "Mail: close Mail",
+  "text": "Closing the app.",
+  "spoken": true,
+  "first_sound_ms": 11,
+  "made_now": false,
+  "why": "",
+  "waited_ms": null,
+  "pieces": [
+   "Closing the app."
+  ],
+  "since_confirm_ms": 3592
+ }
+]

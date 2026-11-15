@@ -18,6 +18,7 @@ an input that does not clearly answer the open question is ignored.
 import copy
 import json
 import queue
+import subprocess
 import threading
 import time
 
@@ -48,30 +49,62 @@ FEED_KINDS = {"learned", "fast_path", "undone", "cancelled", "forgot", "new_phra
               "sound_check", "relisten"}
 
 
+CHIME = "/System/Library/Sounds/Tink.aiff"   # one short soft sound (not a voice)
+CHIME_VOLUME = "0.35"
+
+
 class _Voice:
-    """Wraps the voice so the microphone is muted while the Mac speaks.
+    """Wraps the voice (TTSKit only) so the microphone is paused while anything plays.
 
     A command's spoken step ("Opening Mail.") is queued and spoken while the
     action runs, so a slow voice never holds the action up. Everything else
     (phrases said for other people, an email read aloud) is spoken in order,
-    waiting for the queue first, exactly as before."""
+    waiting for the queue first. A line is spoken only if TTSKit has it ready
+    (tts/real.py); otherwise it stays silent and the text is on screen as usual."""
     def __init__(self, tts, app):
         self.tts, self.app = tts, app
         self.next_in_background = False
-        self.enabled = False   # "Speaking" is off until it is turned on in Settings
+        self.enabled = True    # "Speaking" in Settings (on by default)
         self._queue: queue.Queue = queue.Queue()
         self._idle = threading.Event()
         self._idle.set()
         threading.Thread(target=self._work, daemon=True, name="voice").start()
 
-    def speak(self, text):
+    def speak(self, text, wait=False):
+        """Say a line (a sentence or a list of parts). Returns True if it was spoken
+        (None when it was queued to be said while an action runs)."""
         if self.next_in_background:
             self.next_in_background = False
             self._idle.clear()
             self._queue.put(text)
-            return
+            return None
         self._idle.wait(VOICE_WAIT_S)
-        self._say(text)
+        return self._say(text, wait=wait)
+
+    def prefetch(self, line):
+        """Start making a line now (TTSKit), so it can be said the moment it is needed."""
+        prefetch = getattr(self.tts, "prefetch", None)
+        if prefetch is not None and self.enabled:
+            try:
+                prefetch(line)
+            except Exception:
+                pass
+
+    def ready(self, line) -> bool:
+        ready = getattr(self.tts, "ready", None)
+        return bool(ready(line)) if ready is not None else True
+
+    def chime(self):
+        """One short soft chime (the microphone is paused meanwhile)."""
+        if self.app.listener:
+            self.app.listener.mute()
+        try:
+            subprocess.run(["afplay", "-v", CHIME_VOLUME, CHIME], timeout=3, capture_output=True)
+        except Exception:
+            pass
+        finally:
+            if self.app.listener:
+                self.app.listener.unmute()
 
     def _work(self):
         while True:
@@ -83,24 +116,25 @@ class _Voice:
             if self._queue.empty():
                 self._idle.set()
 
-    def _say(self, text):
+    def _say(self, line, wait=False):
         if not self.enabled:
-            return
-        which = getattr(self.tts, "which_voice", None)
-        if which is not None:
-            try:
-                self.app._mark_voice(text, which(text))
-            except Exception:
-                pass
+            return False
+        from tts.lines import text_of
+        text = text_of(line)
+        ready = self.ready(line)
+        self.app._mark_voice(text, "TTSKit" if ready else "preparing voice…")
         self.app._set(status="speaking", speaking=text)
         if self.app.listener:
-            self.app.listener.mute()
+            self.app.listener.mute()   # never hear itself (also while waiting for TTSKit)
+        spoken = False
         try:
-            self.tts.speak(text)
+            spoken = self.tts.speak(line, wait=wait) is not False
         finally:
             if self.app.listener:
                 self.app.listener.unmute()
             self.app._set(speaking=None)
+        self.app._mark_voice(text, "TTSKit" if spoken else "not spoken (voice not ready)")
+        return spoken
 
     def wait(self, timeout=VOICE_WAIT_S) -> bool:
         return self._idle.wait(timeout)
@@ -216,7 +250,8 @@ class App:
             "clips": [],                # TORGO test clips (see ui/clips.py)
             "credit": "",               # where the test clips come from
             "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
-            "voice": {"on": False},   # "Speaking" in Settings: say confirmations and read replies aloud
+            "voice": {"on": True},    # "Speaking" in Settings: say confirmations and read replies aloud (TTSKit)
+            "attention": False,       # mini window: a question couldn't be said aloud (soft chime + glow until answered)
             "screen": None,             # what is on screen in the app being worked in (actions/screen.py)
             "window": {"mode": "full", "hands_free": False},   # "mini": the small window in the corner
             "catalog": {"phrases": [], "commands": [], "apps": []},   # everything Quick Actions can do
@@ -402,14 +437,11 @@ class App:
                 self.set_window("full")
 
     @staticmethod
-    def spoken_question(card: dict, options: list) -> str:
-        """What the mini window says aloud for a question: "Did you mean: Open Mail?"."""
-        title = (card.get("title") or "").replace("\u2026", "").rstrip(" .?")
-        body = card.get("body") or ""
-        if options:
-            listed = ", ".join(f"{i + 1}: {o['text'].rstrip(chr(8230))}" for i, o in enumerate(options[:4]))
-            return f"{title}? {listed}."
-        return f"{title}: {body}?" if body else f"{title}?"
+    def spoken_question(card: dict, options: list | None = None) -> list[str]:
+        """What the mini window says aloud for a question, as parts made of ready pieces:
+        ["Did you mean", "Open Mail"], or ["Which one did you mean?", "One.", "Open Mail", "Two.", ...]."""
+        from tts.lines import question_line
+        return question_line(dict(card, options=options if options is not None else card.get("options") or []))
 
     # ---- inputs (any thread) ------------------------------------------------
 
@@ -680,7 +712,7 @@ class App:
         self._set(dictation={"on": bool(on), "app": self._typing_app()})
 
     def set_voice(self, on: bool) -> None:
-        """On: Cowork speaks as it works (confirmations, replies read aloud). Off (default): silent."""
+        """On (default): Cowork speaks as it works (confirmations, replies read aloud), TTSKit only. Off: silent."""
         on = bool(on)
         self.voice.enabled = on
         if not on:
@@ -876,7 +908,7 @@ class App:
             except Exception as error:   # never crash in front of judges
                 self._question = None
                 self._notice(f"Something went wrong: {type(error).__name__}: {error}")
-            self._set(status="ready", question=None, hold=None, counts=self._counts())
+            self._set(status="ready", question=None, hold=None, attention=False, counts=self._counts())
             if self._requests.empty():
                 self._listen_on()   # mini window: hands-free, listen for the next request
 
@@ -1052,12 +1084,16 @@ class App:
         self._question = question
         if self.camera is not None and question.kind in ("yes_no", "choice"):
             self.camera.want(True)
-        self._set(event={"kind": "question", "stage": question.stage}, status="asking", question=shown)
+        self._set(event={"kind": "question", "stage": question.stage}, status="asking", question=shown, attention=False)
         if self.state["window"]["mode"] == "mini" and question.kind in ("yes_no", "choice"):
-            try:   # in the corner it is easy to miss: say the question (the microphone is muted meanwhile)
-                self.voice.speak(self.spoken_question(shown.get("card") or {}, (shown.get("card") or {}).get("options") or []))
+            try:   # in the corner it is easy to miss: say the question (the microphone is paused meanwhile)
+                spoken = self.voice.speak(self.spoken_question(shown.get("card") or {}))
             except Exception:
-                pass
+                spoken = False
+            if not spoken:   # can't be said (voice not ready, or Speaking off): a soft chime + glow until answered
+                self._set(attention=True)
+                if self.voice.enabled:
+                    self.voice.chime()
         if self.listener and self.listener.running and question.kind in ("yes_no", "choice", "window"):
             self.listener.trigger(wait_s=wait)   # a spoken "yes"/"no"/"two" can answer
         deadline = time.monotonic() + wait
@@ -1081,7 +1117,7 @@ class App:
             self.camera.want(False)
         self._resolve(qid, question, shown, answer)
         self._set(event={"kind": "answered", "answer": answer.__dict__ if answer else None},
-                  status="thinking", question=None, hold=None,
+                  status="thinking", question=None, hold=None, attention=False,
                   mic=dict(self.state["mic"], listening=False))
         return answer
 
