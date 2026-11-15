@@ -43,7 +43,7 @@ html, body { margin: 0; background: transparent; color: var(--text); font: 400 1
 .q-text { flex: 1; min-width: 0; }
 .q-title { font: 600 16px/1.3 var(--sans); }
 .q-body { margin-top: 4px; font: 500 15px/1.35 var(--sans); color: var(--text); }
-.cam { width: 84px; height: 63px; border-radius: 8px; object-fit: cover; flex: none; background: rgba(255,255,255,.08); transform: scaleX(-1); }
+.cam { width: 84px; height: 63px; border-radius: 8px; object-fit: cover; flex: none; background: rgba(255,255,255,.08); }   /* same picture as the full window */
 .btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
 .btn { min-height: 48px; border-radius: 10px; border: 1px solid var(--line); background: rgba(255,255,255,.08); color: var(--text);
   font: 600 15px/1.2 var(--sans); cursor: pointer; padding: 6px 8px; text-align: left; position: relative; overflow: hidden; }
@@ -83,12 +83,12 @@ function tellHeight() {   // the native window follows the page's height (kept a
 }
 function statusOf(s) {
   const mic = s.mic || {}, win = s.window || {};
-  if (s.question && s.question.kind !== "window") return ["asking", "Your answer, please", "Thumb, raised hand, voice or keys"];
+  if (s.question && s.question.kind !== "window") return ["asking", "Your answer, please", "Thumb, hand, voice or keys"];
   if (s.speaking) return ["speaking", "Speaking", s.speaking];
   if (s.status === "hearing") return ["hearing", "Hearing…", mic.partial || ""];
   if (s.status === "thinking" || s.status === "listening again" || (s.turn && !s.turn.finished && s.status !== "ready"))
     return ["thinking", "Thinking…", (s.turn && (s.turn.request || "“" + s.turn.heard + "”")) || ""];
-  if (mic.listening) return ["listening", "Listening", mic.partial ? `Heard so far: ${mic.partial}` : "Say the next thing · Esc or click to stop"];
+  if (mic.listening) return ["listening", "Listening", mic.partial ? `Heard so far: ${mic.partial}` : "Esc or click here to stop"];
   if (!mic.on) return ["paused", "Microphone off", "Open Cowork to type a request"];
   return ["paused", "Not listening", win.hands_free ? "One moment…" : "Click here to listen again"];
 }
