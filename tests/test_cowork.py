@@ -49,6 +49,7 @@ def make():
     tts = FakeTTS(quiet=True)
     actions = FakeActions()
     core = App(copy.deepcopy(BASE), FakeLLM(), tts, actions=actions)
+    core.set_voice(True)   # the tests below exercise speaking; the app itself starts silent
     return core, tts, actions
 
 
@@ -59,6 +60,16 @@ def asking(core, kind=None):
 
 def finished(core, n):
     return wait_for(lambda: len(core.state["history"]) >= n and core.state["status"] == "ready", 8)
+
+
+# ---- speaking is off by default (turned on in Settings) ----------------------
+import copy
+silent = App(copy.deepcopy(BASE), FakeLLM(), FakeTTS(quiet=True), actions=FakeActions())
+check("a fresh app starts silent (speaking off)", silent.state["voice"]["on"], False)
+silent.set_voice(True)
+check("  ...the Settings toggle turns speaking on", silent.state["voice"]["on"], True)
+silent.set_voice(False)
+check("  ...and back off", silent.state["voice"]["on"], False)
 
 
 # ---- the profile ----------------------------------------------------------

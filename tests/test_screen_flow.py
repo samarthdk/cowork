@@ -79,6 +79,7 @@ class ScreenActions(FakeActions):
 def make(screen, dictation=False):
     actions = ScreenActions(screen)
     core = App(BASE, FakeLLM(), FakeTTS(quiet=True), actions=actions, question_wait_s=4.0)
+    core.set_voice(True)   # the tests below exercise speaking; the app itself starts silent
     core.session.save = lambda: None
     if dictation:
         core.set_dictation(True)

@@ -58,6 +58,7 @@ class _Voice:
     def __init__(self, tts, app):
         self.tts, self.app = tts, app
         self.next_in_background = False
+        self.enabled = False   # "Speaking" is off until it is turned on in Settings
         self._queue: queue.Queue = queue.Queue()
         self._idle = threading.Event()
         self._idle.set()
@@ -83,6 +84,8 @@ class _Voice:
                 self._idle.set()
 
     def _say(self, text):
+        if not self.enabled:
+            return
         which = getattr(self.tts, "which_voice", None)
         if which is not None:
             try:
@@ -213,6 +216,7 @@ class App:
             "clips": [],                # TORGO test clips (see ui/clips.py)
             "credit": "",               # where the test clips come from
             "dictation": {"on": False, "app": ""},   # type confirmed sentences into the app you were using
+            "voice": {"on": False},   # "Speaking" in Settings: say confirmations and read replies aloud
             "screen": None,             # what is on screen in the app being worked in (actions/screen.py)
             "window": {"mode": "full", "hands_free": False},   # "mini": the small window in the corner
             "catalog": {"phrases": [], "commands": [], "apps": []},   # everything Quick Actions can do
@@ -674,6 +678,14 @@ class App:
     def set_dictation(self, on: bool) -> None:
         """On: a confirmed sentence is typed into the app the person is working in (and read back)."""
         self._set(dictation={"on": bool(on), "app": self._typing_app()})
+
+    def set_voice(self, on: bool) -> None:
+        """On: Cowork speaks as it works (confirmations, replies read aloud). Off (default): silent."""
+        on = bool(on)
+        self.voice.enabled = on
+        if not on:
+            self.voice.stop()
+        self._set(voice={"on": on})
 
     def _typing_app(self) -> str:
         actions = self.session.actions

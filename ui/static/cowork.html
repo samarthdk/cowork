@@ -38,7 +38,6 @@
   --caption: 400 12px/1.4 var(--sans);
   --target: 48px;
 }
-html.plain { --base: #141416; }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; background: transparent; }
 body { color: var(--text); font: var(--body); -webkit-font-smoothing: antialiased; background: var(--base); }
@@ -730,10 +729,10 @@ function renderModal() {
       <tr><td>Hold</td><td>About one second; the bar on the button fills. Lower your hand before the next answer.</td></tr>
       <tr><td>When unsure</td><td>Nothing is chosen. Hands resting low are ignored.</td></tr></table></div>`;
   } else if (modalView === "settings") {
-    const glass = !document.documentElement.classList.contains("plain");
+    const voice = (S && S.voice) || {};
     m.innerHTML = head("Settings") + `<div class="modal-body">
-      <div class="setting"><div class="what"><div>Window look</div><div class="caption">Glass blurs the desktop behind the window. Plain turns the blur off.</div></div>
-        <div class="seg" role="group" aria-label="Window look"><button data-look="glass" aria-pressed="${glass}">Glass</button><button data-look="plain" aria-pressed="${!glass}">Plain</button></div></div></div>`;
+      <div class="setting"><div class="what"><div>Speaking</div><div class="caption">Cowork talks as it works — says “Opening Mail” and reads replies aloud. Off keeps it silent.</div></div>
+        <div class="seg" role="group" aria-label="Speaking"><button data-voice="off" aria-pressed="${!voice.on}">Off</button><button data-voice="on" aria-pressed="${voice.on}">On</button></div></div></div>`;
   } else if (modalView === "help") {
     m.innerHTML = head("Help") + `<div class="modal-body"><table class="plain">
       <tr><td>Speak</td><td>Press Speak (or Space), say it your way, pause. Press again to stop listening.</td></tr>
@@ -749,13 +748,6 @@ function chooseQuick(n) {
   closeModal();
   post("/api/say", { text: item.say });
 }
-function setLook(look) {
-  document.documentElement.classList.toggle("plain", look === "plain");
-  try { localStorage.setItem("cowork-look", look); } catch (e) {}
-  try { window.webkit.messageHandlers.cowork.postMessage({ glass: look !== "plain" }); } catch (e) {}
-  if (modalView === "settings") renderModal();
-}
-try { if (localStorage.getItem("cowork-look") === "plain") setLook("plain"); } catch (e) {}
 
 // ---- render ---------------------------------------------------------------------------
 const lastHtml = {};
@@ -857,7 +849,7 @@ document.addEventListener("click", (e) => {
   if (b.id === "recentBtn") { const open = $("recent").hidden; $("recent").hidden = !open; b.setAttribute("aria-expanded", open ? "true" : "false"); return; }
   if (b.dataset.close) { closeModal(); return; }
   if (b.dataset.view) { openModal(b.dataset.view); return; }
-  if (b.dataset.look) { setLook(b.dataset.look); return; }
+  if (b.dataset.voice !== undefined) { const on = b.dataset.voice === "on"; post("/api/voice", { on }).then((r) => { if (r && r.voice && S) S.voice = r.voice; if (modalView === "settings") renderModal(); }); return; }
   if (b.dataset.qa !== undefined) { chooseQuick(+b.dataset.qa); return; }
   if (b.dataset.app) { post("/api/say", { text: `Open ${b.dataset.app}` }); return; }
   if (b.dataset.row) { rowsOpen[b.dataset.row] = b.getAttribute("aria-expanded") !== "true"; renderRows(S); return; }

@@ -60,6 +60,7 @@ def make(model=None, actions=None, wait=60.0):
     tts = FakeTTS(quiet=True)
     core = App(copy.deepcopy(BASE), model or Model(), tts, actions=actions,
                backends={"Brain": "fake"}, question_wait_s=wait)
+    core.set_voice(True)   # the tests below exercise speaking; the app itself starts silent
     messages = []
     core.subscribe(messages.append)
     return core, tts, messages
