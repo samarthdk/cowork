@@ -37,3 +37,20 @@
   no longer opens by itself when a question waits for a hand answer: a small camera picture appears inside the
   question card instead. (Saying "show learned" still opens it, since the person asked.)
 - Test: added to `tests/test_composer.py`.
+
+### Bug 5: mode button (fixed)
+- The button now shows where it takes you: in Computer mode the people icon, "Switch to Conference mode"; in
+  Conference mode the computer icon, "Switch to Computer mode". In Conference mode a quiet label above the
+  composer says "Conference mode: speaking for you". Test: `tests/test_composer.py`.
+
+### Bug 6: question card text (fixed)
+- With speaking off the Yes button shows the real outcome ("Typing into Word", "Opening Mail") or just "Yes";
+  never "Saying it aloud".
+- Long dashes removed from all app text (cowork, mini and classic pages, app.py, wording.py), e.g. "My guess 1 of 3,
+  not from your list", "Watching for your answer. Nothing is recorded." Tests check the page and the source files.
+
+### Change 7: panels 5% more see-through (done)
+- Panel fill 0.72 -> 0.67. Checked the worst case (a pure white wallpaper, with the 0.22 base layer): white 8.8,
+  light gray 6.1, green 5.5, red 4.5, amber 5.4. The clay accent fell to 4.3, so instead of keeping one area more
+  opaque (accent text is used in many places) the accent was made 8% lighter (#F2A385 -> #F3AA8F, 4.6:1, looks the
+  same). The red-orange "listening" colour is only used for icons and dots (3.4:1; 3:1 is the rule for those).

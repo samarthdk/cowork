@@ -1160,7 +1160,7 @@ class App:
         answer = self._ask(Question("yes_no", "address", "Did you mean this address?", data={"address": address}))
         if answer is None or answer.kind != "yes":
             with self._lock:
-                self.state["turn"]["items"].append({"type": "reply", "text": "Okay \u2014 I didn't type it."})
+                self.state["turn"]["items"].append({"type": "reply", "text": "Okay, I didn't type it."})
             return
         outcome = self.session.actions.run("type_text", {"text": address})
         with self._lock:
@@ -1209,7 +1209,7 @@ class App:
                 if item["type"] == "step" and item["status"] == "running":
                     item["status"] = "done"
             if not any(i["type"] in ("step", "spoken", "typed", "reply") for i in turn["items"]):
-                turn["items"].append({"type": "reply", "text": "Okay — I didn't do anything."})
+                turn["items"].append({"type": "reply", "text": "Okay, I didn't do anything."})
             self.state["history"].append(copy.deepcopy(turn))
             del self.state["history"][:-HISTORY_MAX]
 
@@ -1379,7 +1379,7 @@ class App:
             source = {"hand": "by hand signal", "speech": "by voice", "keyboard": "by keyboard",
                       "screen": "", "head": "by head movement"}.get(answer.source if answer else "", "")
             if answer is None or answer.kind == "none":
-                item["status"], item["answer"] = "none", "No answer — nothing was done"
+                item["status"], item["answer"] = "none", "No answer, nothing was done"
             elif answer.kind == "yes":
                 item["status"], item["answer"] = "allowed", card.get("allow", "Yes")
             elif answer.kind == "no":

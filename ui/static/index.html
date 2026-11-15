@@ -233,7 +233,7 @@ main {
       </section>
       <section class="card" aria-labelledby="h-meant">
         <h2 class="label" id="h-meant">Understood</h2>
-        <div class="meaning empty" id="meaning">—</div>
+        <div class="meaning empty" id="meaning">-</div>
         <div class="badges" id="badges"></div>
         <div id="reason"></div>
         <div class="result" id="result"></div>
@@ -268,7 +268,7 @@ main {
         <svg class="ring" viewBox="0 0 110 110" aria-hidden="true">
           <circle class="track" cx="55" cy="55" r="45"/>
           <circle class="prog" id="ring" cx="55" cy="55" r="45" stroke-dasharray="282.7" stroke-dashoffset="282.7"/>
-          <text id="ring-text" x="55" y="60" text-anchor="middle">—</text>
+          <text id="ring-text" x="55" y="60" text-anchor="middle">-</text>
         </svg>
         <div>
           <div id="camera-note" class="meta" style="margin-top:0"></div>
@@ -290,8 +290,8 @@ main {
       <h2 class="label" id="h-metrics">This request, step by step</h2>
       <div class="steps" id="steps"></div>
       <div class="figures">
-        <div class="fig"><div class="n" id="tps">—</div><div class="t">Brain tokens / second</div></div>
-        <div class="fig"><div class="n" id="total-ms">—</div><div class="t">Total time this request</div></div>
+        <div class="fig"><div class="n" id="tps">-</div><div class="t">Brain tokens / second</div></div>
+        <div class="fig"><div class="n" id="total-ms">-</div><div class="t">Total time this request</div></div>
       </div>
       <div class="mem">
         <h2 class="label" style="margin-top:6px">Memory (models) <span class="chip" id="mem-total"></span></h2>
@@ -323,7 +323,7 @@ function el(tag, attrs = {}, ...children) {
   return node;
 }
 function ms(v) {
-  if (v === null || v === undefined) return "—";
+  if (v === null || v === undefined) return "-";
   return v >= 1000 ? (v / 1000).toFixed(1) + " s" : Math.round(v) + " ms";
 }
 async function post(path, body) {
@@ -359,7 +359,7 @@ function renderTurn(s) {
   const heard = $("heard"), meaning = $("meaning");
   if (!t) {
     heard.textContent = "Nothing yet"; heard.className = "heard-text empty";
-    meaning.textContent = "—"; meaning.className = "meaning empty";
+    meaning.textContent = "-"; meaning.className = "meaning empty";
     $("heard-meta").textContent = ""; $("badges").replaceChildren(); $("reason").replaceChildren(); $("result").replaceChildren();
     return;
   }
@@ -463,7 +463,7 @@ function renderHands(s) {
   $("camera-note").textContent = s.camera.on ? "Camera on." : (s.camera.note || "Camera off.");
   const p = s.hold ? s.hold.progress : 0;
   $("ring").style.strokeDashoffset = String(282.7 * (1 - p));
-  $("ring-text").textContent = s.hold ? s.hold.signal.replace("_", " ").toLowerCase() : "—";
+  $("ring-text").textContent = s.hold ? s.hold.signal.replace("_", " ").toLowerCase() : "-";
 }
 
 function feedItem(e) {
@@ -502,8 +502,8 @@ function renderMetrics(s) {
     box.append(el("div", { class: "step" }, el("span", {}, st.name), bar, el("span", { class: "v" }, ms(st.ms))));
   }
   const t = s.turn;
-  $("tps").textContent = t && t.tokens_per_s ? t.tokens_per_s.toFixed(1) : (s.metrics.llm_tps ? s.metrics.llm_tps.toFixed(1) : "—");
-  $("total-ms").textContent = steps.length ? ms(steps.reduce((a, x) => a + (x.ms || 0), 0)) : "—";
+  $("tps").textContent = t && t.tokens_per_s ? t.tokens_per_s.toFixed(1) : (s.metrics.llm_tps ? s.metrics.llm_tps.toFixed(1) : "-");
+  $("total-ms").textContent = steps.length ? ms(steps.reduce((a, x) => a + (x.ms || 0), 0)) : "-";
 
   const mem = s.metrics.memory, budget = s.metrics.budget_mb || 3584;
   const bar = $("membar"), legend = $("legend"); bar.replaceChildren(); legend.replaceChildren();

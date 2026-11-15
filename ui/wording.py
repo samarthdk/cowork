@@ -63,7 +63,7 @@ def permission(question: dict, profile: dict, turn: dict | None) -> dict:
         if choice == "compose_email":
             card["email"] = email_preview(args)
     elif stage == "guess":
-        card["title"] = f"My guess {data.get('attempt', 1)} of {data.get('total', 3)} — not from your list"
+        card["title"] = f"My guess {data.get('attempt', 1)} of {data.get('total', 3)} , not from your list"
         card["body"] = data.get("guess", "")
         card["allow"], card["deny"] = ("Yes, answer it", "No") if data.get("kind") == "question" else ("Yes, say it", "No")
         card["guess"] = card["say_aloud"] = True

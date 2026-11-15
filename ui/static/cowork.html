@@ -7,14 +7,14 @@
 <!-- Fully offline: no web fonts, no outside scripts. Served by ui/server.py on this Mac only. -->
 <style>
 /* Glass: the window is see-through and macOS blurs the desktop behind it (ui/window.py).
-   Every piece of text sits on a panel with a NEUTRAL dark tint rgba(12,12,14,0.76), so the wallpaper's own
-   colour shows through (a warm brown tint coloured everything brown). Measured over a white, a busy and
-   the default wallpaper (blurred), all text colours stay at 4.5:1 or more (white 9.4, light gray 6.5,
-   clay 4.6, green 5.8). Plain mode (Settings) turns the blur off.
+   Every piece of text sits on a panel with a NEUTRAL dark tint rgba(12,12,14,0.67) over the 0.22 base, so the
+   wallpaper's own colour shows through. Worst case, a pure white wallpaper: all text colours stay at 4.5:1 or
+   more (white 8.8, light gray 6.1, clay 4.6, green 5.5, red 4.5, amber 5.4). The red-orange (--live) is only
+   used for icons and dots (3:1 is enough for those: 3.4).
    Type scale: display 40 serif | title 22 semibold | body 17 | label 14 medium | caption 12.
    One card style: 12px radius, 20px padding, 1px light border at 15%. No emoji. */
 :root {
-  --tint: rgba(12, 12, 14, 0.72);
+  --tint: rgba(12, 12, 14, 0.67);
   --tint-strong: rgba(14, 14, 16, 0.86);
   --base: rgba(10, 10, 12, 0.22);       /* gutters between panels: no text sits here */
   --line: rgba(255, 255, 255, 0.15);
@@ -22,7 +22,7 @@
   --hover: rgba(255, 255, 255, 0.07);
   --text: #FFFFFF;
   --muted: #D6D6DA;
-  --accent: #F2A385;
+  --accent: #F3AA8F;     /* 4.6:1 for text over the panels (0.67) on a white wallpaper */
   --ok: #8FDDA5;
   --bad: #FFA294;
   --warn: #F2C46B;
@@ -300,8 +300,8 @@ button.chip { min-height: var(--target); }
 .clips .caption { margin: 8px; }
 
 /* ---- Conference mode: a calm view, readable from across a table ---- */
-.ibtn.mode.on { color: var(--accent); }
-.ibtn.mode.on::before { background: rgba(242,163,133,.14); }
+.mode-label { max-width: 760px; margin: 0 auto 6px; padding-left: 18px; font: var(--label); color: var(--accent); }
+.mode-label[hidden] { display: none; }
 .conf { max-width: 860px; margin: 0 auto; padding: 22px 26px 30px; display: flex; flex-direction: column; gap: 22px; min-height: 100%; }
 .conf-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; color: var(--muted); font: var(--label); }
 .conf-head .badge { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 600; }
@@ -443,6 +443,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
     <div class="scroll" id="scroll"><div class="convo" id="convo" aria-live="polite"></div></div>
     <div class="composer-wrap">
       <div class="clips card" id="clips" hidden></div>
+      <div class="mode-label" id="modeLabel" hidden>Conference mode: speaking for you</div>
       <form class="composer card" id="typeForm" autocomplete="off">
         <label class="sr" for="typed">Type what was said</label>
         <input id="typed" placeholder="Type what was said, or press the mic…">
@@ -456,7 +457,7 @@ html.still *, html.still *::before, html.still *::after { animation: none !impor
           <button type="button" class="ibtn" id="clipBtn" aria-haspopup="true" aria-expanded="false" aria-label="Test clips" data-tip="Test clips">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 12h1.5M7 8.5v7M10.5 5v14M14 9v6M17.5 6.5v11M21 11v2"/></svg>
           </button>
-          <button type="button" class="ibtn mode" id="modeBtn" aria-pressed="false" aria-label="Computer mode" data-tip="Computer mode">
+          <button type="button" class="ibtn mode" id="modeBtn" aria-pressed="false" aria-label="Switch to Conference mode" data-tip="Switch to Conference mode">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" id="modeIcon"></svg>
           </button>
           <span class="grow"></span>
@@ -569,7 +570,7 @@ function outcomeOf(c) {
   const dict = (S && S.dictation) || {};
   const app = shortApp(dict.app) || "the app";
   if ((c.say_aloud || c.guess) && S && S.mode === "conference") return "Saying it to the room";
-  if (c.say_aloud || c.guess) return dict.on ? `Typing into ${app}` : "Saying it aloud";
+  if (c.say_aloud || c.guess) return dict.on ? `Typing into ${app}` : S && S.voice && S.voice.on ? "Saying it aloud" : "";   // speaking off: just "Yes"
   if (c.allow === "Yes, do both") return "Doing both";
   if (c.body) return ing(c.body.replace(/[.!?]$/, ""));
   return "Going ahead";
@@ -632,7 +633,7 @@ function permHtml(q) {
   let html = `<div class="card perm${fresh ? " fresh" : ""}${c.risky ? " risky" : ""}${c.guess ? " guess" : ""}${cam ? " with-cam" : ""}" data-qid="${q.id}" role="dialog" aria-label="${esc(c.title)}"><div class="perm-head">${head}</div>`;
   if (cam) html += `<img class="qcam" alt="Camera: show your hand or thumb to answer" data-qcam="1">`;
   html += `<div class="perm-title">${esc(c.title)}</div>`;
-  if (c.guess) html += '<span class="tagline">Not from your list — only ever spoken or typed, never done on the Mac</span>';
+  if (c.guess) html += '<span class="tagline">Not from your list. Only ever spoken or typed, never done on the Mac</span>';
   if (c.body) html += `<div class="perm-body">${c.say_aloud ? "“" + esc(c.body) + "”" : esc(c.body)}</div>`;
   if (c.email) html += emailHtml(c.email);
   if (q.kind === "yes_no") {
@@ -640,7 +641,7 @@ function permHtml(q) {
     const yes = c.allow && !["Yes", "Allow"].includes(c.allow) && !c.guess ? c.allow : (c.risky ? "Allow" : "Yes");
     html += `<div class="buttons">
       <button class="btn deny${holding(NO_SIGNALS) ? " holding" : ""}" data-answer="no" data-signals="no"${fill(NO_SIGNALS)}><span class="labels"><span>${esc(c.deny)}</span></span><span class="how"><span class="key">Esc</span>${gest("hand", "left")}${gest("down", "")}</span><span class="fill"></span></button>
-      <button class="btn primary allow${holding(YES_SIGNALS) ? " holding" : ""}" data-answer="yes" data-signals="yes"${fill(YES_SIGNALS)}><span class="labels"><span class="now">${esc(yes)}</span><span class="doing"><span class="loop" aria-hidden="true"></span>${esc(outcome)}</span><span class="outcome">${esc(outcome)}</span></span><span class="how"><span class="key">Enter</span>${gest("hand", "right")}${gest("up", "")}</span><span class="fill"></span></button>
+      <button class="btn primary allow${holding(YES_SIGNALS) ? " holding" : ""}" data-answer="yes" data-signals="yes"${fill(YES_SIGNALS)}><span class="labels"><span class="now">${esc(yes)}</span><span class="doing"><span class="loop" aria-hidden="true"></span>${esc(outcome || yes)}</span>${outcome ? `<span class="outcome">${esc(outcome)}</span>` : ""}</span><span class="how"><span class="key">Enter</span>${gest("hand", "right")}${gest("up", "")}</span><span class="fill"></span></button>
     </div>`;
     html += `<div class="answer-hint">Say yes or no, show your thumb, or press Enter/Esc.</div>`;
   } else if (q.kind === "choice") {
@@ -740,7 +741,7 @@ function progressRows(s) {
   const thought = t.request || t.finished || (t.items || []).length;
   rows.push({ cls: thought ? "done" : "running", text: t.request ? `Understood: ${t.request}` : thought ? `Heard “${t.heard}”` : "Understanding what you said" });
   for (const item of t.items || []) {
-    if (item.type === "permission") rows.push({ cls: item.status === "open" ? "open" : item.status === "denied" || item.status === "none" ? "failed" : "done", text: (item.card || {}).title + (item.answer ? ` — ${item.answer}` : "") });
+    if (item.type === "permission") rows.push({ cls: item.status === "open" ? "open" : item.status === "denied" || item.status === "none" ? "failed" : "done", text: (item.card || {}).title + (item.answer ? `: ${item.answer}` : "") });
     else if (item.type === "step") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: item.title });
     else if (item.type === "spoken") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: "Say it out loud" });
     else if (item.type === "typed") rows.push({ cls: item.status === "undone" ? "failed" : item.status, text: `Type it into ${item.app}` });
@@ -764,7 +765,7 @@ function camHtml(s) {
   const picture = c.connected && c.problem ? `<div class="off"><div>${ICON.cam}<br>${esc(c.problem)}</div></div>`
     : c.connected ? `<img id="camImg" alt=""><span id="camRing"></span>`
     : `<div class="off"><div>${ICON.cam}<br>Camera not connected<br><span class="caption">start with --camera to answer by hand</span></div></div>`;
-  const cap = !c.connected ? "Hand answers need the camera" : c.problem ? "Answer by voice or keyboard instead" : "Watching for your answer — nothing is recorded";
+  const cap = !c.connected ? "Hand answers need the camera" : c.problem ? "Answer by voice or keyboard instead" : "Watching for your answer. Nothing is recorded.";
   return `<div class="pic">${picture}</div><div class="cap"><span class="rec"${c.problem || !c.connected ? ' style="background:var(--warn)"' : ""}></span>${cap}</div>`;
 }
 function rowHead(icon, title, summary) { return `${ICON[icon]}<span><span class="rt">${title}</span> <span class="rs">· ${esc(summary)}</span></span>${ICON.chev}`; }
@@ -911,10 +912,11 @@ function render(s) {
   renderRows(s);
   const dict = s.dictation || {};
   const where = shortApp(dict.app);
-  $("modeIcon").innerHTML = MODE_ICON[conference ? "conference" : "computer"];
-  $("modeBtn").classList.toggle("on", conference);
+  // The button shows where it takes you; the current mode is shown quietly above the composer.
+  $("modeIcon").innerHTML = MODE_ICON[conference ? "computer" : "conference"];
   $("modeBtn").setAttribute("aria-pressed", conference ? "true" : "false");
-  setTip($("modeBtn"), conference ? "Conference mode" : "Computer mode");
+  setTip($("modeBtn"), conference ? "Switch to Computer mode" : "Switch to Conference mode");
+  $("modeLabel").hidden = !conference;
   $("dictBtn").hidden = conference;   // nothing is typed in Conference mode
   $("dictBtn").setAttribute("aria-pressed", dict.on ? "true" : "false");
   $("dictDot").classList.toggle("on", !!dict.on);
@@ -1062,7 +1064,7 @@ function showClips() {
   const clips = (S && S.clips) || [];
   const row = (c, n) => `<button data-clip="${esc(c.id)}"><span class="play">${ICON.play}</span><span>${n ? `<b class="step-n">${n}</b> ` : ""}“${esc(c.said)}”${c.label ? `<span class="clip-label">${esc(c.label)}</span>` : ""}</span><span class="secs">${c.seconds ? c.seconds.toFixed(1) + " s" : ""}</span></button>`;
   const demo = clips.filter((c) => c.demo), more = clips.filter((c) => !c.demo);
-  $("clips").innerHTML = (clips.length ? `<h4>Dictation demo — play in this order</h4>` + demo.map((c, i) => row(c, i + 1)).join("") +
+  $("clips").innerHTML = (clips.length ? `<h4>Dictation demo: play in this order</h4>` + demo.map((c, i) => row(c, i + 1)).join("") +
     (more.length ? `<h4>More recordings</h4>` + more.map((c) => row(c, 0)).join("") : "") : '<p class="feed-empty" style="padding:0 8px">No clips found on this Mac.</p>') + `<div class="caption">${esc((S && S.credit) || "")}</div>`;
   $("clips").hidden = false; $("clipBtn").setAttribute("aria-expanded", "true");
   const first = $("clips").querySelector("button"); if (first) first.focus();
