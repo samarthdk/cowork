@@ -1,4 +1,4 @@
-"""Records timing for every model call (ASR, LLM, TTS) in logs/model_calls.jsonl."""
+"""Records timing for every model call including (ASR, LLM, TTS) in logs/model_calls.jsonl."""
 
 import json
 import time
