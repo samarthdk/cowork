@@ -2,12 +2,21 @@
 
 ## Morning summary (kept up to date)
 
-- Done so far (each committed, with tests): Bugs 1-6, change 7, F1 (scripts/start.sh), F2 (stop everything),
-  F3 (Cmd+1/2/3 demo clips), F4 (Results view + docs/chart.png), F6 (dictation polish). All test files pass.
-- IMPORTANT: the screen locked during the night, so nothing that needs an app in front (keys into Mail/Word,
-  reply/forward, printing) could be tried live. Those are on the morning checklist. Bonsai, WhisperKit, TTSKit,
-  Mail's scripting and reading app menus were tested for real.
-- Still to come tonight: F5 (Teach me), the tough-judge testing, README/LICENSE/cleanup, merge, MORNING.md.
+- Everything in the spec is done and committed, each with tests: bugs 1-6, change 7, F1-F6, tough-judge fixes,
+  README, LICENSE, requirements.txt, cleanup, personal-data scan, screenshots retaken, PROGRESS.md updated.
+  `cowork` is merged into `main` on this Mac (fast-forward). Nothing was pushed. All 26 test files pass.
+- Start here: `docs/MORNING.md` (how to start, what to check by hand, known issues, GitHub steps) and
+  `docs/video_script.md`.
+- The screen was locked all night, so nothing that presses keys in another app was tried live: please run the
+  short checklist in docs/MORNING.md before recording.
+- Please decide: your Gmail address is the author of every commit (never inside a file); GitHub will show it.
+  History was not rewritten. `docs/OVERNIGHT_SPEC.md` is not committed (it is your note; add it only if you want).
+- Not done: SpeakerKit (not downloaded, as asked); the 30-minute soak and "play out loud into the microphone"
+  tests (the Mac was in use by morning and the screen locked overnight); Wi-Fi was not toggled. Checked instead: the running app
+  only talks to localhost (LM Studio, WhisperKit), all models load from disk (TTSKit refuses to run without its
+  local model, so it can never download), and the page loads nothing from the internet (tested). Web addresses in
+  the code are only: website/Google-search commands (hidden from the demo profile; they would open a browser),
+  and one-time downloads for setup (TORGO, the MediaPipe hand model). README now says how to get the hand model.
 
 ## Decisions (made without asking, safest and simplest for the demo)
 

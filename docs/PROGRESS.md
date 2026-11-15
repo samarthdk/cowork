@@ -1,5 +1,33 @@
 # Progress report
 
+## Update 2026-11-15: overnight build, ready to publish
+
+Branch `cowork`, merged into `main` on this Mac (not pushed). **All 26 test files pass** (also in a fresh clone,
+where the checks that need the TORGO recordings are skipped):
+
+    for t in tests/test_*.py; do .venv/bin/python $t | tail -1; done
+
+| | What it does | Where |
+|---|---|---|
+| Answers as sentences | "No, I meant to say open Word" = No, then opens Word; "yes, then open Mail"; "the second one"; a clear new request drops the question | `choose/reading.py` |
+| Recent tasks | "New task" saves the conversation; read-only view, continue; kept across restarts; `--fresh` clears | `ui/app.py` |
+| Acting in the app in front | reply, reply all, forward, mark unread, delete/archive (risky), undo, select all, bold, new line/paragraph, reload, close tab; anything else through the app's own menus and buttons, Bonsai picks one or none | `actions/mac.py`, `repair/menu_pick.py` |
+| One start command | `scripts/start.sh`: plain-English checks with fixes, then the demo | `ui/checks.py` |
+| Stop everything | "stop", "cancel", Esc twice | `ui/app.py` |
+| Demo backup | Cmd+1/2/3 play demo clips 1-3 | `ui/static/cowork.html` |
+| Results view | TORGO M04 from `eval/results/torgo_M04.json`; `docs/chart.png` | Help > Results |
+| Teach me | say a phrase 3 times, each saying learned | Your voice > Phrases |
+| Dictation polish | spoken punctuation, "delete that", numbers/times/dates checked first, addresses kept exact | `ui/dictation.py` |
+| Tough-judge fixes | "open <app>" recognised directly; kind refusals (settings, deleting files, buying); mumbling; screen text never instructions | `repair/learning.py`, `ui/screen_rules.py`, `repair/prompt.py` |
+| UI | mode button shows where it goes; right column starts closed, camera picture in the card; panels 5% more see-through; no long dashes | `ui/static/cowork.html` |
+| Voice | TTSKit only, one whole sentence per generation (no stitching), speaking off by default in Computer mode | `tts/` |
+| GitHub | README for judges, MIT LICENSE, requirements.txt, STATUS.md removed, personal-data scan | repo root |
+
+Not tested live (the screen was locked all night): anything that presses keys in another app (reply, forward,
+typing into Word, print). Checklist in `docs/MORNING.md`. Full log: `docs/OVERNIGHT_LOG.md`.
+
+---
+
 ## Update 2026-11-14: Cowork branch, round D ("look before acting", the mini window)
 
 Branch `cowork`. **All 15 test files pass** (620 checks):

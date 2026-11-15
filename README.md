@@ -105,6 +105,10 @@ Requirements: a Mac with Apple Silicon (built on a MacBook Air M1, 8 GB), macOS 
        huggingface-cli download argmaxinc/ttskit-coreml --local-dir ~/Documents/huggingface/models/argmaxinc/ttskit-coreml
        huggingface-cli download Qwen/Qwen3-0.6B --include "tokenizer*" --local-dir ~/Documents/huggingface/models/Qwen/Qwen3-0.6B
 
+   The hand model for the camera (MediaPipe), also once:
+
+       mkdir -p models && curl -L -o models/hand_landmarker.task https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task
+
    Then make the voice ready (a few minutes): `.venv/bin/python scripts/prepare_voice.py`
 4. **Permissions**: System Settings > Privacy & Security: Accessibility, Microphone and Camera for Terminal.
 5. **Start**:
