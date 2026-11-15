@@ -53,7 +53,10 @@ FEED_KINDS = {"learned", "fast_path", "undone", "cancelled", "forgot", "new_phra
 
 from tts.lines import MEETING as QUICK_PHRASES   # Conference mode's quick phrases (made in advance)
 
-SAID_MAX = 30               # Conference mode: sentences kept in the transcript
+SAID_MAX = 30
+STOP_WORDS = ("stop", "cancel", "stop it", "stop everything", "stop that", "cancel that", "cancel everything",
+              "stop stop", "cancel it")   # F2: stop everything (but "stop listening" only stops the microphone)
+DOUBLE_ESC_S = 1.0          # Esc twice within this long: stop everything               # Conference mode: sentences kept in the transcript
 NUMBER_WORDS = {"one": 0, "1": 0, "two": 1, "2": 1, "three": 2, "3": 2, "four": 3, "4": 3}   # a spoken quick phrase
                                                                                         # is confirmed first
 CHIME = "/System/Library/Sounds/Tink.aiff"   # one short soft sound (not a voice)
@@ -441,6 +444,13 @@ class App:
         With no question, Esc stops hands-free listening (and still reaches the app)."""
         if self.state["window"]["mode"] != "mini":
             return False
+        if code == KEY_ESC:
+            now = time.monotonic()
+            if now - getattr(self, "_last_esc", 0.0) <= DOUBLE_ESC_S:
+                self._last_esc = 0.0
+                self.stop_all()
+                return True
+            self._last_esc = now
         question = self._question
         if question is None:
             if code == KEY_ESC and self.state["window"]["hands_free"]:
@@ -498,6 +508,9 @@ class App:
         text = (text or "").strip()
         if not text:
             return "ignored"
+        if self.is_stop(text):
+            self.stop_all()
+            return "stop"
         if self._question is not None:
             return "answer" if self._answer_words(text, source) else "ignored"
         if self.ui_command(text, spoken=source == "speech"):
@@ -515,6 +528,41 @@ class App:
             return "ignored"
         self._requests.put(("hear", {"text": text, "source": source, "rehear": None, "asr_ms": None}))
         return "request"
+
+    @staticmethod
+    def is_stop(text: str) -> bool:
+        said = " ".join("".join(c for c in (text or "").lower() if c.isalpha() or c == " ").split())
+        return said in STOP_WORDS
+
+    def stop_all(self) -> None:
+        """Stop everything at once (F2: "stop", "cancel", Esc twice): speaking, typing, anything waiting
+        to be done, and any open question. What was already done is kept (Undo is separate). "Stopped"."""
+        self.voice.stop()
+        actions = self.session.actions._actions if isinstance(self.session.actions, _Targeted) else self.session.actions
+        if actions is not None:
+            actions.stop_typing = True
+        while not self._requests.empty():   # requests waiting their turn
+            try:
+                kind, payload = self._requests.get_nowait()
+            except queue.Empty:
+                break
+            if kind == "stop":
+                self._requests.put((kind, payload))
+                break
+        self._then.clear()
+        if self.listener is not None:
+            self.listener.cancel()
+        question = self._question
+        if question is not None or self.busy:
+            self._drop = True   # any further question in this request: dropped
+        if question is not None:
+            self._give(Answer("yes" if question.kind == "window" else "none", source="stop"))
+        with self._lock:
+            turn = self.state["turn"]
+            if turn is not None and not turn.get("finished"):
+                turn["items"].append({"type": "note", "icon": "x", "text": "Stopped."})
+        self._set(event={"kind": "stopped"}, notice={"text": "Stopped.", "time": time.time()},
+                  speaking=None, window=dict(self.state["window"], hands_free=False))
 
     def _answer_words(self, text: str, source: str) -> bool:
         """A sentence said or typed while a question is open (choose/reading.py): "No, I meant to say
@@ -717,6 +765,9 @@ class App:
         if not text:
             self._notice("Couldn't make out the words. Try again, a little closer to the Mac." + (f" ({transcript.problem})" if transcript.problem else ""))
             self._set(status="ready" if self._question is None else "asking")
+            return
+        if self.is_stop(text):
+            self.stop_all()
             return
         if self._question is not None:
             self._answer_words(text, "speech")

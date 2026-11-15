@@ -22,6 +22,7 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
     POST /api/signal    {"signal": "RIGHT_UP"}      a hand signal (for testing without the camera)
     POST /api/listen    "listen now"
     POST /api/undo      forget the last thing learned
+    POST /api/stop      stop everything now (speaking, typing, waiting requests, the open question)
 """
 
 import asyncio
@@ -106,6 +107,11 @@ def create_server(core: App) -> FastAPI:
         except (TypeError, ValueError):
             return {"ok": False}
         return {"ok": core.quick_phrase(index)}
+
+    @server.post("/api/stop")
+    def stop_everything():
+        core.stop_all()
+        return {"ok": True}
 
     @server.post("/api/task")
     def task(body: dict = Body(...)):

@@ -865,6 +865,8 @@ function renderModal() {
       <tr><td>Answer a card</td><td>Say yes / no or a number, show your thumb, or press Enter / Esc / 1-4.</td></tr>
       <tr><td>Dictation</td><td>Confirmed sentences are typed into the app you are working in. Say “type …” to dictate anything.</td></tr>
       <tr><td>Conference mode</td><td>The people icon in the composer. Cowork speaks for you in a meeting: each sentence is said aloud once you confirm it (never before). Commands are off until you switch back. Quick phrases: 1-4, a thumb, or say the number.</td></tr>
+      <tr><td>Stop everything</td><td>Say “stop” or “cancel”, or press Esc twice: speaking, typing and anything waiting stop at once. What was already done stays (use Undo for that).</td></tr>
+      <tr><td>Demo clips</td><td>⌘1, ⌘2, ⌘3 play test clips 1 to 3.</td></tr>
       <tr><td>Quick actions</td><td>⌘K, or say “quick actions”.</td></tr>
       <tr><td>Panels</td><td>Say “show learned”, “show progress” or “show camera”.</td></tr></table></div>`;
   }
@@ -1071,8 +1073,21 @@ function showClips() {
 }
 function hideClips() { $("clips").hidden = true; $("clipBtn").setAttribute("aria-expanded", "false"); }
 
+let lastEsc = 0;
 document.addEventListener("keydown", (e) => {
   if (!S) return;
+  // Demo backup: Cmd+1, Cmd+2, Cmd+3 play demo clips 1-3 (only in Cowork's own window)
+  if (e.metaKey && !e.shiftKey && !e.altKey && ["1", "2", "3"].includes(e.key)) {
+    e.preventDefault();
+    post("/api/clip", { id: "demo" + e.key }).then((r) => r && r.problem && showToast(r.problem));
+    return;
+  }
+  // Esc twice quickly: stop everything (the first Esc still does its usual job)
+  if (e.key === "Escape") {
+    const now = Date.now();
+    if (now - lastEsc <= 1000) { lastEsc = 0; e.preventDefault(); post("/api/stop"); return; }
+    lastEsc = now;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") { e.preventDefault(); modalView === "quick" ? closeModal() : openModal("quick"); return; }
   if (modalView) {
     if (e.key === "Escape") { e.preventDefault(); closeModal(); return; }

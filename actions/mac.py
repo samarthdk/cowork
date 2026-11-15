@@ -804,7 +804,10 @@ class MacActions:
             return ActionResult(False, problem=f"Nothing in {screen.app or 'the app'} is ready for typing "
                                                f"({screen.words()}).")
         import Quartz
+        self.stop_typing = False
         for start in range(0, len(text), TYPE_CHUNK):
+            if self.stop_typing:   # "stop" said (ui/app.py stop_all): the rest is not typed
+                return ActionResult(True, detail=f"Stopped typing in {self.front.name} after: {text[:start]}")
             chunk = text[start:start + TYPE_CHUNK]
             for down in (True, False):
                 event = Quartz.CGEventCreateKeyboardEvent(None, 0, down)

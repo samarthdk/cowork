@@ -85,3 +85,15 @@
   and says what to do. Then Cowork starts with real models, microphone and camera on, demo profile.
 - Run on this Mac: all 8 checks OK (Bonsai test 2.2 s, 57 demo sentences ready). Cowork started with mic and camera.
 - Test: `tests/test_start.py`. Just the checks: `.venv/bin/python -m ui.checks`.
+
+### F2: stop everything (done)
+- "stop", "cancel" (and "stop everything", "cancel that"...), typed or said, or Esc twice within a second (full
+  window and mini window): speaking stops, typing stops mid-sentence, requests waiting their turn are dropped, the
+  open question closes, listening stops. "Stopped." is shown. What was already done stays (Undo is separate).
+  "stop listening" still only stops the microphone.
+- The both-hands-up gesture was skipped (decision): it would overlap the existing raised-hand yes/no answers.
+- Test: `tests/test_stop.py` (11 checks) and keys in `tests/test_composer.py`.
+
+### F3: demo backup (done)
+- The 3 demo clips are at the top of Test clips, in order (as before). Cmd+1, Cmd+2, Cmd+3 play them directly
+  (only in Cowork's own window, so Word's own Cmd+1 is never taken). Test in `tests/test_composer.py`.

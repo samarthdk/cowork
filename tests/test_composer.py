@@ -169,6 +169,16 @@ check("the toggle opens it", js("document.querySelector('.app').classList.contai
 core._set(counts=core._counts())   # any update
 pump(0.3)
 check("  ...and it stays open", js("document.querySelector('.app').classList.contains('rail-collapsed')"), False)
+played, stopped = [], []
+core.play_clip = lambda clip_id, play_sound=True: played.append(clip_id) or ""
+core.stop_all = lambda: stopped.append(1)
+for n in ("1", "2", "3"):
+    js(f"document.dispatchEvent(new KeyboardEvent('keydown', {{key: '{n}', metaKey: true, bubbles: true}}))")
+pump(0.5)
+check("Cmd+1, Cmd+2, Cmd+3 play demo clips 1-3", played, ["demo1", "demo2", "demo3"])
+js("document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true})); document.dispatchEvent(new KeyboardEvent('keydown', {key: 'Escape', bubbles: true}))")
+pump(0.5)
+check("Esc twice stops everything", len(stopped), 1)
 js("openModal('settings')")
 pump(0.3)
 about = js("document.getElementById('aboutCredit').textContent") or ""
