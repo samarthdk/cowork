@@ -925,6 +925,7 @@ class App:
             self._voice_before = self.state["voice"]["on"]
             self.voice.enabled = True
             self.set_window("full")
+            self._set(writing=None)   # no writing mode in Conference mode (and leaving it doesn't restart it)
             self._set(voice={"on": True})
         self.session.conference = self.voice.conference = conference
         self._set(mode=mode)

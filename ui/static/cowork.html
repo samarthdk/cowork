@@ -763,8 +763,8 @@ function confHtml(s) {
   }
   html += "</div>";
   const q = s.question;
-  if (q && q.kind === "window") {
-    html += `<div class="card inner">${undoHtml(q.closes_at)}</div>`;
+  if (q && q.kind === "window") {   // said at once (or just confirmed): 3 s to stop it
+    html += `<div class="card inner">${undoHtml(q.closes_at).replace("Not what you wanted?", "Saying it\u2026")}</div>`;
   } else if (q) {
     html += permHtml(q);
   } else if (s.turn && !s.turn.finished) {

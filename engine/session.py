@@ -23,7 +23,8 @@ FAST PATH ...) is reported through `on_event` as small dictionaries, so each
 front-end can display it in its own way.
 
 Conference mode (`session.conference = True`, for speaking to people in a meeting):
-  - every sentence is confirmed before anything is said (even when sure, even the fast path);
+  - every sentence is confirmed before anything is said (even when sure), except one recognised instantly
+    from what was learned: that is said at once, with the 3 s undo window;
   - commands ("open Word") are recognised but not carried out (event "command_off");
   - the options offer phrases only; a guessed question is said to the room, not answered.
 
@@ -182,7 +183,7 @@ class Session:
         if match:
             intent = match.intent
             intent.stats = {"source": "fast_path", "latency_ms": round(match.latency_ms, 2),
-                            "similarity": round(match.similarity)}
+                            "similarity": round(match.similarity), "learned": not match.example.get("builtin")}
             self.emit("fast_path", similarity=match.similarity, latency_ms=match.latency_ms,
                       example_heard=match.example["heard"], exact_phrase=bool(match.example.get("builtin")),
                       meaning=describe(intent.choice, intent.args, profile), intent=intent.to_dict())
@@ -271,7 +272,10 @@ class Session:
             # A command: not carried out in Conference mode (sure or not), and nothing is said.
             self.emit("command_off", meaning=describe(intent.choice, intent.args, profile))
             return None
-        if intent.confidence == "high" and not is_risky(profile, intent.choice) and not self.conference:
+        instant = bool(intent.stats.get("learned"))   # recognised instantly from a learned example (as clip 3 / Cmd+3)
+        if intent.confidence == "high" and not is_risky(profile, intent.choice) and (not self.conference or instant):
+            # Conference mode asks first, except for what is recognised instantly: that is said at once
+            # (with the 3 s undo window), like Computer mode's instant replay.
             return Result(intent.choice, intent.args, "confident")
 
         rejected = ()

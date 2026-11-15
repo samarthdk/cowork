@@ -116,9 +116,50 @@ idle(core)
 
 # ---- the fast path also asks first -----------------------------------------------------------
 core.say("i need to use the bathroom")
-check("recognised instantly next time, but still confirmed", bool(question(core, "yes_no", "did_you_mean")), True)
+check("the phrase word for word (not learned): still asked first", bool(question(core, "yes_no", "did_you_mean")), True)
 core.answer("yes")
 idle(core)
+
+# ---- Cmd+4's words: asks the first time; after Yes, the second time it is said at once ----------------
+HEARD4 = "Could grandpa like to be a model in his language?"
+MEANT4 = "Grandfather likes to be modern in his language."
+core, tts, actions = make()
+core.set_mode("conference")
+core.say(HEARD4)
+q = question(core)
+check("clip 4 the first time: a question first", bool(q) and q["kind"] in ("yes_no", "choice"), True)
+if q["kind"] == "yes_no" and q["card"]["body"] == MEANT4:
+    core.answer("yes")
+else:   # the fake Brain may not guess it first: pick it the way the person would
+    if q["kind"] == "yes_no":
+        core.answer("no")
+        q = question(core, "choice")
+    core.answer("pick", [o["text"] for o in q["card"]["options"]].index(MEANT4))
+check("  ...said after Yes", wait_for(lambda: MEANT4 in tts.said), True)
+idle(core)
+core.say(HEARD4)
+check("clip 4 again: said immediately (learned), no 'Did you mean'", wait_for(lambda: tts.said.count(MEANT4) == 2), True)
+check("  ...no yes/no question was asked", core.state["question"] is None or core.state["question"]["kind"] == "window", True)
+idle(core)
+
+core, tts, actions = make(SlowTTS(seconds=1.5))
+core.set_mode("conference")
+core.session.profile["examples"].append({"heard": HEARD4, "meant": MEANT4, "args": {}})
+core.say(HEARD4)
+check("said at once, then Undo within 3 s: stopped", bool(question(core, "window")), True)
+core.answer("no")
+idle(core)
+check("  ...never said", tts.said, [])
+
+# ---- no writing mode in Conference mode -----------------------------------------------------------
+core, tts, actions = make()
+core._set(writing={"label": "your document", "app": "Microsoft Word"})
+core.set_mode("conference")
+check("entering Conference mode ends writing mode", core.state["writing"], None)
+core.set_mode("computer")
+check("  ...leaving it doesn't restart it", core.state["writing"], None)
+core, tts, actions = make()
+core.set_mode("conference")
 
 # ---- commands are ignored ---------------------------------------------------------------------
 core.say("open mail")
