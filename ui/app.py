@@ -50,6 +50,9 @@ DONE_WORDS = ("done", "im done", "i am done", "stop writing", "stop dictating", 
               "i'm done", "that's it")
 STAY_WRITING = ("next_field", "previous_field", "go_to_field", "new_line", "new_paragraph", "select_all", "make_bold",
                 "undo_edit")   # commands that work on the text being written: writing mode goes on
+FREE_TEXT_NEAR = 60      # writing mode: closer than this (0-100) to one of the phrases = understood as usual. Measured:
+                         # TORGO M04's phrase recordings scored 67-100, ordinary free sentences 40-54
+CLEAR_LOGPROB = -0.35    # ...free text WhisperKit heard this surely is typed directly; less sure: "Type ...?" first
 VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
 HANDS_FREE_WAIT_S = 30.0   # mini window: listen this long for the next request, then listen again
 MINI_AFTER = ("open_app", "new_email", "new_document", "new_tab", "open_latest_email")   # these bring another app forward
@@ -224,7 +227,8 @@ class _Targeted:
         if screen is not None:
             self._app.seen_screen(screen)
             turn = self._app.state.get("turn") or {}
-            found["_hide"] = hide_for(screen, turn.get("heard", ""), self._app.state["dictation"]["on"])
+            found["_hide"] = hide_for(screen, turn.get("heard", ""),
+                                      self._app.state["dictation"]["on"] or bool(self._app.state.get("writing")))
         return found
 
     def run(self, command: str, args: dict):
@@ -859,7 +863,8 @@ class App:
 
         self._requests.put(("hear", {"text": text, "source": source,
                                      "rehear": rehear if known is None else None,
-                                     "asr_ms": round(transcript.latency_ms), "hinted": hinted}))
+                                     "asr_ms": round(transcript.latency_ms), "hinted": hinted,
+                                     "logprob": transcript.avg_logprob}))
 
     # ---- test clips (TORGO recordings, as if spoken) -------------------------
 
@@ -1225,9 +1230,10 @@ class App:
                 return ActionResult(True, detail=f"Nothing was clicked in {app} (you said no).")
         return actions.press_item(chosen)
 
-    def _while_writing(self, heard: str) -> tuple[bool, str]:
-        """Writing mode (after "reply to this email", "new document"...): what is said is typed into that place as
-        dictation, never matched against phrases or guessed by the Brain. Except, recognised at once:
+    def _while_writing(self, heard: str, logprob=None, source: str = "speech") -> tuple[bool, str]:
+        """Writing mode (after "reply to this email", "new document"...): what is said is meant for that place,
+        not a command. It is understood as usual (phrases, Bonsai, "Did you mean...?" when unsure) and what is
+        confirmed is typed there as dictation. Recognised at once instead:
         "send" / "press send" (Mail), "done" / "stop writing", a command for the text ("new paragraph", "next box"),
         or a clear new command ("open Word", "close Mail"), which ends writing mode.
         Returns (handled, heard): heard may be replaced ("press send" -> "send the email") for the normal flow."""
@@ -1267,12 +1273,39 @@ class App:
         if open_app_match(heard, profile, apps) or close_app_match(heard, profile, apps):
             self._set(writing=None)
             return False, heard
-        item = self._type_sentence(heard)   # dictation (spoken punctuation, numbers checked first)
-        with self._lock:
-            turn = self.state["turn"]
-            turn["request"] = f"Write \u201c{heard.strip()}\u201d"
-            turn["items"].append(item)
-        return True, heard
+        # Text for the place being written in.
+        if self._free_text(heard):
+            # Clearly none of the phrases (measured, FREE_TEXT_NEAR): free dictation. Typed at once when it was
+            # heard clearly (or typed on the keyboard); otherwise checked first. Bonsai would only force it onto
+            # the nearest phrase ("I am doing good, thanks" -> "I feel I can play this weekend").
+            clear = source == "keyboard" or (logprob is not None and logprob >= CLEAR_LOGPROB)
+            if not clear:
+                from engine.session import Question
+                answer = self._ask(Question("yes_no", "did_you_mean", f"Did you mean: type {heard}?",
+                                            data={"choice": "type_text", "args": {"text": heard.strip()}}))
+                if answer is None or answer.kind != "yes":
+                    with self._lock:
+                        self.state["turn"]["items"].append({"type": "reply", "text": "Okay, nothing was typed. Say it again."})
+                    return True, heard
+            item = self._type_sentence(heard)
+            with self._lock:
+                self.state["turn"]["request"] = f"Type \u201c{heard.strip()}\u201d"
+                self.state["turn"]["items"].append(item)
+            return True, heard
+        # Near one of the phrases: understood as usual (instant match, Bonsai, "Did you mean...?" when unsure),
+        # then the phrase is typed there. (Bug: raw WhisperKit text was typed, e.g. "But humanity is overwhelming.")
+        return False, heard
+
+    def _free_text(self, heard: str) -> bool:
+        """Clearly not one of the person's phrases (nor what they were heard saying for one)."""
+        from rapidfuzz import fuzz
+        from repair.store import normalize
+        profile = self.session.profile
+        known = [normalize(p) for p in profile["phrases"]] + [normalize(e["heard"]) for e in profile.get("examples", [])
+                                                               if e["meant"] in profile["phrases"]]
+        known = [k for k in known if len(k.split()) >= 3]   # a one-word example ("Well...") matches anything
+        said = normalize(heard)
+        return bool(said) and all(fuzz.token_set_ratio(said, k) < FREE_TEXT_NEAR for k in known)
 
     def instead(self, command: str, why: str) -> None:
         """Something else is done than what was confirmed (e.g. opened, because speaking is off):
@@ -1402,7 +1435,7 @@ class App:
             self._finish_turn()
             return
         if self.state.get("writing"):
-            handled, heard = self._while_writing(heard)
+            handled, heard = self._while_writing(heard, request.get("logprob"), request["source"])
             if handled:
                 self._finish_turn()
                 return
@@ -1806,7 +1839,8 @@ class App:
         if kind == "speak" and event.get("kind_of") == "phrase" and self.session.conference:
             self._said_add(event["text"])        # the transcript shows it at once ("Preparing voice…")
             self.voice.next_in_background = True   # said while the 3 s undo window is open, so Undo can stop it
-        elif (kind == "speak" and event.get("kind_of") == "phrase" and self.state["dictation"]["on"]
+        elif (kind == "speak" and event.get("kind_of") == "phrase"
+              and (self.state["dictation"]["on"] or self.state.get("writing"))
                 and self.session.actions is not None):
             typed = self._type_sentence(event["text"])   # typed first, then read back
         if kind == "command_off":

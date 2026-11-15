@@ -604,7 +604,7 @@ function outcomeOf(c) {
   const dict = (S && S.dictation) || {};
   const app = shortApp(dict.app) || "the app";
   if ((c.say_aloud || c.guess) && S && S.mode === "conference") return "Saying it to the room";
-  if (c.say_aloud || c.guess) return dict.on ? `Typing into ${app}` : S && S.voice && S.voice.on ? "Saying it aloud" : "";   // speaking off: just "Yes"
+  if (c.say_aloud || c.guess) return dict.on || (S && S.writing) ? `Typing into ${app}` : S && S.voice && S.voice.on ? "Saying it aloud" : "";   // speaking off: just "Yes"
   if (c.allow === "Yes, do both") return "Doing both";
   if (c.body) return ing(c.body.replace(/[.!?]$/, ""));
   return "Going ahead";

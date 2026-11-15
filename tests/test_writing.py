@@ -98,10 +98,11 @@ for finish in ("press send", "send it", "done"):
     say(core, "reply to this email")
     check(f"[{finish}] a reply opened: writing mode, 'Writing your reply'", core.state["writing"], {"label": "your reply", "app": "Mail"})
     actions.done.clear()
-    cards = say(core, TYPED)
-    check(f"[{finish}] the sentence is typed into the reply (not guessed, no question)",
-          ([a.get("text") for c, a in actions.done if c == "type_text"], [c for c in cards if c != "window"]),
-          (["I am doing good, thanks. See you tomorrow. "], []))
+    cards = say(core, TYPED)   # free text (none of the phrases), not heard for sure: "Type ...?" first, then typed
+    check(f"[{finish}] free text: checked once ('Did you mean: Type ...'), then typed as said",
+          ([c for c in cards if c != "window"], [a.get("text") for c, a in actions.done if c == "type_text"]),
+          (["Did you mean\u2026?"], ["I am doing good, thanks. See you tomorrow. "]))
+    check(f"[{finish}]   ...not forced onto a phrase", core.state["history"][-1]["request"], f"Type \u201c{TYPED}\u201d")
     check(f"[{finish}]   ...still writing", bool(core.state["writing"]), True)
     actions.done.clear()
     cards = say(core, finish)
@@ -124,9 +125,15 @@ check("'new paragraph' while writing: the command, and writing goes on",
       ([c for c, _ in actions.done][-1:], bool(core.state["writing"])), (["new_paragraph"], True))
 say(core, "delete that")
 check("'delete that' removes the last sentence", [c for c, _ in actions.done][-1:], ["delete_text"])
-say(core, "mumble mumble wobble")   # a low-confidence sentence: still typed
-check("words the Brain wouldn't understand are still typed", [a.get("text") for c, a in actions.done if c == "type_text"][-1:],
-      ["Mumble mumble wobble "])
+before = len(actions.done)
+cards = say(core, "We can get a joke on the beach.")   # what WhisperKit heard for TORGO clip 2
+check("a garbled sentence is checked first ('Did you mean...?'), then the PHRASE is typed (bug: raw text was typed)",
+      ("Did you mean\u2026?" in cards, [a.get("text") for c, a in actions.done[before:] if c == "type_text"]),
+      (True, ["We gathered shells on the beach. "]))
+before = len(actions.done)
+say(core, "We can get a joke on the beach.")   # learned: now instant
+check("  ...the same words again: typed at once as the phrase",
+      [a.get("text") for c, a in actions.done[before:] if c == "type_text"], ["We gathered shells on the beach. "])
 say(core, "open Word")
 check("a clear new command ('open Word') ends writing and is done",
       (core.state["writing"], [c for c, _ in actions.done][-1:]), (None, ["open_app"]))
@@ -148,6 +155,17 @@ check("switching to another app by hand ends writing (Cowork follows the screen)
 core, actions, now = make()
 say(core, "open Mail")
 say(core, "reply to this email")
+before = len(actions.done)
+core._requests.put(("hear", {"text": "Thanks for letting me know.", "source": "microphone", "rehear": None, "asr_ms": 100,
+                             "logprob": -0.12}))   # heard clearly by WhisperKit
+wait_for(lambda: len(actions.done) > before)
+time.sleep(0.3)
+check("free text heard clearly: typed at once, no question",
+      ([a.get("text") for c, a in actions.done[before:] if c == "type_text"], core.state["question"]),
+      (["Thanks for letting me know. "], None))
+cards = say(core, "Lovely evening tonight", answer="no")
+check("  ...'no' to 'Type ...?': nothing typed, and it says so", core.state["history"][-1]["items"][-1].get("text"),
+      "Okay, nothing was typed. Say it again.")
 core.say("stop", source="speech")
 check("'stop' ends writing too", wait_for(lambda: core.state["writing"] is None), True)
 
