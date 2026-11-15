@@ -17,7 +17,7 @@
 | 0:00-0:10 | Cowork's start screen. Point at the Wi-Fi icon (off). | "My grandfather had Parkinson's. As his speech faded, his computer stopped understanding him. This is Cowork: it runs entirely on this Mac, Wi-Fi off." |
 | 0:10-0:20 | Click the mic, say "open Mail". Cowork opens Mail and shrinks to the small window in the corner. | "Open Mail." |
 | 0:20-0:30 | Say "open my latest email", then "reply to this email". The reply opens with the cursor in the message. | "It follows along in the corner, and never takes my keyboard." |
-| 0:30-0:40 | Say "open Word", then "new blank document". Then say "show Cowork" to bring the full window back. | "Open Word. New blank document." |
+| 0:30-0:40 | Say "open Word": Word opens with a new blank document, ready to write in. Then say "show Cowork" to bring the full window back. | "Open Word." |
 | 0:40-0:50 | Click the keyboard icon so dictation is on (green dot, Word). Press Cmd+1: clip 1 plays out loud and is typed into Word. | "Now the voice of a man with cerebral palsy, from the TORGO research recordings. WhisperKit heard 'But humanity is overwhelming'. Cowork typed what he meant." |
 | 0:50-1:05 | Press Cmd+2: "Did you mean: We gathered shells on the beach?" Raise your RIGHT hand and hold it until the bar fills. It is typed into Word. | "When it isn't sure, it asks. He can answer with a hand." |
 | 1:05-1:15 | Press Cmd+3 (the same recording again): typed at once, "Recognised instantly". | "It learned. Next time, no question at all." |
