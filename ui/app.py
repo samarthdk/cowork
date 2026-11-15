@@ -262,6 +262,8 @@ class App:
         self._requests: queue.Queue = queue.Queue()   # (kind, payload)
         self._answers: queue.Queue = queue.Queue()    # (question id, Answer)
         self._question = None                         # the open Question object
+        self._then: list = []                         # requests said along with an answer ("no, open Word"), handled next
+        self._drop = False                            # the person moved on: drop further questions in this request
         self._qid = 0
         self._last_level = 0.0
         self.state = {
@@ -486,14 +488,8 @@ class App:
         text = (text or "").strip()
         if not text:
             return "ignored"
-        question = self._question
-        if question is not None:
-            answer = from_text(text, question, source=source)
-            if answer is None:
-                self._notice(f"'{text}' doesn't answer the question on screen.")
-                return "ignored"
-            self._give(answer)
-            return "answer"
+        if self._question is not None:
+            return "answer" if self._answer_words(text, source) else "ignored"
         if self.ui_command(text, spoken=source == "speech"):
             return "ui"
         number = " ".join(text.lower().strip(" .!?").replace("number ", "").split())
@@ -509,6 +505,32 @@ class App:
             return "ignored"
         self._requests.put(("hear", {"text": text, "source": source, "rehear": None, "asr_ms": None}))
         return "request"
+
+    def _answer_words(self, text: str, source: str) -> bool:
+        """A sentence said or typed while a question is open (choose/reading.py): "No, I meant to say
+        open Word" answers No and then handles "open Word"; "Yes, then open Mail" confirms and then
+        opens Mail; "the second one" picks it; a clear new request drops the question. Otherwise the
+        question stays open and the screen says how to answer."""
+        from choose.reading import understand
+        question = self._question
+        if question is None:
+            return False
+        card = (self.state.get("question") or {}).get("card") or {}
+        shown = [o.get("text", "") for o in card.get("options") or []] or list(question.options)
+        reading = understand(text, question, shown=shown, body=card.get("body") or "",
+                             profile=self.session.profile, source=source)
+        if reading is None:
+            how = {"yes_no": "Say yes or no, or say what you want instead.",
+                   "choice": "Say a number (1 to 4) or an option's words, or say what you want instead.",
+                   "window": "Say no to undo it."}.get(question.kind, "")
+            self._notice(f"Heard \u201c{text}\u201d, which doesn't answer the question. {how}".strip())
+            return False
+        if reading.then:
+            self._then.append((reading.then, source))
+        if reading.drop:
+            self._drop = True
+        self._give(reading.answer)
+        return True
 
     def answer(self, kind: str, value=None, source: str = "screen") -> bool:
         """A direct answer (a button on the screen): kind yes/no/pick/none/text."""
@@ -687,12 +709,8 @@ class App:
             self._set(status="ready" if self._question is None else "asking")
             return
         if self._question is not None:
-            answer = from_text(text, self._question, source="speech")
-            if answer is None:
-                self._notice(f"Heard '{text}', which doesn't answer the question.")
-            else:
-                self._give(answer)
-            self._set(status="asking")
+            self._answer_words(text, "speech")
+            self._set(status="asking" if self._question is not None else self.state["status"])
             return
         if self.ui_command(text):
             self._set(status="ready")
@@ -1042,10 +1060,15 @@ class App:
                 elif kind == "quick":
                     self._quick_by_voice(payload["index"], payload["source"])
                 else:
+                    self._drop = False
                     self._run_turn(payload)
             except Exception as error:   # never crash in front of judges
                 self._question = None
                 self._notice(f"Something went wrong: {type(error).__name__}: {error}")
+            self._drop = False
+            then, self._then = self._then, []
+            for words, source in then:   # said along with an answer: the next request(s)
+                self._requests.put(("hear", {"text": words, "source": source, "rehear": None, "asr_ms": None}))
             self._set(status="ready", question=None, hold=None, attention=False, counts=self._counts())
             if self.session.conference and self.camera is not None:
                 self.camera.want(True)   # Conference mode: thumbs can pick a quick phrase at any time
@@ -1198,6 +1221,10 @@ class App:
 
     def _ask(self, question):
         """Show a question and wait for an answer from any input."""
+        if self._drop:   # the person already moved on to a new request ("no, open Word"): no more questions
+            return Answer("yes" if question.kind == "window" else "none", source="speech")
+        if self._then and question.kind == "window":   # "yes, then open Mail": keep it and move on at once
+            return Answer("yes", source="speech")
         while not self._answers.empty():   # answers given before this question was asked don't count
             self._answers.get_nowait()
         self._qid += 1
