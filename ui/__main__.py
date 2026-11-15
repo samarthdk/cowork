@@ -107,9 +107,14 @@ def main(argv=None) -> None:
             sys.exit(problem)
     if not base.exists():
         sys.exit(f"Missing {base}. Make it with:  .venv/bin/python scripts/make_cowork_profile.py")
+    stem = profile_path.stem
+    tasks_path = profile_path.with_name((stem.replace("profile", "tasks") if "profile" in stem else stem + "_tasks") + ".json")
     if options.fresh:
         backup = fresh_profile(profile_path, base)
         print("FRESH START" + (f" (old profile saved to {backup})" if backup else ""))
+        if tasks_path.exists():   # Recent tasks are cleared with the learning (kept in the backups folder)
+            config.PROFILE_BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+            tasks_path.replace(config.PROFILE_BACKUP_DIR / f"{tasks_path.stem}-{time.strftime('%Y%m%d-%H%M%S')}.json")
     profile = open_profile(profile_path, base)
 
     tts = get_tts()
@@ -120,7 +125,7 @@ def main(argv=None) -> None:
     actions = get_actions()
     backends = {"Speech in": config.ASR, "Brain": config.LLM, "Voice": config.TTS, "Mac actions": config.ACTIONS}
     core = App(profile, get_llm(), tts, asr=get_asr(), actions=actions, profile_path=profile_path,
-               backends=backends, warm=config.LLM == "real")
+               backends=backends, warm=config.LLM == "real", tasks_path=tasks_path)
     core.set_clips(load_clips(), CREDIT)
     core.watch_target()   # the dictation pill follows the app the person is working in
     if options.dictation:

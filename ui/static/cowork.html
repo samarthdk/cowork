@@ -66,6 +66,17 @@ svg { flex: none; }
 .recent[hidden] { display: none; }
 .recent li { padding: 6px 0; font: var(--label); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .recent li.now { color: var(--text); }
+.recent li { padding: 0; }
+.recent li.now { padding: 6px 0; }
+.recent .task { display: block; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 8px; padding: 6px 8px; margin-left: -8px;
+                font: var(--label); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-height: 36px; }
+.recent .task:hover, .recent .task[aria-current="true"] { background: var(--hover); color: var(--text); }
+.recent .when { font: var(--caption); margin-left: 6px; }
+.viewing { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 24px; }
+.viewing .what { flex: 1; min-width: 200px; }
+.viewing .what b { font-weight: 600; }
+.viewing button { min-height: var(--target); border-radius: 12px; padding: 0 18px; font-weight: 600; border: 1px solid var(--line-strong); background: transparent; }
+.viewing button.go { background: var(--white); color: var(--ink); border-color: var(--white); }
 .side .spacer { flex: 1; min-height: 12px; }
 .toggle-btn { display: flex; align-items: center; justify-content: center; width: 40px; min-height: 40px; flex: none;
               border: 0; border-radius: 10px; background: transparent; color: var(--muted); }
@@ -667,6 +678,16 @@ function turnHtml(t, isLast) {
   if (open && !(t.items || []).length) html += `<div class="note">${ICON.ear}<span>${S.status === "listening again" ? "Listening to the recording again…" : "Working out what you meant…"}</span></div>`;
   return html + "</div></div></div>";
 }
+function whenOf(t) {   // "3:42 PM" today, else "Nov 13, 3:42 PM"
+  const d = new Date(t * 1000), now = new Date();
+  const time = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return d.toDateString() === now.toDateString() ? time : `${d.toLocaleDateString([], { month: "short", day: "numeric" })}, ${time}`;
+}
+function viewHtml(v) {   // a saved task, read-only
+  return `<div class="card inner viewing" role="region" aria-label="Earlier task"><div class="what"><b>Earlier task</b>: ${esc(v.title)} <span class="caption">${whenOf(v.time)}, read-only</span></div>
+    <button class="go" data-task-continue="${esc(v.id)}">Continue this task</button><button data-task-close="1">Back</button></div>` +
+    (v.turns || []).map((t) => turnHtml(t, false)).join("");
+}
 function emptyHtml(s) {
   return `<div class="empty"><h1>What can I do for you?</h1><p>Say it in your own way. I'll check with you whenever I'm not sure, and you can answer by voice, hand, or keyboard.</p>
     <div class="ways"><span class="chip">“Open Notes”</span><span class="chip">“Type see you at noon”</span><span class="chip">⌘K Quick actions</span></div></div>`;
@@ -868,15 +889,18 @@ function render(s) {
   S = s;
   const turns = turnsOf(s);
   const conference = s.mode === "conference";
-  if (setHtml("convo", conference ? confHtml(s) : turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
+  const viewing = !conference && s.viewing;
+  if (setHtml("convo", conference ? confHtml(s) : viewing ? viewHtml(s.viewing) : turns.length ? turns.map((t, i) => turnHtml(t, i === turns.length - 1)).join("") : emptyHtml(s))) {
     document.querySelectorAll(".perm[data-qid]").forEach((el) => {   // the slide-in only the first time
       const qid = Number(el.dataset.qid);
       if (shownQids.has(qid)) el.classList.remove("fresh"); else shownQids.add(qid);
     });
   }
   applyHold(s);
-  $("recent").innerHTML = turns.slice().reverse().map((t, i) => `<li class="${i === 0 ? "now" : ""}">${esc(t.request || "“" + t.heard + "”")}</li>`).join("") || "<li>No tasks yet</li>";
-  $("recentCount").textContent = turns.length || "";
+  const tasks = s.tasks || [];
+  const current = turns.length ? `<li class="now">${esc(turns[0].request || "“" + turns[0].heard + "”")}<span class="when">now</span></li>` : "";
+  $("recent").innerHTML = (current + tasks.map((t) => `<li><button class="task" data-task="${esc(t.id)}"${s.viewing && s.viewing.id === t.id ? ' aria-current="true"' : ""} title="${esc(t.title)}">${esc(t.title)}<span class="when">${whenOf(t.time)}</span></button></li>`).join("")) || "<li>No tasks yet</li>";
+  $("recentCount").textContent = (tasks.length + (turns.length ? 1 : 0)) || "";
   renderRows(s);
   const dict = s.dictation || {};
   const where = shortApp(dict.app);
@@ -956,6 +980,9 @@ document.addEventListener("click", (e) => {
   if (b.id === "quickBtn") { openModal("quick"); return; }
   if (b.id === "recentBtn") { const open = $("recent").hidden; $("recent").hidden = !open; b.setAttribute("aria-expanded", open ? "true" : "false"); return; }
   if (b.dataset.close) { closeModal(); return; }
+  if (b.dataset.task) { post("/api/task", { action: "view", id: b.dataset.task }); return; }
+  if (b.dataset.taskContinue) { post("/api/task", { action: "continue", id: b.dataset.taskContinue }); return; }
+  if (b.dataset.taskClose) { post("/api/task", { action: "close" }); return; }
   if (b.dataset.view) { openModal(b.dataset.view); return; }
   if (b.dataset.voice !== undefined) { const on = b.dataset.voice === "on"; post("/api/voice", { on }).then((r) => { if (r && r.voice && S) S.voice = r.voice; if (modalView === "settings") renderModal(); }); return; }
   if (b.dataset.qa !== undefined) { chooseQuick(+b.dataset.qa); return; }

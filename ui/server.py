@@ -8,7 +8,8 @@ It only listens on this Mac (127.0.0.1); nothing is sent anywhere.
     POST /api/handsfree {"on": false}                 stop (or start) listening hands-free
     GET  /api/camera.jpg the newest camera preview frame (only while a question is open)
     POST /api/clip      {"id": "M04_2_0015"}    play a TORGO test clip as if it were said
-    POST /api/new       clear the conversation on screen (nothing learned is forgotten)
+    POST /api/new       save the conversation as a task (Recent tasks), then clear the screen
+    POST /api/task      {"action": "view"|"continue"|"close", "id": "..."}   a saved task: show it, carry on with it
     POST /api/ui        {"quick": true}  Quick Actions is open (speech filters it, thumbs pick from it)
     POST /api/dictation {"on": true}            type confirmed sentences into the app you were using
     POST /api/voice    {"on": true}             speak confirmations and read replies aloud (on by default)
@@ -105,6 +106,17 @@ def create_server(core: App) -> FastAPI:
         except (TypeError, ValueError):
             return {"ok": False}
         return {"ok": core.quick_phrase(index)}
+
+    @server.post("/api/task")
+    def task(body: dict = Body(...)):
+        action, task_id = body.get("action"), body.get("id")
+        if action == "view":
+            return {"ok": core.view_task(task_id)}
+        if action == "close":
+            return {"ok": core.view_task(None)}
+        if action == "continue":
+            return {"ok": core.continue_task(task_id)}
+        return {"ok": False}
 
     @server.post("/api/ui")
     def ui(body: dict = Body(...)):

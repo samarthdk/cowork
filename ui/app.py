@@ -21,6 +21,7 @@ import queue
 import subprocess
 import threading
 import time
+from pathlib import Path
 
 import config
 from choose.answers import Answer, from_signal, from_text, hint
@@ -38,6 +39,7 @@ HINT_MIN_SPEECH_S = 0.3   # a request with at least this much speech gets a seco
 HINT_MIN_LOGPROB = -0.5   # ...whose answer is kept only if WhisperKit was this sure. Measured on 16 TORGO
                           # clips + 2 real requests: invented answers scored -0.62 or lower, real ones -0.37 or higher
 HISTORY_MAX = 20           # finished requests kept on screen
+TASKS_MAX = 50             # saved conversations kept in Recent tasks
 VOICE_WAIT_S = 30.0        # longest wait for queued speech before speaking something new
 HANDS_FREE_WAIT_S = 30.0   # mini window: listen this long for the next request, then listen again
 MINI_AFTER = ("open_app", "new_email", "new_document", "new_tab", "open_latest_email")   # these bring another app forward
@@ -246,7 +248,7 @@ class _Targeted:
 
 class App:
     def __init__(self, profile, llm, tts, asr=None, actions=None, profile_path=None,
-                 backends=None, warm=False, question_wait_s=QUESTION_WAIT_S):
+                 backends=None, warm=False, question_wait_s=QUESTION_WAIT_S, tasks_path=None):
         self.asr, self.listener, self.camera = asr, None, None
         self.question_wait_s = question_wait_s
         self._continuous = False   # the Speak button keeps the microphone on until pressed again
@@ -261,6 +263,8 @@ class App:
         self._subscribers = []
         self._requests: queue.Queue = queue.Queue()   # (kind, payload)
         self._answers: queue.Queue = queue.Queue()    # (question id, Answer)
+        self.tasks_path = tasks_path                  # Recent tasks are kept here (None: not kept between runs)
+        self._tasks = []                              # saved conversations, newest first
         self._question = None                         # the open Question object
         self._then: list = []                         # requests said along with an answer ("no, open Word"), handled next
         self._drop = False                            # the person moved on: drop further questions in this request
@@ -294,7 +298,11 @@ class App:
             "metrics": {"memory": None, "system": None, "offline": None, "llm_tps": None},
             "notice": None,             # the last problem, in plain words
             "counts": self._counts(),
+            "tasks": [],                # Recent tasks: saved conversations (id, title, time, requests), newest first
+            "viewing": None,            # a saved task shown read-only (with "Continue this task")
         }
+        self._tasks = self._load_tasks()
+        self.state["tasks"] = self._task_list()
         self.window_hook = None       # set by ui/window.py: window_hook("mini" | "full") switches the real windows
         self._opened: list[str] = []  # apps Cowork opened by voice, oldest first (closing the last one: full size)
         self.refresh_catalog()
@@ -1077,6 +1085,7 @@ class App:
 
     def _run_turn(self, request: dict) -> None:
         with self._lock:
+            self.state["viewing"] = None   # a new request: back to the live conversation
             self._turns += 1
             self.state["turn"] = {"id": self._turns, "heard": request["text"], "source": request["source"],
                                   "asr_ms": request["asr_ms"], "meaning": None, "confidence": None,
@@ -1205,10 +1214,72 @@ class App:
             del self.state["history"][:-HISTORY_MAX]
 
     def new_task(self) -> None:
-        """Clear the conversation on screen (nothing learned is forgotten)."""
+        """Save the conversation on screen as a task (Recent tasks), then clear the screen.
+        Nothing learned is forgotten. An empty conversation is not saved."""
         if self.busy:
             return
-        self._set(history=[], turn=None)
+        self._save_task()
+        self._set(history=[], turn=None, viewing=None, tasks=self._task_list())
+
+    # ---- Recent tasks (saved conversations, kept in a local file) -------------------------------
+
+    def _load_tasks(self) -> list:
+        if self.tasks_path is None or not Path(self.tasks_path).exists():
+            return []
+        try:
+            return json.loads(Path(self.tasks_path).read_text())
+        except Exception:
+            return []
+
+    def _write_tasks(self) -> None:
+        if self.tasks_path is None:
+            return
+        path = Path(self.tasks_path)
+        temp = path.with_suffix(".tmp")
+        temp.write_text(json.dumps(self._tasks, ensure_ascii=False))
+        temp.replace(path)
+
+    def _task_list(self) -> list:
+        """What the sidebar shows: newest first, without the conversations themselves."""
+        return [{k: t[k] for k in ("id", "title", "time", "requests")} for t in self._tasks]
+
+    def _save_task(self) -> None:
+        with self._lock:
+            turns = copy.deepcopy(self.state["history"])
+        if not turns:
+            return   # empty conversations are not saved
+        first = turns[0]
+        title = first.get("request") or first.get("heard") or "Task"
+        task = {"id": f"{time.time():.3f}", "title": title, "time": first.get("started") or time.time(),
+                "requests": len(turns), "turns": turns}
+        self._tasks.insert(0, task)
+        del self._tasks[TASKS_MAX:]
+        self._write_tasks()
+
+    def view_task(self, task_id: str | None) -> bool:
+        """Show a saved task, read-only (None: back to the current conversation)."""
+        if task_id is None:
+            self._set(viewing=None)
+            return True
+        task = next((t for t in self._tasks if t["id"] == task_id), None)
+        if task is None:
+            return False
+        self._set(viewing=copy.deepcopy(task))
+        return True
+
+    def continue_task(self, task_id: str) -> bool:
+        """Carry on with a saved task: the current conversation is saved first, then the task's
+        conversation comes back on screen (and leaves the list until it is saved again)."""
+        if self.busy:
+            return False
+        task = next((t for t in self._tasks if t["id"] == task_id), None)
+        if task is None:
+            return False
+        self._save_task()
+        self._tasks = [t for t in self._tasks if t["id"] != task_id]
+        self._write_tasks()
+        self._set(history=task["turns"], turn=None, viewing=None, tasks=self._task_list())
+        return True
 
     def _card(self, shown: dict) -> dict:
         with self._lock:

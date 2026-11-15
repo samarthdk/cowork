@@ -23,3 +23,11 @@
   button" is not a yes). A sentence only counts as a new request when it starts with a request word (open, write,
   what...) or closely matches a phrase or command; otherwise the question stays open with a hint.
 - Test: `tests/test_sentence_answers.py` (49 checks, including the exact sentence in all three places).
+
+### Bug 2: Recent tasks lost past conversations (fixed)
+- Cause: "New task" only cleared the screen; the sidebar listed the current conversation's requests.
+- Fix: "New task" saves the conversation (named from its first request, with the time) into
+  `profiles/cowork_tasks.json` (gitignored; `fake_cowork_tasks.json` with --fake). Recent tasks lists them newest
+  first; clicking one shows it read-only with "Continue this task" and "Back". Empty conversations are not saved.
+  `--fresh` moves the tasks file into profiles/backups/ together with the learning.
+- Test: `tests/test_tasks.py` (18 checks, including a restart).

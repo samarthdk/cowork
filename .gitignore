@@ -30,3 +30,6 @@ profiles/fake_profile.json
 profiles/contacts.json
 profiles/cowork_profile.json
 profiles/fake_cowork_profile.json
+
+# Recent tasks (saved conversations; personal)
+profiles/*tasks*.json
